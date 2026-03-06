@@ -7,6 +7,7 @@ import pprint
 from geometry_msgs.msg import Twist
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 from irobot_create_msgs.action import LedAnimation
+from std_msgs.msg import Float32
 
 TIMEOUT = 0.8 # timeout for action servers
 DEFAULT_WAIT = 3 # delay in receiving command
@@ -96,3 +97,38 @@ class RobotPublishTopics():
     
     audio_note = AudioNoteVector()
     last_audio_note = AudioNoteVector()
+
+class Lidar():
+    """Stores rpi lidar values."""
+    angle_min: float = 0.0 # start angle of scan
+    angle_max: float = 0.0 # end angle of scan
+    angle_increment: float = 0.0 # angular distance between measurements
+    range_min: float = 0.0 # minimum range value
+    range_max: float = 0.0 # maximum range value
+    time_increment: float = 0.0 # rime between measurements
+    scan_time: float = 0.0 # time between scans
+    ranges: list[float] = []
+
+    def __str__(self):
+        return pprint.pformat(self, indent = 4, width = 80)
+
+class Ultrasonic():
+    """Stores rpi ultrasonic sensor values."""
+    field_of_view: float = 0.0
+    min_range: float = 0.0
+    max_range: float = 0.0
+    range: float = 0.0
+
+    def __str__(self):
+        return pprint.pformat(self, indent = 4, width = 80)
+
+class RpiSubscribeTopics():
+    """Holds all rpi subscribed topics."""
+    lidar = Lidar()
+    ultrasonic = Ultrasonic()
+    servo_angle = 90.0
+    
+class RpiPublishTopics():
+    """Holds all rpi published topics."""
+    servo = Float32()
+    last_servo = Float32()

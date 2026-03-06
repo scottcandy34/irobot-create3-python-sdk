@@ -6,10 +6,11 @@
 from typing import TYPE_CHECKING
 
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector, LedColor
 
-from ..threading import RobotThreading
+from ..threading import RobotThreading, RpiThreading
 
 pub_qos_profile = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -111,3 +112,23 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
             self._audio.publish(self._publish.audio_note)
             
         self._publish.last_audio_note = self._publish.audio_note
+
+class RpiPublishers(RpiThreading if TYPE_CHECKING else object):
+    """Publish to ROS topics by sending messages."""
+    def __init__(self, node):
+        super().__init__(node) # trigger original code before it gets overwritten
+
+        # Create Publishers
+        self._servo = self.node.create_publisher(Float32, 'servo_angle', pub_qos_profile, callback_group=self._otherCbGroup)
+
+    def servo_angle(self, angle: float | int):
+        servo_msg = Float32()
+        servo_msg.data = angle * 1.0 # Make sure angle is a float
+
+        self._publish.servo = servo_msg
+
+    def _publishHandler(self):
+        if self._publish.servo != self._publish.last_servo:
+            self._servo.publish(self._publish.servo)
+        
+        self._publish.last_servo = self._publish.servo

@@ -14,7 +14,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from .tools import RosTools
-from .objects import RobotSubscribeTopics, RobotPublishTopics
+from .objects import RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics
 
 init(autoreset=True)
 
@@ -144,3 +144,18 @@ class RobotThreading(_Threading):
     def _setWheelSpeedHandler(self):
         """Loop for setting wheel speeds Constantly every 0.5 sec"""
         pass
+
+class RpiThreading(_Threading):
+    """Spin up ROS node using multithreading."""
+    def __init__(self, node: Node):
+        super().__init__(node) # trigger original code before it gets overwritten
+        self.node._logger.name = "Raspberry Pi"
+
+        # Hidden global callback information
+        self._subscribe = RpiSubscribeTopics()
+        
+        # Hidden global publish information
+        self._publish = RpiPublishTopics()
+        
+        # Declare Tools
+        self.tools = RosTools.rpi

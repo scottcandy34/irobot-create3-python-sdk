@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import BatteryState, Imu
+from sensor_msgs.msg import BatteryState, Imu, LaserScan, Range
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
-from ..threading import RobotThreading
+from ..threading import RobotThreading, RpiThreading
 from ..objects import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, ROUNDING_VALUE
 
 sub_qos_profile = QoSProfile(
@@ -175,3 +175,31 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
                 self._subscribe.dockingValues.redBuoy = True
                 self._subscribe.dockingValues.greenBuoy = True
                 self._subscribe.dockingValues.forceField = True
+
+class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
+    """Subscribe to ROS topics and handle the messages."""
+    def __init__(self, node):
+        super().__init__(node) # trigger original code before it gets overwritten
+
+        # Create Subscription
+        self.node.create_subscription(LaserScan, 'scan', self._lidar_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        self.node.create_subscription(Range, 'range', self._ultrasonic_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+
+    def _lidar_callback(self, msg: LaserScan):
+        if msg.ranges:
+            self._subscribe.lidar.ranges = [(scan * 100 if isinstance(scan, float) else None) for scan in msg.ranges]
+            self._subscribe.lidar.scan_time = msg.scan_time
+            
+            self._subscribe.lidar.angle_max = math.degrees(msg.angle_max)
+            self._subscribe.lidar.angle_min = math.degrees(msg.angle_min)
+            self._subscribe.lidar.angle_increment = math.degrees(msg.angle_increment)
+            
+            self._subscribe.lidar.range_max = msg.range_max * 100
+            self._subscribe.lidar.range_min = msg.range_min * 100
+            self._subscribe.lidar.time_increment = msg.time_increment
+            
+    def _ultrasonic_callback(self, msg: Range):
+        self._subscribe.ultrasonic.field_of_view = msg.field_of_view
+        self._subscribe.ultrasonic.max_range = msg.max_range * 100
+        self._subscribe.ultrasonic.min_range = msg.min_range * 100
+        self._subscribe.ultrasonic.range = msg.range * 100

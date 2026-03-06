@@ -199,9 +199,35 @@ class _robotTools:
         
         return x, y, z, w
 
+class _lidarTools:
+    def getMotionLightring(self, lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[LedColor]:
+        """Returns a list of LEDs that are highlighted based on Lidar scans."""
+        
+        ledtools = _ledTools()
+        if lidar_scans and min(lidar_scans) < 35:
+            scans = lidar_scans
+            rotation = scans.index(min(scans)) / len(scans) # Returns percentage between 0.0 to 1.
+            
+            if red is not None and green is not None and blue is not None:
+                led = LedColor(red=red, green=green, blue=blue)
+            else:
+                led = ledtools.getHuePercentage(rotation)
+            
+            lightring = []
+            for i in range(6):
+                lightring += [ledtools.adjustRotationBrightness(led, rotation, _robotValues().getLedAngle(i))]
+                
+            return lightring
+            
+        return None
+    
+class _rpiTools:
+    lidar = _lidarTools()
+
 class RosTools:
     """Full list of useful tools for the Create3 robot."""
     robot = _robotTools()
+    rpi = _rpiTools()
 
     def objectTOString(obj) -> str:
         """Returns a pretty string with the object data"""
