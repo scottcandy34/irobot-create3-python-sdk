@@ -1,5 +1,5 @@
 #
-# ROS Topic Publisher Examples for iRobot Create3 - Jazzy
+# ROS Service Examples for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from irobot_create_msgs.srv import ResetPose
 
-from ..objects import TIMEOUT, DEFAULT_WAIT
+from ..models import TIMEOUT, DEFAULT_WAIT
 from ..threading import RobotThreading
 
 class RobotServices(RobotThreading if TYPE_CHECKING else object):

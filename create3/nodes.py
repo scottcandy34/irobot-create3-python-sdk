@@ -5,10 +5,7 @@
 
 from .rclpy import rclpy
 from .debugger import RclpyDebugger
-from .interfaces.actions import RobotActionClients
-from .interfaces.services import RobotServices
-from .interfaces.publishers import RobotPublishers, RpiPublishers, PcPublishers
-from .interfaces.subscriptions import RobotSubscriptions, RpiSubscriptions, PcSubscriptions
+from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RpiPublishers, PcPublishers, RobotSubscriptions, RpiSubscriptions, PcSubscriptions
 from .threading import RobotThreading, RpiThreading, PcThreading
 
 debugger = RclpyDebugger()

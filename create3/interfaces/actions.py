@@ -14,7 +14,7 @@ from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistanc
 from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
 
 from ..threading import RobotThreading
-from ..objects import TIMEOUT, DEFAULT_WAIT
+from ..models import TIMEOUT, DEFAULT_WAIT
 
 class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
     """Setup ROS action clients, and handle goals."""

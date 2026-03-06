@@ -8,7 +8,7 @@ import math, pprint, colorsys, random
 from geometry_msgs.msg import Twist
 from irobot_create_msgs.msg import LedColor
 
-from .objects import Position
+from .models import Position
 
 class _robotValues:
     wheelDistanceApart = 23.5 # cm

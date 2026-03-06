@@ -12,7 +12,7 @@ from sensor_msgs.msg import BatteryState, Imu, LaserScan, Range, Joy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
 from ..threading import RobotThreading, RpiThreading, PcThreading
-from ..objects import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, Controller, ROUNDING_VALUE
+from ..models import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, Controller, ROUNDING_VALUE
 
 sub_qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,

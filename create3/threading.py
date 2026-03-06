@@ -14,7 +14,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from .tools import RosTools
-from .objects import Debug, RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics, PcSubscribeTopics, PcPublishTopics
+from .models import Debug, SubscriberTopics, PublisherTopics
 
 init(autoreset=True)
 
@@ -132,10 +132,10 @@ class RobotThreading(_Threading):
         self.node._logger.name = "Create3"
 
         # Hidden global callback information
-        self._subscribe = RobotSubscribeTopics()
+        self._subscribe = SubscriberTopics().robot
         
         # Hidden global publish information
-        self._publish = RobotPublishTopics()
+        self._publish = PublisherTopics().robot
         
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         setWheelSpeedCbGroup = MutuallyExclusiveCallbackGroup()
@@ -161,10 +161,10 @@ class RpiThreading(_Threading):
         self.node._logger.name = "Raspberry Pi"
 
         # Hidden global callback information
-        self._subscribe = RpiSubscribeTopics()
+        self._subscribe = SubscriberTopics().rpi
         
         # Hidden global publish information
-        self._publish = RpiPublishTopics()
+        self._publish = PublisherTopics().rpi
         
         # Declare Tools
         self.tools = RosTools.rpi
@@ -176,10 +176,10 @@ class PcThreading(_Threading):
         self.node._logger.name = "Remote PC"
 
         # Hidden global callback information
-        self._subscribe = PcSubscribeTopics()
+        self._subscribe = SubscriberTopics().pc
         
         # Hidden global publish information
-        self._publish = PcPublishTopics()
+        self._publish = PublisherTopics().pc
 
         # Declare Tools
         self.tools = RosTools.pc

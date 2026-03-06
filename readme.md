@@ -20,8 +20,8 @@ The code is structured as a modular library that can be imported into your ROS2 
 ## Prerequisites
 - iRobot Create3 robot with ROS2 firmware installed.
 - Ubuntu (or compatible Linux) with ROS2 Jazzy installed.
-- Optional: Raspberry Pi attached to the Create3 for additional sensors (e.g., lidar).
-- Optional: PS controller for remote PC input.
+- **Optional:** Raspberry Pi attached to the Create3 for additional sensors (e.g., lidar).
+- **Optional:** PS controller for remote PC input.
 
 ## Setup for iRobot Create3
 Before using this library, set up your iRobot Create3 robot with ROS2. Follow the official iRobot Create3 documentation for hardware setup, firmware installation, and ROS2 configuration:
@@ -52,7 +52,7 @@ This library is designed to replace your ROS2 packages. Here's a basic example t
 1. **Import the Library:**
   	Create a Python script (e.g., my_robot_node.py):
 	```python
-	from create3.nodes import RobotNode  # Adjust import path as needed
+	from create3.nodes import RobotNode
 	from create3.music import Note
 
 	# Initialize the Robot Node
