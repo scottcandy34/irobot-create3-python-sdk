@@ -8,9 +8,10 @@ from typing import TYPE_CHECKING
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import JoyFeedbackArray, JoyFeedback
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector, LedColor
 
-from ..threading import RobotThreading, RpiThreading
+from ..threading import RobotThreading, RpiThreading, PcThreading
 
 pub_qos_profile = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -132,3 +133,39 @@ class RpiPublishers(RpiThreading if TYPE_CHECKING else object):
             self._servo.publish(self._publish.servo)
         
         self._publish.last_servo = self._publish.servo
+
+class PcPublishers(PcThreading if TYPE_CHECKING else object):
+    """Publish to ROS topics by sending messages."""
+    def __init__(self, node):
+        super().__init__(node) # trigger original code before it gets overwritten
+
+        # Create Publishers
+        self._joy_feedback = self.node.create_publisher(JoyFeedbackArray, 'joy/set_feedback', pub_qos_profile, callback_group=self._otherCbGroup)
+
+    def _publishHandler(self):
+        if self._publish.rumble_enable and self._publish.rumble_running:
+            feedback_array = JoyFeedbackArray()
+            feedback = JoyFeedback()
+            feedback.type = JoyFeedback.TYPE_RUMBLE
+            feedback.id = 0  # find by  fftest /dev/input/event4
+
+            def start():
+                self._publish.rumble_running = True
+                feedback.intensity = 1.0
+                feedback_array.array = [feedback]
+                self._joy_feedback.publish(feedback_array)
+
+            def stop():
+                self._publish.rumble_running = False
+                feedback.intensity = 0.0
+                feedback_array.array = [feedback]
+                self._joy_feedback.publish(feedback_array)
+                self._publish.rumble_running = False
+
+            start()
+            self.delay_callback(0.5, stop)
+            self._publish.rumble_enable = False
+
+
+    def controller_rumble(self):
+        self._publish.rumble_enable = True

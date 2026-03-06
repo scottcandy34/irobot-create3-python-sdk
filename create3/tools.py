@@ -5,6 +5,7 @@
 
 import math, pprint, colorsys, random
 
+from geometry_msgs.msg import Twist
 from irobot_create_msgs.msg import LedColor
 
 from .objects import Position
@@ -358,10 +359,28 @@ class _lidarTools:
 class _rpiTools:
     lidar = _lidarTools()
 
+class _pcTools:
+    def getJoyTwist(self, x: float, y: float):
+        twist = Twist()
+        x = x * -1  # inverses X axis direction to -->
+        if y:
+            xc = x * math.sqrt(1 - (1/2 * y**2))  # Map square to circle and find X
+            yc = y * math.sqrt(1 - (1/2 * x**2))  # Map square to circle and find Y
+            # find_radius * robot_speed_in_meters * forward/reverse_+/-
+            twist.linear.x = math.sqrt(xc**2 + yc**2) * (_robotValues.maxSpeed / 100) * (y / abs(y))  # m/s
+
+        if x:
+            k = (4 * _robotValues.maxSpeed) / (math.pi * _robotValues.wheelDistanceApart)  # % different
+            # (find_angle - Move_by_quater_circle) * k * left/right_+/-
+            twist.angular.z = (math.atan(abs(1 / x)) - (math.pi / 2)) * k * (x / abs(x))  # rad/s
+
+        return twist
+
 class RosTools:
     """Full list of useful tools for the Create3 robot."""
     robot = _robotTools()
     rpi = _rpiTools()
+    pc = _pcTools()
 
     def objectTOString(obj) -> str:
         """Returns a pretty string with the object data"""

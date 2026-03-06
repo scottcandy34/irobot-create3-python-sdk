@@ -132,3 +132,46 @@ class RpiPublishTopics():
     """Holds all rpi published topics."""
     servo = Float32()
     last_servo = Float32()
+    
+class Joystick():
+    horizontal: float = 0.0
+    vertical: float = 0.0
+    button: bool = False
+
+class Dpad():
+    left: bool = False
+    right: bool = False
+    up: bool = False
+    down: bool = False
+
+class Buttons():
+    x: bool = False
+    circle: bool = False
+    triangle: bool = False
+    square: bool = False
+    l1: bool = False
+    r1: bool = False
+    share: bool = False
+    options: bool = False
+    ps: bool = False
+
+class Controller():
+    """Stores ps controller button pressed values."""
+    left_joy = Joystick()
+    left_trigger: float = 0.0
+    right_joy = Joystick()
+    right_trigger: float = 0.0
+    dpad = Dpad()
+    buttons = Buttons()
+
+    def __str__(self):
+        return pprint.pformat(self, indent = 4, width = 80)
+
+class PcSubscribeTopics():
+    """Holds all pc subscribed topics."""
+    controller = Controller()
+
+class PcPublishTopics():
+    """Holds all pc published topics."""
+    rumble_enable: bool = False
+    rumble_running: bool = False

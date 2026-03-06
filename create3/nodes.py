@@ -6,9 +6,9 @@
 from .rclpy import rclpy
 from .interfaces.actions import RobotActionClients
 from .interfaces.services import RobotServices
-from .interfaces.publishers import RobotPublishers, RpiPublishers
-from .interfaces.subscriptions import RobotSubscriptions, RpiSubscriptions
-from .threading import RobotThreading, RpiThreading
+from .interfaces.publishers import RobotPublishers, RpiPublishers, PcPublishers
+from .interfaces.subscriptions import RobotSubscriptions, RpiSubscriptions, PcSubscriptions
+from .threading import RobotThreading, RpiThreading, PcThreading
 
 class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscriptions, RobotThreading):
     """Setup Robot node with multithreading, subscriptions, publishers, services and actions."""
@@ -36,6 +36,22 @@ class RpiNode(RpiPublishers, RpiSubscriptions, RpiThreading):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('rpi_ros_examples')
+
+        super().__init__(node) # trigger original code before it gets overwritten
+
+        # Start the Threading/Spinning
+        self.start()
+
+    def shutdown(self):
+        super().shutdown() # trigger original code before it gets overwritten
+        rclpy.shutdown()
+
+class PcNode(PcPublishers, PcSubscriptions, PcThreading):
+    """Setup PC node with multithreading, subscriptions, publishers."""
+    def __init__(self):
+        # Initialize ROS2 node
+        rclpy.init()
+        node = rclpy.create_node('pc_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
 

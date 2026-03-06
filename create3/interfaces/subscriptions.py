@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import BatteryState, Imu, LaserScan, Range
+from sensor_msgs.msg import BatteryState, Imu, LaserScan, Range, Joy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
-from ..threading import RobotThreading, RpiThreading
-from ..objects import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, ROUNDING_VALUE
+from ..threading import RobotThreading, RpiThreading, PcThreading
+from ..objects import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, Controller, ROUNDING_VALUE
 
 sub_qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
@@ -203,3 +203,43 @@ class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
         self._subscribe.ultrasonic.max_range = msg.max_range * 100
         self._subscribe.ultrasonic.min_range = msg.min_range * 100
         self._subscribe.ultrasonic.range = msg.range * 100
+
+class PcSubscriptions(PcThreading if TYPE_CHECKING else object):
+    """Subscribe to ROS topics and handle the messages."""
+    def __init__(self, node):
+        super().__init__(node) # trigger original code before it gets overwritten
+
+        # Create Subscription
+        self.node.create_subscription(Joy, 'joy', self._joy_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+
+    def _joy_callback(self, msg: Joy):
+        joy_axes = msg.axes
+        joy_buttons = msg.buttons
+
+        controller = Controller()
+        
+        controller.left_joy.horizontal = joy_axes[0]
+        controller.left_joy.vertical = joy_axes[1]
+        controller.left_trigger = joy_axes[2]
+        controller.right_joy.horizontal = joy_axes[3]
+        controller.right_joy.vertical = joy_axes[4]
+        controller.right_trigger = joy_axes[5]
+        controller.dpad.left = joy_axes[6] > 0
+        controller.dpad.right = joy_axes[6] < 0
+        controller.dpad.up = joy_axes[7] > 0
+        controller.dpad.down = joy_axes[7] < 0
+
+        controller.buttons.x = joy_buttons[0] == 1
+        controller.buttons.circle = joy_buttons[1] == 1
+        controller.buttons.triangle = joy_buttons[2] == 1
+        controller.buttons.square = joy_buttons[3] == 1
+        controller.buttons.l1 = joy_buttons[4] == 1
+        controller.buttons.r1 = joy_buttons[5] == 1
+        # button 6 and 7 are also the left and right triggers but since it gets info from axes. its not used
+        controller.buttons.share = joy_buttons[8] == 1
+        controller.buttons.options = joy_buttons[9] == 1
+        controller.buttons.ps = joy_buttons[10] == 1
+        controller.left_joy.button = joy_buttons[11] == 1
+        controller.right_joy.button = joy_buttons[12] == 1
+
+        self._subscribe.controller = controller

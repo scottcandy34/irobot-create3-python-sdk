@@ -14,7 +14,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from .tools import RosTools
-from .objects import RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics
+from .objects import RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics, PcSubscribeTopics, PcPublishTopics
 
 init(autoreset=True)
 
@@ -159,3 +159,19 @@ class RpiThreading(_Threading):
         
         # Declare Tools
         self.tools = RosTools.rpi
+
+class PcThreading(_Threading):
+    """Spin up ROS node using multithreading."""
+    def __init__(self, node: Node):
+        super().__init__(node) # trigger original code before it gets overwritten
+        self.node._logger.name = "Remote PC"
+
+        # Hidden global callback information
+        self._subscribe = PcSubscribeTopics()
+        
+        # Hidden global publish information
+        self._publish = PcPublishTopics()
+
+        # Declare Tools
+        self.tools = RosTools.pc
+        
