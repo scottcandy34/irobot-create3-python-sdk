@@ -147,6 +147,9 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
 
         self._subscribe.battery = battery.percentage * 100 # convert to percentage
         
+        if self._subscribe.battery <= 10.0:
+            self.print_warning(f"Battery low: {self._subscribe.battery}% remaining.")
+        
     def _imu_callback(self, imu: Imu):
         self.update_uptime('/imu')
 
