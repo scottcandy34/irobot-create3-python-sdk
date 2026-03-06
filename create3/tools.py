@@ -3,9 +3,11 @@
 # Created by scottcandy34
 #
 
-import math, pprint, colorsys
+import math, pprint, colorsys, random
 
 from irobot_create_msgs.msg import LedColor
+
+from .objects import Position
 
 class _robotValues:
     wheelDistanceApart = 23.5 # cm
@@ -199,7 +201,79 @@ class _robotTools:
         
         return x, y, z, w
 
+class _lineCalculations:
+    def fit_line(self, points: list[tuple[float, float]]) -> tuple[float, float]:
+        """Fit a line y = mx + b to the points using least squares."""
+        x = [p[0] for p in points]
+        y = [p[1] for p in points]
+        n = len(points)
+        sum_x = sum(x)
+        sum_y = sum(y)
+        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
+        sum_xx = sum(xi * xi for xi in x)
+        denominator = n * sum_xx - sum_x**2
+        if abs(denominator) < 1e-10:
+            raise ValueError("Vertical line detected")
+        m = (n * sum_xy - sum_x * sum_y) / denominator
+        b = (sum_y - m * sum_x) / n
+        return m, b
+    
+    def distance_to_line(self, point: tuple[float, float], m: float, b: float):
+        """Calculate the perpendicular distance from point to the line y = mx + b."""
+        x, y = point
+        return abs(y - (m * x + b)) / math.sqrt(1 + m**2)
+    
+    def project_point(self, point: tuple[float, float], m: float, b: float) -> tuple[float, float]:
+        """Project point onto the line y = mx + b."""
+        x, y = point
+        denominator = 1 + m**2
+        x_proj = (x + m * y - m * b) / denominator
+        y_proj = (m * x + m**2 * y + b) / denominator
+        return x_proj, y_proj
+    
+    def find_segments(self, inliers: list[tuple[float, float]], m: float, b: float, max_gap: int, min_points=2) -> list[tuple[float, float]]:
+        """Find contiguous segments of inliers along the line, excluding segments with fewer than min_points."""
+        if not inliers:
+            return []
+        
+        # Project inliers onto the line
+        projections = [self.project_point(point, m, b) for point in inliers]
+        
+        # Sort projections along the line direction
+        direction = (1, m)
+        norm = math.sqrt(1 + m**2)
+        direction = (1 / norm, m / norm)
+        positions = [point[0] * direction[0] + point[1] * direction[1] for point in projections]
+        sorted_indices = sorted(range(len(positions)), key=lambda i: positions[i])
+        sorted_points = [inliers[i] for i in sorted_indices]
+        sorted_positions = [positions[i] for i in sorted_indices]
+        
+        segments: list[tuple[float, float]] = []
+        current_segment = [sorted_points[0]]
+        for i in range(1, len(sorted_points)):
+            if sorted_positions[i] - sorted_positions[i-1] <= max_gap:
+                current_segment.append(sorted_points[i])
+            else:
+                if len(current_segment) >= min_points:
+                    segments.append(current_segment)
+                current_segment = [sorted_points[i]]
+        if len(current_segment) >= min_points:
+            segments.append(current_segment)
+        
+        return segments
+
+    def calculate_segment_length(self, segment: tuple[float, float], m: float, b: float) -> float:
+        """Calculate the length of the segment along the line."""
+        if len(segment) < 2:
+            return 0.0
+        projections = [self.project_point(point, m, b) for point in segment]
+        positions = [p[0] * (1 / math.sqrt(1 + m**2)) + p[1] * (m / math.sqrt(1 + m**2)) for p in projections]
+        length = max(positions) - min(positions)
+        return length
+
 class _lidarTools:
+    line = _lineCalculations()
+
     def getMotionLightring(self, lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[LedColor]:
         """Returns a list of LEDs that are highlighted based on Lidar scans."""
         
@@ -221,6 +295,66 @@ class _lidarTools:
             
         return None
     
+    def getCoords(self, lidar_scans: list[float], index: int, angle_increment: float, robot_position: Position) -> tuple[float, float]:
+        """Returns a coordinates for an individual laser scan."""
+        distance = lidar_scans[index]
+        if math.isinf(distance):
+            return None
+        angle = angle_increment * index
+        x = -distance * math.cos(angle) + robot_position.x
+        y = distance * math.sin(angle) + robot_position.y
+        return (x, y)
+    
+    def find_lines_and_segments(self, points: list[tuple[float, float]], max_iterations=100, distance_threshold=1, min_inliers=30, max_gap=5, min_points_per_segment=30) -> list[tuple[float, tuple[float, float], tuple[float, float]]]:
+        """
+        Find lines and their segments in a set of 2D points using RANSAC, returning x-limits for each segment.
+        
+        Args:
+            points: List of (x, y) tuples.
+            max_iterations: Maximum RANSAC iterations per line.
+            distance_threshold: Max distance from line for a point to be an inlier.
+            min_inliers: Minimum number of inliers to accept a line.
+            max_gap: Maximum gap between points along the line to be in the same segment.
+            min_points_per_segment: Minimum number of points required to form a segment.
+        
+        Returns:
+            List of tuples: (segment length, (slope m, intercept b), (xmin, xmax))
+        """
+        remaining_points = points.copy()
+        results = []
+        
+        while len(remaining_points) >= min_inliers:
+            best_inliers = []
+            for _ in range(max_iterations):
+                p1, p2 = random.sample(remaining_points, 2)
+                try:
+                    m, b = self.line.fit_line([p1, p2])
+                    inliers = [point for point in remaining_points if self.line.distance_to_line(point, m, b) < distance_threshold]
+                    if len(inliers) > len(best_inliers):
+                        best_inliers = inliers
+                except ValueError:
+                    continue
+            
+            if len(best_inliers) < min_inliers:
+                break
+            
+            m, b = self.line.fit_line(best_inliers)
+            segments = self.line.find_segments(best_inliers, m, b, max_gap, min_points=min_points_per_segment)
+            
+            for segment in segments:
+                if len(segment) >= min_points_per_segment:
+                    # Project the first and last points onto the line
+                    proj_first = self.line.project_point(segment[0], m, b)
+                    proj_last = self.line.project_point(segment[-1], m, b)
+                    xmin = proj_first[0]
+                    xmax = proj_last[0]
+                    length = self.line.calculate_segment_length(segment, m, b)
+                    results.append((length, (m, b), (xmin, xmax)))
+            
+            remaining_points = [point for point in remaining_points if point not in best_inliers]
+        
+        return results
+
 class _rpiTools:
     lidar = _lidarTools()
 
