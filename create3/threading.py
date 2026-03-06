@@ -14,13 +14,15 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from .tools import RosTools
-from .objects import RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics, PcSubscribeTopics, PcPublishTopics
+from .objects import Debug, RobotSubscribeTopics, RobotPublishTopics, RpiSubscribeTopics, RpiPublishTopics, PcSubscribeTopics, PcPublishTopics
 
 init(autoreset=True)
 
 class _Threading():
     def __init__(self, node: Node):
         self.node = node
+
+        self.debug = Debug()
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         publishCbGroup = MutuallyExclusiveCallbackGroup()
@@ -57,6 +59,13 @@ class _Threading():
     def get_name(self):
         """Returns the Node name."""
         return self.node.get_name()
+
+    def update_uptime(self, topic_name: str):
+        """Updates the timestamps for each subscription callback."""
+        if not topic_name in self.debug.uptime:
+            self.debug.uptime[topic_name] = [0, 0]
+        self.debug.uptime[topic_name][1] = int(1 / ((self.time() - self.debug.uptime.get(topic_name, 0)[0]) / 1000000000))
+        self.debug.uptime[topic_name][0] = self.time()
 
     def start(self):
         """Spin up ROS on single thread"""

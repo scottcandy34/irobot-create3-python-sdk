@@ -17,8 +17,11 @@ class RobotServices(RobotThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Service Clients
-        self._reset_pose = self.node.create_client(ResetPose, 'reset_pose', callback_group=self._actionCbGroup)
+        self._reset_pose = reset_pose = self.node.create_client(ResetPose, 'reset_pose', callback_group=self._actionCbGroup)
         self._reset_pose.wait_for_service(TIMEOUT)
+
+        # Add services to debugger
+        self.debug.services = [reset_pose]
 
     def reset_navigation(self):
         """Request that the robot resets position and heading."""

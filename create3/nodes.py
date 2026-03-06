@@ -4,11 +4,14 @@
 #
 
 from .rclpy import rclpy
+from .debugger import RclpyDebugger
 from .interfaces.actions import RobotActionClients
 from .interfaces.services import RobotServices
 from .interfaces.publishers import RobotPublishers, RpiPublishers, PcPublishers
 from .interfaces.subscriptions import RobotSubscriptions, RpiSubscriptions, PcSubscriptions
 from .threading import RobotThreading, RpiThreading, PcThreading
+
+debugger = RclpyDebugger()
 
 class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscriptions, RobotThreading):
     """Setup Robot node with multithreading, subscriptions, publishers, services and actions."""
@@ -22,11 +25,15 @@ class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscri
 
         # Start the Threading/Spinning
         self.start()
+        
+        # Add node to Debugger
+        debugger.add_device(self)
 
         # Reset the robot position to 0, 0, 0
         self.reset_navigation()
 
     def shutdown(self):
+        debugger.stop(self) # stops debugger watching node
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
@@ -42,7 +49,11 @@ class RpiNode(RpiPublishers, RpiSubscriptions, RpiThreading):
         # Start the Threading/Spinning
         self.start()
 
+        # Add node to Debugger
+        debugger.add_device(self)
+
     def shutdown(self):
+        debugger.stop(self) # stops debugger watching node
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
@@ -58,6 +69,10 @@ class PcNode(PcPublishers, PcSubscriptions, PcThreading):
         # Start the Threading/Spinning
         self.start()
 
+        # Add node to Debugger
+        debugger.add_device(self)
+
     def shutdown(self):
+        debugger.stop(self) # stops debugger watching node
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()

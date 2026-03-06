@@ -27,14 +27,17 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self.node.create_subscription(Odometry, 'odom', self._odom_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(BatteryState, 'battery_state', self._battery_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(Imu, 'imu', self._imu_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+
+        # Add topics to debugger
+        self.debug.subscriptions = [odom, ir_intensity, hazard_detection, interface_buttons, battery_state, imu, dock_status, ir_opcode]
 
     def get_ir_proximity(self):
         """Get IR Proximity Values list between 0-6 so 7 total"""
@@ -75,6 +78,8 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
     
     def _odom_callback(self, odom: Odometry):
         # Handles returned odometry from robot and saves it locally
+        self.update_uptime('/odom')
+
         position = Position()
         position.x = round(odom.pose.pose.position.x * 100, ROUNDING_VALUE) # convert to centimeters
         position.y = round(odom.pose.pose.position.y * 100, ROUNDING_VALUE) # convert to centimeters
@@ -84,6 +89,8 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
         
     def _ir_callback(self, ir: IrIntensityVector):
         # Get individual values from the message
+        self.update_uptime('/ir_intensity')
+
         sensor_1 = ir.readings[0].value
         sensor_2 = ir.readings[1].value
         sensor_3 = ir.readings[2].value
@@ -96,6 +103,8 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
         self._subscribe.ir_values = [sensor_1, sensor_2, sensor_3, sensor_4, sensor_5, sensor_6, sensor_7]
         
     def _hazard_callback(self, hazards: HazardDetectionVector):
+        self.update_uptime('/hazard_detection')
+        
         self._subscribe.bumpers = HazardBumper()
         self._subscribe.cliff = HazardCliff()
         
@@ -127,24 +136,34 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
                         self._subscribe.cliff.side_right = True
                         
     def _interface_callback(self, buttons: InterfaceButtons):
+        self.update_uptime('/interface_buttons')
+        
         self._subscribe.buttons.button_1 = buttons.button_1.is_pressed
         self._subscribe.buttons.button_power = buttons.button_power.is_pressed
         self._subscribe.buttons.button_2 = buttons.button_2.is_pressed
         
     def _battery_callback(self, battery: BatteryState):
+        self.update_uptime('/battery_state')
+
         self._subscribe.battery = battery.percentage * 100 # convert to percentage
         
     def _imu_callback(self, imu: Imu):
+        self.update_uptime('/imu')
+
         self._subscribe.acceleration.x = round(imu.linear_acceleration.x, ROUNDING_VALUE)
         self._subscribe.acceleration.y = round(imu.linear_acceleration.y, ROUNDING_VALUE)
         self._subscribe.acceleration.z = round(imu.linear_acceleration.z, ROUNDING_VALUE)
         
     def _dock_status_callback(self, status: DockStatus):
+        self.update_uptime('/dock_status')
+        
         self._subscribe.dockingValues.dock_visible = status.dock_visible
         self._subscribe.dockingValues.is_docked = status.is_docked
         
     def _ir_opcode_callback(self, irOpcode: IrOpcode):
         # Checks dock sensors and sets corresponding object values
+        self.update_uptime('/ir_opcode')
+
         self._subscribe.dockingValues.sensor = irOpcode.sensor
         match irOpcode.opcode:
             case 161:
@@ -182,10 +201,15 @@ class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self.node.create_subscription(LaserScan, 'scan', self._lidar_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self.node.create_subscription(Range, 'range', self._ultrasonic_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        scan = self.node.create_subscription(LaserScan, 'scan', self._lidar_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        range = self.node.create_subscription(Range, 'range', self._ultrasonic_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+
+        # Add topics to debugger
+        self.debug.subscriptions = [scan, range]
 
     def _lidar_callback(self, msg: LaserScan):
+        self.update_uptime('/scan')
+
         if msg.ranges:
             self._subscribe.lidar.ranges = [(scan * 100 if isinstance(scan, float) else None) for scan in msg.ranges]
             self._subscribe.lidar.scan_time = msg.scan_time
@@ -199,6 +223,8 @@ class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
             self._subscribe.lidar.time_increment = msg.time_increment
             
     def _ultrasonic_callback(self, msg: Range):
+        self.update_uptime('/range')
+
         self._subscribe.ultrasonic.field_of_view = msg.field_of_view
         self._subscribe.ultrasonic.max_range = msg.max_range * 100
         self._subscribe.ultrasonic.min_range = msg.min_range * 100
@@ -210,9 +236,14 @@ class PcSubscriptions(PcThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self.node.create_subscription(Joy, 'joy', self._joy_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        joy = self.node.create_subscription(Joy, 'joy', self._joy_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+
+        # Add topics to debugger
+        self.debug.subscriptions = [joy]
 
     def _joy_callback(self, msg: Joy):
+        self.update_uptime('/joy')
+
         joy_axes = msg.axes
         joy_buttons = msg.buttons
 

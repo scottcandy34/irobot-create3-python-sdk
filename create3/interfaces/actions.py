@@ -23,23 +23,26 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         self._useGoal = True
 
         # Create Action Clients
-        self._led_animate = ActionClient(self.node, LedAnimation, 'led_animation', callback_group=self._otherCbGroup,)
+        self._led_animate = led_animation = ActionClient(self.node, LedAnimation, 'led_animation', callback_group=self._otherCbGroup,)
         self._led_animate.wait_for_server(TIMEOUT)
-        self._audio_sequence = ActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=self._otherCbGroup)
+        self._audio_sequence = audio_note_sequence = ActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=self._otherCbGroup)
         self._audio_sequence.wait_for_server(TIMEOUT)
-        self._navigate = ActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=self._actionCbGroup)
+        self._navigate = navigate_to_position = ActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=self._actionCbGroup)
         self._navigate.wait_for_server(TIMEOUT)
-        self._drive_arc = ActionClient(self.node, DriveArc, 'drive_arc', callback_group=self._actionCbGroup)
+        self._drive_arc = drive_arc = ActionClient(self.node, DriveArc, 'drive_arc', callback_group=self._actionCbGroup)
         self._drive_arc.wait_for_server(TIMEOUT)
-        self._drive_distance = ActionClient(self.node, DriveDistance, 'drive_distance', callback_group=self._actionCbGroup)
+        self._drive_distance = drive_distance = ActionClient(self.node, DriveDistance, 'drive_distance', callback_group=self._actionCbGroup)
         self._drive_distance.wait_for_server(TIMEOUT)
-        self._rotate_angle = ActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=self._actionCbGroup)
+        self._rotate_angle = rotate_angle = ActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=self._actionCbGroup)
         self._rotate_angle.wait_for_server(TIMEOUT)
-        self._dock = ActionClient(self.node, Dock, 'dock', callback_group=self._actionCbGroup)
+        self._dock = dock = ActionClient(self.node, Dock, 'dock', callback_group=self._actionCbGroup)
         self._dock.wait_for_server(TIMEOUT)
-        self._undock = ActionClient(self.node, Undock, 'undock', callback_group=self._actionCbGroup)
+        self._undock = undock = ActionClient(self.node, Undock, 'undock', callback_group=self._actionCbGroup)
         self._undock.wait_for_server(TIMEOUT)
 
+        # Add actions to debugger
+        self.debug.actions = [led_animation, audio_note_sequence, navigate_to_position, drive_arc, drive_distance, rotate_angle, dock, undock]
+        
     def set_lights_spin_rgb(self, r: int, g: int, b: int):
         """Set robot's LED to spin with desired color red, green, blue."""
         
