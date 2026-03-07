@@ -378,9 +378,9 @@ class _pcTools:
 
 class RosTools:
     """Full list of useful tools for the Create3 robot."""
-    robot = _robotTools()
-    rpi = _rpiTools()
-    pc = _pcTools()
+    ROBOT = _robotTools()
+    RPI = _rpiTools()
+    PC = _pcTools()
 
     def objectTOString(obj) -> str:
         """Returns a pretty string with the object data"""

@@ -135,10 +135,10 @@ class RobotThreading(_Threading):
         self.node._logger.name = "Create3"
 
         # Hidden global callback information
-        self._subscribe = SubscriberTopics().robot
+        self._subscribe = SubscriberTopics.ROBOT
         
         # Hidden global publish information
-        self._publish = PublisherTopics().robot
+        self._publish = PublisherTopics.ROBOT
         
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         setWheelSpeedCbGroup = MutuallyExclusiveCallbackGroup()
@@ -148,7 +148,7 @@ class RobotThreading(_Threading):
         node.create_timer(0.05, self._setWheelSpeedHandler, callback_group=setWheelSpeedCbGroup)
         
         # Declare Tools
-        self.tools = RosTools.robot
+        self.tools = RosTools.ROBOT
 
     def shutdown(self):
         super().shutdown()
@@ -164,13 +164,13 @@ class RpiThreading(_Threading):
         self.node._logger.name = "Raspberry Pi"
 
         # Hidden global callback information
-        self._subscribe = SubscriberTopics().rpi
+        self._subscribe = SubscriberTopics.RPI
         
         # Hidden global publish information
-        self._publish = PublisherTopics().rpi
+        self._publish = PublisherTopics.RPI
         
         # Declare Tools
-        self.tools = RosTools.rpi
+        self.tools = RosTools.RPI
 
 class PcThreading(_Threading):
     """Spin up ROS node using multithreading."""
@@ -179,11 +179,11 @@ class PcThreading(_Threading):
         self.node._logger.name = "Remote PC"
 
         # Hidden global callback information
-        self._subscribe = SubscriberTopics().pc
+        self._subscribe = SubscriberTopics.PC
         
         # Hidden global publish information
-        self._publish = PublisherTopics().pc
+        self._publish = PublisherTopics.PC
 
         # Declare Tools
-        self.tools = RosTools.pc
+        self.tools = RosTools.PC
         

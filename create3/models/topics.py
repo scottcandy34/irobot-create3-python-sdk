@@ -55,12 +55,12 @@ class _pc_publish_topics():
     rumble_enable: bool = False
     rumble_running: bool = False
 
-class SubscriberTopics():
-    robot = _robot_subscribe_topics()
-    rpi = _rpi_subscribe_topics()
-    pc = _pc_subscribe_topics()
+class SubscriberTopics:
+    ROBOT = _robot_subscribe_topics()
+    RPI = _rpi_subscribe_topics()
+    PC = _pc_subscribe_topics()
 
-class PublisherTopics():
-    robot = _robot_publish_topics()
-    rpi = _rpi_publish_topics()
-    pc = _pc_publish_topics()
+class PublisherTopics:
+    ROBOT = _robot_publish_topics()
+    RPI = _rpi_publish_topics()
+    PC = _pc_publish_topics()
