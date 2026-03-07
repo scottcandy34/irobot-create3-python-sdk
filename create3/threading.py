@@ -63,9 +63,12 @@ class _Threading():
     def update_uptime(self, topic_name: str):
         """Updates the timestamps for each subscription callback."""
         if not topic_name in self.debug.uptime:
-            self.debug.uptime[topic_name] = [0, 0]
-        self.debug.uptime[topic_name][1] = int(1 / ((self.time() - self.debug.uptime.get(topic_name, 0)[0]) / 1000000000))
-        self.debug.uptime[topic_name][0] = self.time()
+            self.debug.uptime[topic_name] = [0, 0, 0, 0, 0] # [last_time, frequency, min_freq, max_freq, total_calls]
+        self.debug.uptime[topic_name][1] = int(1 / ((self.time() - self.debug.uptime.get(topic_name, 0)[0]) / 1000000000)) # frequency = 1 / (current_time - last_time)
+        self.debug.uptime[topic_name][0] = self.time() # last_time = current_time
+        self.debug.uptime[topic_name][2] = min(self.debug.uptime[topic_name][1], self.debug.uptime[topic_name][2] if self.debug.uptime[topic_name][2] != 0 else float('inf')) # min_freq = min(current_freq, min_freq)
+        self.debug.uptime[topic_name][3] = max(self.debug.uptime[topic_name][1], self.debug.uptime[topic_name][3]) # max_freq = max(current_freq, max_freq)
+        self.debug.uptime[topic_name][4] += 1 # total_calls += 1
 
     def start(self):
         """Spin up ROS on single thread"""

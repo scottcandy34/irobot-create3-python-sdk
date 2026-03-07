@@ -24,12 +24,12 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Publishers
-        self._lightring = cmd_lightring = self.node.create_publisher(LightringLeds, 'cmd_lightring', pub_qos_profile, callback_group=self._otherCbGroup)
-        self._audio = cmd_audio = self.node.create_publisher(AudioNoteVector, 'cmd_audio', pub_qos_profile, callback_group=self._otherCbGroup)
-        self._velocities = cmd_vel = self.node.create_publisher(Twist, 'cmd_vel', pub_qos_profile, callback_group=self._cmdVelCbGroup)
-        
+        self._lightring = self.node.create_publisher(LightringLeds, 'cmd_lightring', pub_qos_profile, callback_group=self._otherCbGroup)
+        self._audio = self.node.create_publisher(AudioNoteVector, 'cmd_audio', pub_qos_profile, callback_group=self._otherCbGroup)
+        self._velocities = self.node.create_publisher(Twist, 'cmd_vel', pub_qos_profile, callback_group=self._cmdVelCbGroup)
+
         # Add topics to debugger
-        self.debug.publishers = [cmd_lightring, cmd_audio, cmd_vel]
+        self.debug.publishers = [self._lightring, self._audio, self._velocities]
 
     def set_lights_on_rgb(self, r: int, g: int, b: int):
         """Set robot's LED to animation with color red, green, blue."""
@@ -123,10 +123,11 @@ class RpiPublishers(RpiThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Publishers
-        self._servo = servo_angle = self.node.create_publisher(Float32, 'servo_angle', pub_qos_profile, callback_group=self._otherCbGroup)
+        self._servo = self.node.create_publisher(Float32, 'servo_angle', pub_qos_profile, callback_group=self._otherCbGroup)
+        # self._leds = self.node.create_publisher(LedControl, 'led_control', pub_qos_profile, callback_group=self._otherCbGroup)
 
         # Add topics to debugger
-        self.debug.publishers = [servo_angle]
+        self.debug.publishers = [self._servo]
 
     def servo_angle(self, angle: float | int):
         servo_msg = Float32()
@@ -146,10 +147,10 @@ class PcPublishers(PcThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Publishers
-        self._joy_feedback = joy_set_feedback = self.node.create_publisher(JoyFeedbackArray, 'joy/set_feedback', pub_qos_profile, callback_group=self._otherCbGroup)
+        self._joy_feedback = self.node.create_publisher(JoyFeedbackArray, 'joy/set_feedback', pub_qos_profile, callback_group=self._otherCbGroup)
 
         # Add topics to debugger
-        self.debug.publishers = [joy_set_feedback]
+        self.debug.publishers = [self._joy_feedback]
 
     def _publishHandler(self):
         if self._publish.rumble_enable and self._publish.rumble_running:

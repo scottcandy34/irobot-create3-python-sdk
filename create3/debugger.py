@@ -59,6 +59,7 @@ class RclpyDebugger():
 
         self._devices: list[_Threading] = []
         self._validated: dict[str, bool] = {}
+        self._logged: dict[str, list[int]] = {}
 
         self._thread = Thread(target=self._watcher)
         self._thread.start()
@@ -77,10 +78,10 @@ class RclpyDebugger():
         self.node.get_logger().info(Fore.GREEN + msg)
 
     def print_warn(self, msg: str):
-        self.node.get_logger().warn(msg, skip_first=True, throttle_duration_sec=1.0)
+        self.node.get_logger().warn(msg)
     
     def print_error(self, msg: str):
-        self.node.get_logger().error(msg, throttle_duration_sec=1)
+        self.node.get_logger().error(msg)
 
     def _watcher(self):
         # Wait for first device to connect
@@ -107,7 +108,13 @@ class RclpyDebugger():
                         self.print(f'Topic publisher \'{topic_name}\' is now available.')
 
                     elif topic_name in device.debug.uptime and device.debug.uptime[topic_name][1] >= UPTIME_FREQUENCY:
-                        self.print_warn(f'Node not receiving \'{topic_name}\' data. Device is not publishing or receiving data slow; over {UPTIME_FREQUENCY}Hz')
+                        if not topic_name in self._logged:
+                            self._logged[topic_name] = [self.node.get_clock().now().nanoseconds]
+                        else:
+                            if self._logged[topic_name][-1] - self._logged[topic_name][0] >= 1000000000:
+                                self.print_warn(f'Node receiving \'{topic_name}\' data at over {UPTIME_FREQUENCY} Hz. Check for infinite loops or excessive publishing. Possibly stopped receiving data.')
+                                self._logged[topic_name] = []
+                            self._logged[topic_name].append(self.node.get_clock().now().nanoseconds)
 
                 # Check each publisher topic
                 for publisher in device.debug.publishers:
@@ -148,7 +155,7 @@ class RclpyDebugger():
                         self._validated[service_name] = True
                         self.print(f'service \'{topic_name}\' is now available.')
 
-            time.sleep(DEBUGGER_INTERVAL)
+            time.sleep(1 / DEBUGGER_INTERVAL)
 
     def stop(self, device: _Threading):
         self.remove_device(device)
