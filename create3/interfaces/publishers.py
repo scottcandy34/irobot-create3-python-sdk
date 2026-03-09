@@ -72,7 +72,7 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         # Calculate linear and angular speeds
         twist_msg = Twist()
         twist_msg.linear.x = ((right_wheel + left_wheel) / 100) / 2 # ( right_wheel(cm/s) + left_wheel(cm/s) ) / 100(convert to m/s) / 2 = linear_velocity(m/s)
-        twist_msg.angular.z = (right_wheel - left_wheel) / self.tools.values.wheelDistanceApart # ( right_wheel(cm/s) - left_wheel(cm/s) ) / wheel_distance(cm) = angular_velocity(rad/s)
+        twist_msg.angular.z = (right_wheel - left_wheel) / self.tools.constraints.WHEEL_DISTANCE_APART # ( right_wheel(cm/s) - left_wheel(cm/s) ) / wheel_distance(cm) = angular_velocity(rad/s)
         
         # Set wheel speeds
         self._publish.wheel_speeds = twist_msg
@@ -81,7 +81,7 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         """Set Left Wheel speed individually. Wheel speed in cm/s"""
         
         # Find right wheel speeds from last change
-        right_wheel = (self._publish.wheel_speeds.linear.x * 100) + (self.tools.values.wheelDistanceApart * self._publish.wheel_speeds.angular.z) / 2 # linear_velocity(cm/s) + wheel_distance(cm) * angular_velocity(rad/s) / 2 = right_wheel(cm/s)
+        right_wheel = (self._publish.wheel_speeds.linear.x * 100) + (self.tools.constraints.WHEEL_DISTANCE_APART * self._publish.wheel_speeds.angular.z) / 2 # linear_velocity(cm/s) + wheel_distance(cm) * angular_velocity(rad/s) / 2 = right_wheel(cm/s)
         
         # set wheel speeds
         self.set_wheel_speeds(speed, right_wheel)
@@ -90,7 +90,7 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         """Set Right Wheel speed individually. Wheel speed in cm/s"""
         
         # Find left wheel speeds from last change
-        left_wheel = (self._publish.wheel_speeds.linear.x * 100) - (self.tools.values.wheelDistanceApart * self._publish.wheel_speeds.angular.z) / 2 # linear_velocity(cm/s) - wheel_distance(cm) * angular_velocity(rad/s) / 2 = left_wheel(cm/s)
+        left_wheel = (self._publish.wheel_speeds.linear.x * 100) - (self.tools.constraints.WHEEL_DISTANCE_APART * self._publish.wheel_speeds.angular.z) / 2 # linear_velocity(cm/s) - wheel_distance(cm) * angular_velocity(rad/s) / 2 = left_wheel(cm/s)
         
         # set wheel speeds
         self.set_wheel_speeds(left_wheel, speed)

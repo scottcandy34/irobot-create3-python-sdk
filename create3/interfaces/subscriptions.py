@@ -84,7 +84,7 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
         position.x = round(odom.pose.pose.position.x * 100, ROUNDING_VALUE) # convert to centimeters
         position.y = round(odom.pose.pose.position.y * 100, ROUNDING_VALUE) # convert to centimeters
         turn = odom.pose.pose.orientation
-        position.angle = round(math.degrees(self.tools.convertToEuler(turn.x, turn.y, turn.z, turn.w)[2]), ROUNDING_VALUE) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+        position.angle = round(math.degrees(self.tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]), ROUNDING_VALUE) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
         self._subscribe.position = position
         
     def _ir_callback(self, ir: IrIntensityVector):

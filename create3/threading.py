@@ -13,7 +13,7 @@ from rclpy.timer import Timer
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from .tools import RosTools
+from . import utils
 from .models import Debug, SubscriberTopics, PublisherTopics
 
 init(autoreset=True)
@@ -34,23 +34,23 @@ class _Threading():
         
     def print(self, msg):
         """Prints a value to node Info stream"""
-        self.node.get_logger().info(RosTools.objectTOString(msg))
+        self.node.get_logger().info(utils.object_to_string(msg))
 
     def print_good(self, msg):
         """Prints a value to node Info stream as Green"""
-        self.node.get_logger().info(Fore.GREEN + RosTools.objectTOString(msg))
+        self.node.get_logger().info(Fore.GREEN + utils.object_to_string(msg))
 
     def print_fatal(self, msg):
         """Prints a value to node Fatal stream"""
-        self.node.get_logger().fatal(RosTools.objectTOString(msg))
+        self.node.get_logger().fatal(utils.object_to_string(msg))
 
     def print_error(self, msg):
         """Prints a value to node Error stream"""
-        self.node.get_logger().error(RosTools.objectTOString(msg))
+        self.node.get_logger().error(utils.object_to_string(msg))
 
     def print_warning(self, msg):
         """Prints a value to node Warning stream"""
-        self.node.get_logger().warning(RosTools.objectTOString(msg))
+        self.node.get_logger().warning(utils.object_to_string(msg))
 
     def time(self) -> int:
         """Returns the current timestamp for ROS"""
@@ -148,7 +148,7 @@ class RobotThreading(_Threading):
         node.create_timer(0.05, self._setWheelSpeedHandler, callback_group=setWheelSpeedCbGroup)
         
         # Declare Tools
-        self.tools = RosTools.ROBOT
+        self.tools = utils.robot
 
     def shutdown(self):
         super().shutdown()
@@ -170,7 +170,7 @@ class RpiThreading(_Threading):
         self._publish = PublisherTopics.RPI
         
         # Declare Tools
-        self.tools = RosTools.RPI
+        self.tools = utils.rpi
 
 class PcThreading(_Threading):
     """Spin up ROS node using multithreading."""
@@ -185,5 +185,5 @@ class PcThreading(_Threading):
         self._publish = PublisherTopics.PC
 
         # Declare Tools
-        self.tools = RosTools.PC
+        self.tools = utils.pc
         
