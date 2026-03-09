@@ -3,12 +3,11 @@
 # Created by scottcandy34
 #
 
-from .utils import rclpy
-from .debugger import RclpyDebugger
+from .utils import rclpy, Debugger
 from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RPIPublishers, PCPublishers, RobotSubscriptions, RPISubscriptions, PCSubscriptions
 from .threading import RobotThreading, RPIThreading, PCThreading
 
-debugger = RclpyDebugger()
+debugger = Debugger()
 
 class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscriptions, RobotThreading):
     """Setup Robot node with multithreading, subscriptions, publishers, services and actions."""

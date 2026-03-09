@@ -14,8 +14,8 @@ from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 
-from .utils import rclpy
-from .threading import ROSThreading
+from . import rclpy
+from ..threading import ROSThreading
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
@@ -23,33 +23,40 @@ DEBUGGER_INTERVAL = 2 # in Hz
 colorama.init(autoreset=True)
 
 class NodeTesting():
+    """A class to test the availability of ROS interfaces on a given node."""
+
     def __init__(self, node: Node):
         self._node = node
 
     def subscription(self, interface: Subscription) -> bool:
+        """Check if a subscription topic is being published to by any node."""
         pub_info = self._node.get_publishers_info_by_topic(interface.topic_name)
         if len(pub_info) == 0:
             return False
         return True
     
     def publisher(self, interface: Publisher) -> bool:
+        """Check if a publisher topic is being subscribed to by any node."""
         sub_info = self._node.get_subscriptions_info_by_topic(interface.topic_name)
         if len(sub_info) == 0:
             return False
         return True
     
     def action_client(self, interface: ActionClient) -> bool:
+        """Check if an action client has a server available."""
         if not interface.server_is_ready():
             return False
         return True
     
     def service_client(self, interface: Client) -> bool:
+        """Check if a service client has a server available."""
         if not interface.service_is_ready():
             return False
         return True
 
-class RclpyDebugger():
-    """A global debugger for handling Create3 nodes."""
+class Debugger():
+    """A class to watch the ROS interfaces and uptime of attached nodes, and print warnings or errors if they are not working as expected."""
+
     def __init__(self):
         rclpy.init()
         self.node: Node = rclpy.create_node('ros_debugger')
@@ -65,23 +72,65 @@ class RclpyDebugger():
         self._thread.start()
 
     def add_device(self, device: ROSThreading):
+        """Add a device to the debugger to watch its interfaces and uptime."""
         self._devices.append(device)
         self._validated.update(device.debug.isAlive())
 
     def remove_device(self, device: ROSThreading):
+        """Remove a device from the debugger to stop watching its interfaces and uptime."""
         for index, obj in enumerate(self._devices):
             if obj.get_name() == device.get_name():
                 self._devices.pop(index)
                 break
 
     def print(self, msg: str):
+        """Print a message to the console with the Debugger's logger"""
         self.node.get_logger().info(Fore.GREEN + msg)
 
     def print_warn(self, msg: str):
+        """Print a warning message to the console with the Debugger's logger"""
         self.node.get_logger().warn(msg)
     
     def print_error(self, msg: str):
+        """Print an error message to the console with the Debugger's logger"""
         self.node.get_logger().error(msg)
+
+    def _check_interface(self, interface):
+        """Check if a given interface is available on the node, and print a warning or error if it is not."""
+        test = NodeTesting(self.node)
+        name = ""
+        type_ = ""
+
+        if isinstance(interface, Subscription):
+            exist = test.subscription(interface)
+            name = interface.topic_name
+            type_ = "Topic Publisher"
+
+        elif isinstance(interface, Publisher):
+            exist = test.publisher(interface)
+            name = interface.topic_name
+            type_ = "Topic Subscriber"
+
+        elif isinstance(interface, ActionClient):
+            exist = test.action_client(interface)
+            name = interface._action_name
+            type_ = "Action Server"
+
+        elif isinstance(interface, Client):
+            exist = test.service_client(interface)
+            name = interface.service_name
+            type_ = "Service Server"
+
+        else:
+            raise ValueError("Interface type not recognized.")
+        
+        if not exist and self._validated.get(name, True):
+            self._validated[name] = False
+            self.print_error(f'{type_} \'{name}\' is not available.')
+
+        elif exist and not self._validated.get(name, True):
+            self._validated[name] = True
+            self.print(f'{type_} \'{name}\' is now available.')
 
     def _watcher(self):
         # Wait for first device to connect
@@ -92,22 +141,12 @@ class RclpyDebugger():
         while self._devices:
             # Check each attached device
             for device in self._devices:
-                test = NodeTesting(self.node)
-
                 # Check each subscription topic
                 for subscription in device.debug.subscriptions:
+                    self._check_interface(subscription)
+
                     topic_name = subscription.topic_name
-
-                    exist = test.subscription(subscription)
-                    if not exist and self._validated.get(topic_name, True):
-                        self._validated[topic_name] = False
-                        self.print_error(f'Topic publisher \'{topic_name}\' is not available.')
-
-                    elif exist and not self._validated.get(topic_name, True):
-                        self._validated[topic_name] = True
-                        self.print(f'Topic publisher \'{topic_name}\' is now available.')
-
-                    elif topic_name in device.debug.uptime and device.debug.uptime[topic_name][1] >= UPTIME_FREQUENCY:
+                    if topic_name in device.debug.uptime and device.debug.uptime[topic_name][1] >= UPTIME_FREQUENCY:
                         if not topic_name in self._logged:
                             self._logged[topic_name] = [self.node.get_clock().now().nanoseconds]
                         else:
@@ -118,46 +157,20 @@ class RclpyDebugger():
 
                 # Check each publisher topic
                 for publisher in device.debug.publishers:
-                    topic_name = publisher.topic_name
-
-                    exist = test.publisher(publisher)
-                    if not exist and self._validated.get(topic_name, True):
-                        self._validated[topic_name] = False
-                        self.print_error(f'Topic subscription \'{topic_name}\' is not available.')
-
-                    elif exist and not self._validated.get(topic_name, True):
-                        self._validated[topic_name] = True
-                        self.print(f'Topic subscription \'{topic_name}\' is now available.')
+                    self._check_interface(publisher)
 
                 # Check each action client
                 for action in device.debug.actions:
-                    action_name = action._action_name
-
-                    exist = test.action_client(action)
-                    if not exist and self._validated.get(action_name, True):
-                        self._validated[action_name] = False
-                        self.print_error(f'Action server \'{action_name}\' is not available.')
-
-                    elif exist and not self._validated.get(action_name, True):
-                        self._validated[action_name] = True
-                        self.print(f'Action server \'{topic_name}\' is now available.')
+                    self._check_interface(action)
                 
                 # Check each service client
                 for service in device.debug.services:
-                    service_name = service.service_name
-
-                    exist = test.service_client(service)
-                    if not exist and self._validated.get(service_name, True):
-                        self._validated[service_name] = False
-                        self.print_error(f'Service \'{service_name}\' is not available.')
-
-                    elif exist and not self._validated.get(service_name, True):
-                        self._validated[service_name] = True
-                        self.print(f'service \'{topic_name}\' is now available.')
+                    self._check_interface(service)
 
             time.sleep(1 / DEBUGGER_INTERVAL)
 
     def stop(self, device: ROSThreading):
+        """Stop the debugger from watching a given device, and shutdown the debugger if there are no more devices to watch."""
         self.remove_device(device)
         if len(self._devices) == 0:
             while self._thread.is_alive():

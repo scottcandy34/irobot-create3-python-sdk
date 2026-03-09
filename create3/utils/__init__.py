@@ -10,8 +10,8 @@ line fitting, line segments, joystick input, and lidar data.
 """
 
 from . import robot, rpi, pc
-# import rclpy_override as rclpy
 from .rclpy_override import rclpy
+from .debugger import Debugger
 
 import pprint as _pprint
 
