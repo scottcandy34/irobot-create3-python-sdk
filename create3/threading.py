@@ -18,19 +18,19 @@ from .models import Debug, SubscriberTopics, PublisherTopics
 
 init(autoreset=True)
 
-class _Threading():
+class ROSThreading():
     def __init__(self, node: Node):
         self.node = node
 
         self.debug = Debug()
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.
-        publishCbGroup = MutuallyExclusiveCallbackGroup()
-        self._subscriptionCbGroup = MutuallyExclusiveCallbackGroup()
-        self._actionCbGroup = MutuallyExclusiveCallbackGroup()
-        self._otherCbGroup = MutuallyExclusiveCallbackGroup()
+        publish_callback_group = MutuallyExclusiveCallbackGroup()
+        self._subscription_callback_group = MutuallyExclusiveCallbackGroup()
+        self._action_callback_group = MutuallyExclusiveCallbackGroup()
+        self._other_callback_group = MutuallyExclusiveCallbackGroup()
         
-        self.node.create_timer(0.05, self._publishHandler, callback_group=publishCbGroup)
+        self.node.create_timer(0.05, self._publish_handler, callback_group=publish_callback_group)
         
     def print(self, msg):
         """Prints a value to node Info stream"""
@@ -78,6 +78,7 @@ class _Threading():
         self._ros_thread.start()
     
     def shutdown(self):
+        """Shutdown ROS and clean up threads."""
         self._executor.shutdown()
         while self._ros_thread.is_alive():
             time.sleep(0.1)
@@ -124,11 +125,11 @@ class _Threading():
         self._executor.add_node(self.node)
         self._executor.spin()
                 
-    def _publishHandler(self):
+    def _publish_handler(self):
         """Loop for checking for updates and publishing Constantly every 0.5 sec"""
         pass
 
-class RobotThreading(_Threading):
+class RobotThreading(ROSThreading):
     """Spin up ROS node using multithreading."""
     def __init__(self, node: Node):
         super().__init__(node) # trigger original code before it gets overwritten
@@ -141,11 +142,11 @@ class RobotThreading(_Threading):
         self._publish = PublisherTopics.ROBOT
         
         # Creates a exclusive callback group so not to interrupt the other callbacks.
-        setWheelSpeedCbGroup = MutuallyExclusiveCallbackGroup()
-        self._cmdVelCbGroup = MutuallyExclusiveCallbackGroup()
+        set_wheel_speed_callback_group = MutuallyExclusiveCallbackGroup()
+        self._cmd_velocity_callback_group = MutuallyExclusiveCallbackGroup()
         
         # Creates a timer that will loop every 0.499s and set wheel speeds if exist
-        node.create_timer(0.05, self._setWheelSpeedHandler, callback_group=setWheelSpeedCbGroup)
+        node.create_timer(0.05, self._set_wheel_speed_handler, callback_group=set_wheel_speed_callback_group)
         
         # Declare Tools
         self.tools = utils.robot
@@ -153,11 +154,11 @@ class RobotThreading(_Threading):
     def shutdown(self):
         super().shutdown()
     
-    def _setWheelSpeedHandler(self):
+    def _set_wheel_speed_handler(self):
         """Loop for setting wheel speeds Constantly every 0.5 sec"""
         pass
 
-class RpiThreading(_Threading):
+class RPIThreading(ROSThreading):
     """Spin up ROS node using multithreading."""
     def __init__(self, node: Node):
         super().__init__(node) # trigger original code before it gets overwritten
@@ -172,7 +173,7 @@ class RpiThreading(_Threading):
         # Declare Tools
         self.tools = utils.rpi
 
-class PcThreading(_Threading):
+class PCThreading(ROSThreading):
     """Spin up ROS node using multithreading."""
     def __init__(self, node: Node):
         super().__init__(node) # trigger original code before it gets overwritten

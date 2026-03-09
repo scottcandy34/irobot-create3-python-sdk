@@ -15,7 +15,7 @@ from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 
 from .utils import rclpy
-from .threading import _Threading
+from .threading import ROSThreading
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
@@ -57,18 +57,18 @@ class RclpyDebugger():
 
         self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Watching Topics Sub/Pub, Services and Actions.')
 
-        self._devices: list[_Threading] = []
+        self._devices: list[ROSThreading] = []
         self._validated: dict[str, bool] = {}
         self._logged: dict[str, list[int]] = {}
 
         self._thread = Thread(target=self._watcher)
         self._thread.start()
 
-    def add_device(self, device: _Threading):
+    def add_device(self, device: ROSThreading):
         self._devices.append(device)
         self._validated.update(device.debug.isAlive())
 
-    def remove_device(self, device: _Threading):
+    def remove_device(self, device: ROSThreading):
         for index, obj in enumerate(self._devices):
             if obj.get_name() == device.get_name():
                 self._devices.pop(index)
@@ -157,7 +157,7 @@ class RclpyDebugger():
 
             time.sleep(1 / DEBUGGER_INTERVAL)
 
-    def stop(self, device: _Threading):
+    def stop(self, device: ROSThreading):
         self.remove_device(device)
         if len(self._devices) == 0:
             while self._thread.is_alive():

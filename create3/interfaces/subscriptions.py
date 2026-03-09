@@ -11,7 +11,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu, LaserScan, Range, Joy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
-from ..threading import RobotThreading, RpiThreading, PcThreading
+from ..threading import RobotThreading, RPIThreading, PCThreading
 from ..models import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, Controller, ROUNDING_VALUE
 
 sub_qos_profile = QoSProfile(
@@ -27,14 +27,14 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self._odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        self._odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._odom, self._ir_intensity, self._hazard_detection, self._interface_buttons, self._battery_state, self._imu, self._dock_status, self._ir_opcode]
@@ -198,14 +198,14 @@ class RobotSubscriptions(RobotThreading if TYPE_CHECKING else object):
                 self._subscribe.dockingValues.greenBuoy = True
                 self._subscribe.dockingValues.forceField = True
 
-class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
+class RPISubscriptions(RPIThreading if TYPE_CHECKING else object):
     """Subscribe to ROS topics and handle the messages."""
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self._scan = self.node.create_subscription(LaserScan, 'scan', self._lidar_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
-        self._range = self.node.create_subscription(Range, 'range', self._ultrasonic_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        self._scan = self.node.create_subscription(LaserScan, 'scan', self._lidar_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
+        self._range = self.node.create_subscription(Range, 'range', self._ultrasonic_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]
@@ -233,13 +233,13 @@ class RpiSubscriptions(RpiThreading if TYPE_CHECKING else object):
         self._subscribe.ultrasonic.min_range = msg.min_range * 100
         self._subscribe.ultrasonic.range = msg.range * 100
 
-class PcSubscriptions(PcThreading if TYPE_CHECKING else object):
+class PCSubscriptions(PCThreading if TYPE_CHECKING else object):
     """Subscribe to ROS topics and handle the messages."""
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Subscription
-        self._joy = self.node.create_subscription(Joy, 'joy', self._joy_callback, sub_qos_profile, callback_group=self._subscriptionCbGroup)
+        self._joy = self.node.create_subscription(Joy, 'joy', self._joy_callback, sub_qos_profile, callback_group=self._subscription_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._joy]

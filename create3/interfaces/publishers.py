@@ -11,7 +11,7 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import JoyFeedbackArray, JoyFeedback
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector, LedColor
 
-from ..threading import RobotThreading, RpiThreading, PcThreading
+from ..threading import RobotThreading, RPIThreading, PCThreading
 
 pub_qos_profile = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -24,9 +24,9 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Publishers
-        self._lightring = self.node.create_publisher(LightringLeds, 'cmd_lightring', pub_qos_profile, callback_group=self._otherCbGroup)
-        self._audio = self.node.create_publisher(AudioNoteVector, 'cmd_audio', pub_qos_profile, callback_group=self._otherCbGroup)
-        self._velocities = self.node.create_publisher(Twist, 'cmd_vel', pub_qos_profile, callback_group=self._cmdVelCbGroup)
+        self._lightring = self.node.create_publisher(LightringLeds, 'cmd_lightring', pub_qos_profile, callback_group=self._other_callback_group)
+        self._audio = self.node.create_publisher(AudioNoteVector, 'cmd_audio', pub_qos_profile, callback_group=self._other_callback_group)
+        self._velocities = self.node.create_publisher(Twist, 'cmd_vel', pub_qos_profile, callback_group=self._cmd_velocity_callback_group)
 
         # Add topics to debugger
         self.debug.publishers = [self._lightring, self._audio, self._velocities]
@@ -95,7 +95,7 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
         # set wheel speeds
         self.set_wheel_speeds(left_wheel, speed)
 
-    def _setWheelSpeedHandler(self):
+    def _set_wheel_speed_handler(self):
         # Checks if wheelSpeeds object has been set or not then moves the robot with the message only lasts 0.5s
         if self._publish.wheel_speeds != Twist() and self._publish.wheel_speeds != self._publish.last_wheel_speeds:
             self._velocities.publish(self._publish.wheel_speeds)
@@ -104,7 +104,7 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
             
         self._publish.last_wheel_speeds = self._publish.wheel_speeds
 
-    def _publishHandler(self):
+    def _publish_handler(self):
         # Led Lightring Topic
         if self._publish.lightring != self._publish.last_lightring:
             self._lightring.publish(self._publish.lightring)
@@ -117,14 +117,14 @@ class RobotPublishers(RobotThreading if TYPE_CHECKING else object):
             
         self._publish.last_audio_note = self._publish.audio_note
 
-class RpiPublishers(RpiThreading if TYPE_CHECKING else object):
+class RPIPublishers(RPIThreading if TYPE_CHECKING else object):
     """Publish to ROS topics by sending messages."""
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Create Publishers
-        self._servo = self.node.create_publisher(Float32, 'servo_angle', pub_qos_profile, callback_group=self._otherCbGroup)
-        # self._leds = self.node.create_publisher(LedControl, 'led_control', pub_qos_profile, callback_group=self._otherCbGroup)
+        self._servo = self.node.create_publisher(Float32, 'servo_angle', pub_qos_profile, callback_group=self._other_callback_group)
+        # self._leds = self.node.create_publisher(LedControl, 'led_control', pub_qos_profile, callback_group=self._other_callback_group)
 
         # Add topics to debugger
         self.debug.publishers = [self._servo]
@@ -152,7 +152,7 @@ class PcPublishers(PcThreading if TYPE_CHECKING else object):
         # Add topics to debugger
         self.debug.publishers = [self._joy_feedback]
 
-    def _publishHandler(self):
+    def _publish_handler(self):
         if self._publish.rumble_enable and self._publish.rumble_running:
             feedback_array = JoyFeedbackArray()
             feedback = JoyFeedback()

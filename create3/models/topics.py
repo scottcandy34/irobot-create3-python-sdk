@@ -10,7 +10,7 @@ from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
 from .objects import Position, HazardBumper, HazardCliff, Acceleration, DockingValues, RobotButtons, Lidar, Ultrasonic, Controller
 
-class _robot_subscribe_topics():
+class _RobotSubscribeTopics():
     """Holds all robot subscribed topics."""
     position = Position() # Current position
     ir_values = [0, 0, 0, 0, 0, 0, 0]
@@ -21,7 +21,7 @@ class _robot_subscribe_topics():
     acceleration = Acceleration()
     dockingValues = DockingValues()
     
-class _robot_publish_topics():
+class _RobotPublishTopics():
     """Holds all robot published topics."""
     wheel_speeds = Twist()
     last_wheel_speeds = Twist()
@@ -35,32 +35,32 @@ class _robot_publish_topics():
     audio_note = AudioNoteVector()
     last_audio_note = AudioNoteVector()
 
-class _rpi_subscribe_topics():
+class _RpiSubscribeTopics():
     """Holds all rpi subscribed topics."""
     lidar = Lidar()
     ultrasonic = Ultrasonic()
     servo_angle = 90.0
     
-class _rpi_publish_topics():
+class _RpiPublishTopics():
     """Holds all rpi published topics."""
     servo = Float32()
     last_servo = Float32()
 
-class _pc_subscribe_topics():
+class _PcSubscribeTopics():
     """Holds all pc subscribed topics."""
     controller = Controller()
 
-class _pc_publish_topics():
+class _PcPublishTopics():
     """Holds all pc published topics."""
     rumble_enable: bool = False
     rumble_running: bool = False
 
 class SubscriberTopics:
-    ROBOT = _robot_subscribe_topics()
-    RPI = _rpi_subscribe_topics()
-    PC = _pc_subscribe_topics()
+    ROBOT = _RobotSubscribeTopics()
+    RPI = _RpiSubscribeTopics()
+    PC = _PcSubscribeTopics()
 
 class PublisherTopics:
-    ROBOT = _robot_publish_topics()
-    RPI = _rpi_publish_topics()
-    PC = _pc_publish_topics()
+    ROBOT = _RobotPublishTopics()
+    RPI = _RpiPublishTopics()
+    PC = _PcPublishTopics()

@@ -5,8 +5,8 @@
 
 from .utils import rclpy
 from .debugger import RclpyDebugger
-from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RpiPublishers, PcPublishers, RobotSubscriptions, RpiSubscriptions, PcSubscriptions
-from .threading import RobotThreading, RpiThreading, PcThreading
+from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RPIPublishers, PCPublishers, RobotSubscriptions, RPISubscriptions, PCSubscriptions
+from .threading import RobotThreading, RPIThreading, PCThreading
 
 debugger = RclpyDebugger()
 
@@ -34,7 +34,7 @@ class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscri
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class RpiNode(RpiPublishers, RpiSubscriptions, RpiThreading):
+class RpiNode(RPIPublishers, RPISubscriptions, RPIThreading):
     """Setup Rpi node with multithreading, subscriptions, publishers."""
     def __init__(self):
         # Initialize ROS2 node
@@ -54,7 +54,7 @@ class RpiNode(RpiPublishers, RpiSubscriptions, RpiThreading):
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class PcNode(PcPublishers, PcSubscriptions, PcThreading):
+class PcNode(PCPublishers, PCSubscriptions, PCThreading):
     """Setup PC node with multithreading, subscriptions, publishers."""
     def __init__(self):
         # Initialize ROS2 node
