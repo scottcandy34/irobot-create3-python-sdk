@@ -3,7 +3,7 @@
 # Created by scottcandy34
 #
 
-from .rclpy import rclpy
+from .utils import rclpy
 from .debugger import RclpyDebugger
 from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RpiPublishers, PcPublishers, RobotSubscriptions, RpiSubscriptions, PcSubscriptions
 from .threading import RobotThreading, RpiThreading, PcThreading

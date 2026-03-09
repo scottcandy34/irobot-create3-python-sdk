@@ -14,7 +14,7 @@ from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 
-from .rclpy import rclpy
+from .utils import rclpy
 from .threading import _Threading
 
 UPTIME_FREQUENCY = 100 # in Hz
