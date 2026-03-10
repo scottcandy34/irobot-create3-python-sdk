@@ -4,26 +4,12 @@
 #
 
 """
-Tools for working with the iRobot Create3, including converting between quaternions and euler angles, 
-processing joystick input data, and providing access to utility classes for working with the lightring, IR sensors, 
-line fitting, line segments, joystick input, and lidar data.
+Utility tools for the iRobot Create3, including threading for ROS nodes, a debugger to watch 
+the uptime and interfaces of attached nodes, and tools for working with the robot such as converting 
+between quaternions and euler angles.
 """
 
-from . import robot, rpi, pc
+from . import robot, rpi, pc, other
 from .rclpy_override import rclpy
 from .debugger import Debugger
-
-import pprint as _pprint
-
-def object_to_string(obj) -> str:
-    """Returns a pretty string with the object data"""
-
-    if isinstance(obj, str):
-        return obj
-
-    if hasattr(obj, '__dict__'):
-        data = vars(obj)
-    else:
-        data = obj
-
-    return _pprint.pformat(data, indent = 4, width = 80)
+from .ros_threading import Threading

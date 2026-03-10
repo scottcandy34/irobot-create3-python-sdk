@@ -3,7 +3,10 @@
 # Created by scottcandy34
 #
 
-"""Tools for working with the lidar sensor on the iRobot Create3, including converting scans to coordinates, finding lines and segments in the data, and generating lightring patterns based on lidar readings."""
+"""
+Tools for working with the lidar sensor on the iRobot Create3, including converting scans to coordinates, 
+finding lines and segments in the data, and generating lightring patterns based on lidar readings.
+"""
 
 import math as _math
 import random as _random

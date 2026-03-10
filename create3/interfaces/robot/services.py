@@ -1,5 +1,5 @@
 #
-# ROS Service Examples for iRobot Create3 - Jazzy
+# Service Interface for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -7,17 +7,22 @@ import time
 from typing import TYPE_CHECKING
 
 from irobot_create_msgs.srv import ResetPose
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from ..models import TIMEOUT, DEFAULT_WAIT
-from ..threading import RobotThreading
+from create3.models import TIMEOUT, DEFAULT_WAIT
+from create3.utils import Threading
 
-class RobotServices(RobotThreading if TYPE_CHECKING else object):
+class ServiceInterface(Threading if TYPE_CHECKING else object):
     """Handle ROS Services by sending messages."""
+
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
+        # Creates a exclusive callback group so not to interrupt the other callbacks.
+        service_callback_group = MutuallyExclusiveCallbackGroup()
+
         # Create Service Clients
-        self._reset_pose = self.node.create_client(ResetPose, 'reset_pose', callback_group=self._action_callback_group)
+        self._reset_pose = self.node.create_client(ResetPose, 'reset_pose', callback_group=service_callback_group)
         self._reset_pose.wait_for_service(TIMEOUT)
 
         # Add services to debugger

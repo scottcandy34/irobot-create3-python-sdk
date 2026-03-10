@@ -3,21 +3,24 @@
 # Created by scottcandy34
 #
 
-from .utils import rclpy, Debugger
-from .interfaces import RobotActionClients, RobotServices, RobotPublishers, RPIPublishers, PCPublishers, RobotSubscriptions, RPISubscriptions, PCSubscriptions
-from .threading import RobotThreading, RPIThreading, PCThreading
+from .utils import rclpy, Threading, Debugger, robot, rpi, pc
+from .interfaces import robot, rpi, pc
 
 debugger = Debugger()
 
-class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscriptions, RobotThreading):
+class RobotNode(robot.ActionClientInterface, robot.ServiceInterface, robot.PublisherInterface, robot.SubscriptionInterface, Threading):
     """Setup Robot node with multithreading, subscriptions, publishers, services and actions."""
+
     def __init__(self, useGoal = True):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('create3_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
+        self.node._logger.name = "Create3"
         self._useGoal = useGoal
+
+        self.tools = robot
 
         # Start the Threading/Spinning
         self.start()
@@ -33,14 +36,18 @@ class RobotNode(RobotActionClients, RobotServices, RobotPublishers, RobotSubscri
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class RpiNode(RPIPublishers, RPISubscriptions, RPIThreading):
+class RpiNode(rpi.PublisherInterface, rpi.SubscriptionInterface, Threading):
     """Setup Rpi node with multithreading, subscriptions, publishers."""
+
     def __init__(self):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('rpi_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
+        self.node._logger.name = "Raspberry Pi"
+
+        self.tools = rpi
 
         # Start the Threading/Spinning
         self.start()
@@ -53,14 +60,18 @@ class RpiNode(RPIPublishers, RPISubscriptions, RPIThreading):
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class PcNode(PCPublishers, PCSubscriptions, PCThreading):
+class PcNode(pc.PublisherInterface, pc.SubscriptionInterface, Threading):
     """Setup PC node with multithreading, subscriptions, publishers."""
+    
     def __init__(self):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('pc_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
+        self.node._logger.name = "Remote PC"
+
+        self.tools = pc
 
         # Start the Threading/Spinning
         self.start()

@@ -1,5 +1,5 @@
 #
-# ROS MultiThreading Examples for iRobot Create3 - Jazzy
+# Threading for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -11,57 +11,50 @@ from colorama import init, Fore, Style
 from rclpy.node import Node
 from rclpy.timer import Timer
 from rclpy.executors import SingleThreadedExecutor
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from . import utils
-from .models import Debug, SubscriberTopics, PublisherTopics
+from .other import object_to_string
+from create3.models import Debug
 
 init(autoreset=True)
 
-class ROSThreading():
+class Threading():
+    """Provides multithreading capabilities and helper functions for ROS nodes."""
+
     def __init__(self, node: Node):
         self.node = node
-
         self.debug = Debug()
-
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
-        publish_callback_group = MutuallyExclusiveCallbackGroup()
-        self._subscription_callback_group = MutuallyExclusiveCallbackGroup()
-        self._action_callback_group = MutuallyExclusiveCallbackGroup()
-        self._other_callback_group = MutuallyExclusiveCallbackGroup()
-        
-        self.node.create_timer(0.05, self._publish_handler, callback_group=publish_callback_group)
         
     def print(self, msg):
         """Prints a value to node Info stream"""
-        self.node.get_logger().info(utils.object_to_string(msg))
+        self.node.get_logger().info(object_to_string(msg))
 
     def print_good(self, msg):
         """Prints a value to node Info stream as Green"""
-        self.node.get_logger().info(Fore.GREEN + utils.object_to_string(msg))
+        self.node.get_logger().info(Fore.GREEN + object_to_string(msg))
 
     def print_fatal(self, msg):
         """Prints a value to node Fatal stream"""
-        self.node.get_logger().fatal(utils.object_to_string(msg))
+        self.node.get_logger().fatal(object_to_string(msg))
 
     def print_error(self, msg):
         """Prints a value to node Error stream"""
-        self.node.get_logger().error(utils.object_to_string(msg))
+        self.node.get_logger().error(object_to_string(msg))
 
     def print_warning(self, msg):
         """Prints a value to node Warning stream"""
-        self.node.get_logger().warning(utils.object_to_string(msg))
+        self.node.get_logger().warning(object_to_string(msg))
 
     def time(self) -> int:
-        """Returns the current timestamp for ROS"""
+        """Returns the current time in nanoseconds."""
         return self.node.get_clock().now().nanoseconds
 
     def get_name(self):
-        """Returns the Node name."""
+        """Returns the name of the node for debugging purposes."""
         return self.node.get_name()
 
     def update_uptime(self, topic_name: str):
-        """Updates the timestamps for each subscription callback."""
+        """Updates the uptime and frequency stats for a given topic."""
+
         if not topic_name in self.debug.uptime:
             self.debug.uptime[topic_name] = [0, 0, 0, 0, 0] # [last_time, frequency, min_freq, max_freq, total_calls]
         self.debug.uptime[topic_name][1] = int(1 / ((self.time() - self.debug.uptime.get(topic_name, 0)[0]) / 1000000000)) # frequency = 1 / (current_time - last_time)
@@ -71,14 +64,16 @@ class ROSThreading():
         self.debug.uptime[topic_name][4] += 1 # total_calls += 1
 
     def start(self):
-        """Spin up ROS on single thread"""
+        """Starts the ROS spinning in a separate thread."""
+
         self.print(f'{self.node.get_name()} node is initiating... Listening for Topics Sub/Pub, Services and Actions.')
         self._executor = SingleThreadedExecutor()
         self._ros_thread = Thread(target=self._spin)
         self._ros_thread.start()
     
     def shutdown(self):
-        """Shutdown ROS and clean up threads."""
+        """Shuts down the ROS spinning thread and the node itself."""
+
         self._executor.shutdown()
         while self._ros_thread.is_alive():
             time.sleep(0.1)
@@ -122,69 +117,6 @@ class ROSThreading():
         return timer
 
     def _spin(self):
+        """Internal method to spin the ROS node. Should not be called directly."""
         self._executor.add_node(self.node)
         self._executor.spin()
-                
-    def _publish_handler(self):
-        """Loop for checking for updates and publishing Constantly every 0.5 sec"""
-        pass
-
-class RobotThreading(ROSThreading):
-    """Spin up ROS node using multithreading."""
-    def __init__(self, node: Node):
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Create3"
-
-        # Hidden global callback information
-        self._subscribe = SubscriberTopics.ROBOT
-        
-        # Hidden global publish information
-        self._publish = PublisherTopics.ROBOT
-        
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
-        set_wheel_speed_callback_group = MutuallyExclusiveCallbackGroup()
-        self._cmd_velocity_callback_group = MutuallyExclusiveCallbackGroup()
-        
-        # Creates a timer that will loop every 0.499s and set wheel speeds if exist
-        node.create_timer(0.05, self._set_wheel_speed_handler, callback_group=set_wheel_speed_callback_group)
-        
-        # Declare Tools
-        self.tools = utils.robot
-
-    def shutdown(self):
-        super().shutdown()
-    
-    def _set_wheel_speed_handler(self):
-        """Loop for setting wheel speeds Constantly every 0.5 sec"""
-        pass
-
-class RPIThreading(ROSThreading):
-    """Spin up ROS node using multithreading."""
-    def __init__(self, node: Node):
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Raspberry Pi"
-
-        # Hidden global callback information
-        self._subscribe = SubscriberTopics.RPI
-        
-        # Hidden global publish information
-        self._publish = PublisherTopics.RPI
-        
-        # Declare Tools
-        self.tools = utils.rpi
-
-class PCThreading(ROSThreading):
-    """Spin up ROS node using multithreading."""
-    def __init__(self, node: Node):
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Remote PC"
-
-        # Hidden global callback information
-        self._subscribe = SubscriberTopics.PC
-        
-        # Hidden global publish information
-        self._publish = PublisherTopics.PC
-
-        # Declare Tools
-        self.tools = utils.pc
-        

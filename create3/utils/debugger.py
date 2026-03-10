@@ -15,7 +15,7 @@ from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 
 from . import rclpy
-from ..threading import ROSThreading
+from .ros_threading import Threading
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
@@ -64,19 +64,19 @@ class Debugger():
 
         self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Watching Topics Sub/Pub, Services and Actions.')
 
-        self._devices: list[ROSThreading] = []
+        self._devices: list[Threading] = []
         self._validated: dict[str, bool] = {}
         self._logged: dict[str, list[int]] = {}
 
         self._thread = Thread(target=self._watcher)
         self._thread.start()
 
-    def add_device(self, device: ROSThreading):
+    def add_device(self, device: Threading):
         """Add a device to the debugger to watch its interfaces and uptime."""
         self._devices.append(device)
         self._validated.update(device.debug.isAlive())
 
-    def remove_device(self, device: ROSThreading):
+    def remove_device(self, device: Threading):
         """Remove a device from the debugger to stop watching its interfaces and uptime."""
         for index, obj in enumerate(self._devices):
             if obj.get_name() == device.get_name():
@@ -169,7 +169,7 @@ class Debugger():
 
             time.sleep(1 / DEBUGGER_INTERVAL)
 
-    def stop(self, device: ROSThreading):
+    def stop(self, device: Threading):
         """Stop the debugger from watching a given device, and shutdown the debugger if there are no more devices to watch."""
         self.remove_device(device)
         if len(self._devices) == 0:
