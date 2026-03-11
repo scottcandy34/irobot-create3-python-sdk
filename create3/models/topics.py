@@ -35,14 +35,14 @@ class _RobotPublishTopics():
     audio_note = AudioNoteVector()
     last_audio_note = AudioNoteVector()
 
-class _RpiSubscribeTopics():
-    """Holds all rpi subscribed topics."""
+class _CompanionSubscribeTopics():
+    """Holds all companion subscribed topics."""
     lidar = Lidar()
     ultrasonic = Ultrasonic()
     servo_angle = 90.0
     
-class _RpiPublishTopics():
-    """Holds all rpi published topics."""
+class _CompanionPublishTopics():
+    """Holds all companion published topics."""
     servo = Float32()
     last_servo = Float32()
 
@@ -57,10 +57,10 @@ class _PcPublishTopics():
 
 class SubscriberTopics:
     ROBOT = _RobotSubscribeTopics()
-    RPI = _RpiSubscribeTopics()
+    Companion = _CompanionSubscribeTopics()
     PC = _PcSubscribeTopics()
 
 class PublisherTopics:
     ROBOT = _RobotPublishTopics()
-    RPI = _RpiPublishTopics()
+    Companion = _CompanionPublishTopics()
     PC = _PcPublishTopics()

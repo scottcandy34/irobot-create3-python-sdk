@@ -3,5 +3,5 @@
 # Created by scottcandy34
 #
 
-from .nodes import RobotNode, RPINode, PCNode
+from .nodes import RobotNode, CompanionNode, PCNode
 from . import utils

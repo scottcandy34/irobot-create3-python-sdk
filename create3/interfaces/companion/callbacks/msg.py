@@ -18,7 +18,7 @@ class MsgCallbacks(Threading if TYPE_CHECKING else object):
         super().__init__(node)
 
         # Hidden global callback information
-        self._subscription_msgs = SubscriberTopics.RPI
+        self._subscription_msgs = SubscriberTopics.Companion
         """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
 
     def _scan_callback(self, scan: LaserScan):

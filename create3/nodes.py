@@ -3,8 +3,8 @@
 # Created by scottcandy34
 #
 
-from .utils import rclpy, Threading, Debugger, robot, rpi, pc
-from .interfaces import robot, rpi, pc
+from .utils import rclpy, Threading, Debugger, robot, companion, pc
+from .interfaces import robot, companion, pc
 
 debugger = Debugger()
 
@@ -36,18 +36,18 @@ class RobotNode(robot.ActionClientInterface, robot.ServiceInterface, robot.Publi
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class RPINode(rpi.PublisherInterface, rpi.SubscriptionInterface, Threading):
-    """Setup Rpi node with multithreading, subscriptions, publishers."""
+class CompanionNode(companion.PublisherInterface, companion.SubscriptionInterface, Threading):
+    """Setup Companion node with multithreading, subscriptions, publishers."""
 
     def __init__(self):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('rpi_ros_examples')
+        node = rclpy.create_node('companion_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Raspberry Pi"
+        self.node._logger.name = "Companion"
 
-        self.tools = rpi
+        self.tools = companion
 
         # Start the Threading/Spinning
         self.start()

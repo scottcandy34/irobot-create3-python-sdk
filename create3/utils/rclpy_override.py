@@ -12,7 +12,7 @@ class rclpy:
     Overrides for rclpy to ensure that it is only initialized once, and to provide a create_node function 
     that can be used to create a ROS node. This is not standard practice for ROS, but it is necessary to ensure 
     that the iRobot Create3 SDK can be used in a way that is consistent with the rest of the SDK, and to prevent 
-    issues with multiple initializations of rclpy when using the SDK in different contexts (e.g. on a Raspberry Pi or on a PC).
+    issues with multiple initializations of rclpy when using the SDK in different contexts.
     """
     _hasStarted = False
     _startedCount = 0

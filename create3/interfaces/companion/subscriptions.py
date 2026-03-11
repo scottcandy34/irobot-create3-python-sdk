@@ -20,7 +20,7 @@ sub_qos_profile = QoSProfile(
 )
 
 class SubscriptionInterface(MsgCallbacks, Threading if TYPE_CHECKING else object):
-    """Handles ROS subscriptions for rpi data."""
+    """Handles ROS subscriptions for companion data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten

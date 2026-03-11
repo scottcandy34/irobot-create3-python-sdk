@@ -18,7 +18,7 @@ qos_profile = QoSProfile(
 )
 
 class PublisherInterface(HandlerCallbacks, Threading if TYPE_CHECKING else object):
-    """Handles ROS publishers for rpi data."""
+    """Handles ROS publishers for companion data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten

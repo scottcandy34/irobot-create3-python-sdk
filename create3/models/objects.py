@@ -70,7 +70,7 @@ class RobotButtons():
         return pprint.pformat(self, indent = 4, width = 80)
 
 class Lidar():
-    """Stores rpi lidar values."""
+    """Stores companion lidar values."""
     angle_min: float = 0.0 # start angle of scan
     angle_max: float = 0.0 # end angle of scan
     angle_increment: float = 0.0 # angular distance between measurements
@@ -84,7 +84,7 @@ class Lidar():
         return pprint.pformat(self, indent = 4, width = 80)
 
 class Ultrasonic():
-    """Stores rpi ultrasonic sensor values."""
+    """Stores companion ultrasonic sensor values."""
     field_of_view: float = 0.0
     min_range: float = 0.0
     max_range: float = 0.0
