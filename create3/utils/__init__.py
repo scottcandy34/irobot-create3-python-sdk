@@ -11,6 +11,6 @@ between quaternions and euler angles.
 
 from . import robot, companion, remote, other
 from .rclpy_override import rclpy
-from .debugger import Debugger
+from .debugger import global_debugger
 from .ros_threading import Threading
 from .robot.music import Note

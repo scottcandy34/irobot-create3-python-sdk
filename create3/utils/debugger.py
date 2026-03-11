@@ -180,3 +180,6 @@ class Debugger():
             self.print_warn(f'{self.node.get_name()} node has shutdown.')
             self.node.destroy_node()
             rclpy.shutdown()
+
+# Initialize Debugger for global use
+global_debugger = Debugger()
