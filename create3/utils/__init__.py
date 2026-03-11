@@ -9,8 +9,9 @@ the uptime and ROS interfaces of attached nodes, and tools for working with the 
 between quaternions and euler angles.
 """
 
-from . import robot, companion, remote, other
+from . import robot, companion, remote
 from .rclpy_override import rclpy
 from .debugger import global_debugger
 from .ros_threading import Threading
 from .robot.music import Note
+from .other import object_to_string, ROUNDING_VALUE, DEFAULT_WAIT, TIMEOUT

@@ -14,8 +14,7 @@ from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
 from .callbacks import ActionHandler
-from create3.utils import Threading
-from create3.models import TIMEOUT, DEFAULT_WAIT
+from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
 class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
     """Setup ROS action clients, and handle goals."""

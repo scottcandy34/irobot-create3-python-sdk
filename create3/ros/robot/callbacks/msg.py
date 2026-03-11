@@ -10,9 +10,9 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
-from create3.utils import Threading
+from create3.utils import Threading, ROUNDING_VALUE
 from create3.utils import robot as tools
-from create3.models import Position, HazardBumper, HazardCliff, SubscriberTopics, ROUNDING_VALUE
+from create3.models import Position, HazardBumper, HazardCliff, SubscriberTopics
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for robot subscriptions."""

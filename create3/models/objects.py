@@ -5,10 +5,6 @@
 
 import pprint
 
-TIMEOUT = 0.8 # timeout for action servers
-DEFAULT_WAIT = 3 # delay in receiving command
-ROUNDING_VALUE = 6
-
 class Position():
     """Stores robot position values."""
     x: int | float = 0.0

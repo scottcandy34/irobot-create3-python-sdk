@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING
 from irobot_create_msgs.srv import ResetPose
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from create3.models import TIMEOUT, DEFAULT_WAIT
-from create3.utils import Threading
+from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
 class ServiceClient(Threading if TYPE_CHECKING else object):
     """Handle ROS Services by sending messages."""
