@@ -72,12 +72,12 @@ class Debugger():
         self._thread.start()
 
     def add_device(self, device: Threading):
-        """Add a device to the debugger to watch its interfaces and uptime."""
+        """Add a device to the debugger to watch its ROS interfaces and uptime."""
         self._devices.append(device)
         self._validated.update(device.debug.isAlive())
 
     def remove_device(self, device: Threading):
-        """Remove a device from the debugger to stop watching its interfaces and uptime."""
+        """Remove a device from the debugger to stop watching its ROS interfaces and uptime."""
         for index, obj in enumerate(self._devices):
             if obj.get_name() == device.get_name():
                 self._devices.pop(index)
@@ -122,7 +122,7 @@ class Debugger():
             type_ = "Service Server"
 
         else:
-            raise ValueError("Interface type not recognized.")
+            raise ValueError("ROS interface type not recognized.")
         
         if not exist and self._validated.get(name, True):
             self._validated[name] = False

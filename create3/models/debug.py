@@ -16,7 +16,7 @@ class Debug():
     uptime: dict[str, list[int]] = {}
 
     def isAlive(self) -> list[tuple[str, bool]]:
-        """Returns a list of all interfaces part of this device node."""
+        """Returns a list of all ROS interfaces part of this device node."""
         subscriptions = [(x.topic_name, True) for x in self.subscriptions]
         publishers = [(x.topic_name, True) for x in self.publishers]
         actions = [(x._action_name, True) for x in self.actions]

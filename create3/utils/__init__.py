@@ -5,7 +5,7 @@
 
 """
 Utility tools for the iRobot Create3, including threading for ROS nodes, a debugger to watch 
-the uptime and interfaces of attached nodes, and tools for working with the robot such as converting 
+the uptime and ROS interfaces of attached nodes, and tools for working with the robot such as converting 
 between quaternions and euler angles.
 """
 

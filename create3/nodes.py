@@ -4,7 +4,7 @@
 #
 
 from .utils import rclpy, Threading, Debugger, robot, companion, remote
-from .interfaces import robot, companion, remote
+from .ros import robot, companion, remote
 
 debugger = Debugger()
 
