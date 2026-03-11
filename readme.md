@@ -81,7 +81,7 @@ This library is designed to replace your ROS2 packages. Here's a basic example t
 
 2. **Advanced Usage:**
    - **Companion Node:** Use CompanionNode for lidar/ultrasonic handling.
-   - **PC Node:** Use PcNode for controller input and rumble feedback.
+   - **Remote Node:** Use RemoteNode for controller input and rumble feedback.
    - Access sensor data via methods like robot.get_position().x or robot.get_battery_level().
    - **Use tools:** robot.tools.robot.getIrAngle(0) or companion.tools.lidar.find_line().
    - **Debugging:** The built-in debugger logs topic availability, uptime warnings, and errors.

@@ -18,7 +18,7 @@ class HandlerCallbacks(Threading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Hidden global publish information
-        self._publisher_msgs = PublisherTopics.PC
+        self._publisher_msgs = PublisherTopics.Remote
         """Contains the most recent messages to be published for each topic. Updated when a set function is called."""
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.

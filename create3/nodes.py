@@ -3,8 +3,8 @@
 # Created by scottcandy34
 #
 
-from .utils import rclpy, Threading, Debugger, robot, companion, pc
-from .interfaces import robot, companion, pc
+from .utils import rclpy, Threading, Debugger, robot, companion, remote
+from .interfaces import robot, companion, remote
 
 debugger = Debugger()
 
@@ -60,18 +60,18 @@ class CompanionNode(companion.PublisherInterface, companion.SubscriptionInterfac
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class PCNode(pc.PublisherInterface, pc.SubscriptionInterface, Threading):
-    """Setup PC node with multithreading, subscriptions, publishers."""
+class RemoteNode(remote.PublisherInterface, remote.SubscriptionInterface, Threading):
+    """Setup Remote node with multithreading, subscriptions, publishers."""
 
     def __init__(self):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('pc_ros_examples')
+        node = rclpy.create_node('remote_ros_examples')
 
         super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Remote PC"
+        self.node._logger.name = "Remote"
 
-        self.tools = pc
+        self.tools = remote
 
         # Start the Threading/Spinning
         self.start()

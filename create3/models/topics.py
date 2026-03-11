@@ -46,21 +46,21 @@ class _CompanionPublishTopics():
     servo = Float32()
     last_servo = Float32()
 
-class _PcSubscribeTopics():
-    """Holds all pc subscribed topics."""
+class _RemoteSubscribeTopics():
+    """Holds all remote subscribed topics."""
     controller = Controller()
 
-class _PcPublishTopics():
-    """Holds all pc published topics."""
+class _RemotePublishTopics():
+    """Holds all remote published topics."""
     rumble_enable: bool = False
     rumble_running: bool = False
 
 class SubscriberTopics:
     ROBOT = _RobotSubscribeTopics()
     Companion = _CompanionSubscribeTopics()
-    PC = _PcSubscribeTopics()
+    Remote = _RemoteSubscribeTopics()
 
 class PublisherTopics:
     ROBOT = _RobotPublishTopics()
     Companion = _CompanionPublishTopics()
-    PC = _PcPublishTopics()
+    Remote = _RemotePublishTopics()

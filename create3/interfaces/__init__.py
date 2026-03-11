@@ -8,4 +8,4 @@ ROS2 interfaces for the iRobot Create3, including publishers, subscriptions, ser
 and actions, as well as callbacks for handling incoming messages and other events.
 """
 
-from . import pc, robot, companion
+from . import remote, robot, companion

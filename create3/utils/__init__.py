@@ -9,7 +9,7 @@ the uptime and interfaces of attached nodes, and tools for working with the robo
 between quaternions and euler angles.
 """
 
-from . import robot, companion, pc, other
+from . import robot, companion, remote, other
 from .rclpy_override import rclpy
 from .debugger import Debugger
 from .ros_threading import Threading

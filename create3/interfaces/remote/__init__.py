@@ -1,10 +1,10 @@
 #
-# PC Interface for iRobot Create3 - Jazzy
+# Remote Interface for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
 """
-ROS2 interfaces for the PC node, including publishers, subscriptions, services and actions, 
+ROS2 interfaces for the Remote node, including publishers, subscriptions, services and actions, 
 as well as callbacks for handling incoming messages and other events.
 """
 

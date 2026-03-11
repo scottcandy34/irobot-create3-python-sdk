@@ -11,13 +11,13 @@ from create3.utils import Threading
 from create3.models import SubscriberTopics, Controller
 
 class MsgCallbacks(Threading if TYPE_CHECKING else object):
-    """Handles callback functions for pc subscriptions."""
+    """Handles callback functions for remote subscriptions."""
 
     def __init__(self, node):
         super().__init__(node)
 
         # Hidden global callback information
-        self._subscription_msgs = SubscriberTopics.PC
+        self._subscription_msgs = SubscriberTopics.Remote
         """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
 
     def _joy_callback(self, joy: Joy):
