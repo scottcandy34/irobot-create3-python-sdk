@@ -1,5 +1,5 @@
 #
-# ROS Node Examples for iRobot Create3 - Jazzy
+# Nodes for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -36,7 +36,7 @@ class RobotNode(robot.ActionClientInterface, robot.ServiceInterface, robot.Publi
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class RpiNode(rpi.PublisherInterface, rpi.SubscriptionInterface, Threading):
+class RPINode(rpi.PublisherInterface, rpi.SubscriptionInterface, Threading):
     """Setup Rpi node with multithreading, subscriptions, publishers."""
 
     def __init__(self):
@@ -60,9 +60,9 @@ class RpiNode(rpi.PublisherInterface, rpi.SubscriptionInterface, Threading):
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class PcNode(pc.PublisherInterface, pc.SubscriptionInterface, Threading):
+class PCNode(pc.PublisherInterface, pc.SubscriptionInterface, Threading):
     """Setup PC node with multithreading, subscriptions, publishers."""
-    
+
     def __init__(self):
         # Initialize ROS2 node
         rclpy.init()

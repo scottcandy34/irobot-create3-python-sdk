@@ -11,6 +11,7 @@ from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
 from create3.utils import Threading
+from create3.utils import robot as tools
 from create3.models import Position, HazardBumper, HazardCliff, SubscriberTopics, ROUNDING_VALUE
 
 class MsgCallbacks(Threading if TYPE_CHECKING else object):
@@ -31,7 +32,7 @@ class MsgCallbacks(Threading if TYPE_CHECKING else object):
         position.x = round(odom.pose.pose.position.x * 100, ROUNDING_VALUE) # convert to centimeters
         position.y = round(odom.pose.pose.position.y * 100, ROUNDING_VALUE) # convert to centimeters
         turn = odom.pose.pose.orientation
-        position.angle = round(math.degrees(self.tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]), ROUNDING_VALUE) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+        position.angle = round(math.degrees(tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]), ROUNDING_VALUE) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
         self._subscription_msgs.position = position
         
     def _ir_intensity_callback(self, ir: IrIntensityVector):

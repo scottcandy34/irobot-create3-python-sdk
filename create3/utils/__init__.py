@@ -13,3 +13,4 @@ from . import robot, rpi, pc, other
 from .rclpy_override import rclpy
 from .debugger import Debugger
 from .ros_threading import Threading
+from .robot.music import Note
