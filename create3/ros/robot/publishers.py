@@ -10,7 +10,7 @@ from geometry_msgs.msg import Twist
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector, LedColor
 
-from .callbacks import HandlerCallbacks
+from .callbacks import PublishHandler
 from create3.utils import Threading
 
 qos_profile = QoSProfile(
@@ -18,7 +18,7 @@ qos_profile = QoSProfile(
     depth=1
 )
 
-class PublisherInterface(HandlerCallbacks, Threading if TYPE_CHECKING else object):
+class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
     """Handles ROS publishers for robot data."""
 
     def __init__(self, node):

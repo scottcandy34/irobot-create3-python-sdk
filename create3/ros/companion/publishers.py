@@ -10,14 +10,14 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from create3.utils import Threading
-from .callbacks import HandlerCallbacks
+from .callbacks import PublishHandler
 
 qos_profile = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     depth=1
 )
 
-class PublisherInterface(HandlerCallbacks, Threading if TYPE_CHECKING else object):
+class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
     """Handles ROS publishers for companion data."""
 
     def __init__(self, node):

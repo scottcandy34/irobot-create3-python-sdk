@@ -4,7 +4,7 @@
 #
 
 """
-ROS2 interfaces for the iRobot Create3, including publishers, subscriptions, services 
+ROS2 interfaces for the iRobot Create3, including publishers, subscribers, services 
 and actions, as well as callbacks for handling incoming messages and other events.
 """
 

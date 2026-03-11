@@ -10,7 +10,7 @@ from sensor_msgs.msg import Joy
 from create3.utils import Threading
 from create3.models import SubscriberTopics, Controller
 
-class MsgCallbacks(Threading if TYPE_CHECKING else object):
+class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for remote subscriptions."""
 
     def __init__(self, node):

@@ -12,7 +12,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from create3.models import TIMEOUT, DEFAULT_WAIT
 from create3.utils import Threading
 
-class ServiceInterface(Threading if TYPE_CHECKING else object):
+class ServiceClient(Threading if TYPE_CHECKING else object):
     """Handle ROS Services by sending messages."""
 
     def __init__(self, node):

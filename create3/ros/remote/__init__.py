@@ -4,10 +4,10 @@
 #
 
 """
-ROS2 interfaces for the Remote node, including publishers, subscriptions, services and actions, 
+ROS2 interfaces for the Remote node, including publishers, subscribers, services and actions, 
 as well as callbacks for handling incoming messages and other events.
 """
 
-from .publishers import PublisherInterface
-from .subscriptions import SubscriptionInterface
+from .publishers import Publisher
+from .subscribers import Subscriber
 from . import callbacks

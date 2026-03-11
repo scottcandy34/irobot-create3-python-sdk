@@ -7,17 +7,17 @@ import time, math
 from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
-from rclpy.action import ActionClient
+from rclpy.action import ActionClient as CreateActionClient
 from builtin_interfaces.msg import Duration
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
-from .callbacks import GoalCallbacks
+from .callbacks import ActionHandler
 from create3.utils import Threading
 from create3.models import TIMEOUT, DEFAULT_WAIT
 
-class ActionClientInterface(GoalCallbacks, Threading if TYPE_CHECKING else object):
+class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
     """Setup ROS action clients, and handle goals."""
 
     def __init__(self, node):
@@ -28,21 +28,21 @@ class ActionClientInterface(GoalCallbacks, Threading if TYPE_CHECKING else objec
         action_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Create Action Clients
-        self._led_animate = ActionClient(self.node, LedAnimation, 'led_animation', callback_group=action_callback_group)
+        self._led_animate = CreateActionClient(self.node, LedAnimation, 'led_animation', callback_group=action_callback_group)
         self._led_animate.wait_for_server(TIMEOUT)
-        self._audio_sequence = ActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=action_callback_group)
+        self._audio_sequence = CreateActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=action_callback_group)
         self._audio_sequence.wait_for_server(TIMEOUT)
-        self._navigate = ActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=action_callback_group)
+        self._navigate = CreateActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=action_callback_group)
         self._navigate.wait_for_server(TIMEOUT)
-        self._drive_arc = ActionClient(self.node, DriveArc, 'drive_arc', callback_group=action_callback_group)
+        self._drive_arc = CreateActionClient(self.node, DriveArc, 'drive_arc', callback_group=action_callback_group)
         self._drive_arc.wait_for_server(TIMEOUT)
-        self._drive_distance = ActionClient(self.node, DriveDistance, 'drive_distance', callback_group=action_callback_group)
+        self._drive_distance = CreateActionClient(self.node, DriveDistance, 'drive_distance', callback_group=action_callback_group)
         self._drive_distance.wait_for_server(TIMEOUT)
-        self._rotate_angle = ActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=action_callback_group)
+        self._rotate_angle = CreateActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=action_callback_group)
         self._rotate_angle.wait_for_server(TIMEOUT)
-        self._dock = ActionClient(self.node, Dock, 'dock', callback_group=action_callback_group)
+        self._dock = CreateActionClient(self.node, Dock, 'dock', callback_group=action_callback_group)
         self._dock.wait_for_server(TIMEOUT)
-        self._undock = ActionClient(self.node, Undock, 'undock', callback_group=action_callback_group)
+        self._undock = CreateActionClient(self.node, Undock, 'undock', callback_group=action_callback_group)
         self._undock.wait_for_server(TIMEOUT)
 
         # Add actions to debugger

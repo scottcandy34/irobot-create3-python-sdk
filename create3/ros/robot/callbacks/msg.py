@@ -14,7 +14,7 @@ from create3.utils import Threading
 from create3.utils import robot as tools
 from create3.models import Position, HazardBumper, HazardCliff, SubscriberTopics, ROUNDING_VALUE
 
-class MsgCallbacks(Threading if TYPE_CHECKING else object):
+class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for robot subscriptions."""
 
     def __init__(self, node):

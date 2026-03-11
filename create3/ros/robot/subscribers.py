@@ -1,5 +1,5 @@
 #
-# Subscription Interface for iRobot Create3 - Jazzy
+# Subscriber Interface for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -11,7 +11,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, InterfaceButtons, DockStatus, IrOpcode
 
-from .callbacks import MsgCallbacks
+from .callbacks import MessageHandler
 from create3.utils import Threading
 from create3.models import Position, HazardBumper, HazardCliff, Acceleration, DockingValues
 
@@ -22,24 +22,24 @@ qos_profile = QoSProfile(
     depth = 1
 )
 
-class SubscriptionInterface(MsgCallbacks, Threading if TYPE_CHECKING else object):
-    """Handles ROS subscriptions for robot data."""
+class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
+    """Handles ROS subscribers for robot data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.
-        subscription_callback_group = MutuallyExclusiveCallbackGroup()
+        subscriber_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Create Subscription
-        self._odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, qos_profile, callback_group=subscription_callback_group)
-        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_intensity_callback, qos_profile, callback_group=subscription_callback_group)
-        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_detection_callback, qos_profile, callback_group=subscription_callback_group)
-        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_buttons_callback, qos_profile, callback_group=subscription_callback_group)
-        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_state_callback, qos_profile, callback_group=subscription_callback_group)
-        self._imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, qos_profile, callback_group=subscription_callback_group)
-        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, qos_profile, callback_group=subscription_callback_group)
-        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, qos_profile, callback_group=subscription_callback_group)
+        self._odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_intensity_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_detection_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_buttons_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_state_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, qos_profile, callback_group=subscriber_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._odom, self._ir_intensity, self._hazard_detection, self._interface_buttons, self._battery_state, self._imu, self._dock_status, self._ir_opcode]

@@ -11,7 +11,7 @@ from sensor_msgs.msg import LaserScan, Range
 from create3.utils import Threading
 from create3.models import SubscriberTopics
 
-class MsgCallbacks(Threading if TYPE_CHECKING else object):
+class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles incoming messages for subscribed topics."""
 
     def __init__(self, node):

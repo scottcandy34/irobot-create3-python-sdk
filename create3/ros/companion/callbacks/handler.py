@@ -10,7 +10,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from create3.utils import Threading
 from create3.models import PublisherTopics
 
-class HandlerCallbacks(Threading if TYPE_CHECKING else object):
+class PublishHandler(Threading if TYPE_CHECKING else object):
     """Handles the publishing of messages to topics."""
 
     def __init__(self, node):

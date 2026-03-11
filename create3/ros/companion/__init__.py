@@ -4,10 +4,10 @@
 #
 
 """
-ROS2 interfaces for the Companion node, including publishers, subscriptions, services and actions, 
+ROS2 interfaces for the Companion node, including publishers, subscribers, services and actions, 
 as well as callbacks for handling incoming messages and other events.
 """
 
-from .subscriptions import SubscriptionInterface
-from .publishers import PublisherInterface
+from .subscribers import Subscriber
+from .publishers import Publisher
 from . import callbacks

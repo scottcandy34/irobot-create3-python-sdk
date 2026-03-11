@@ -8,8 +8,8 @@ from .ros import robot, companion, remote
 
 debugger = Debugger()
 
-class RobotNode(robot.ActionClientInterface, robot.ServiceInterface, robot.PublisherInterface, robot.SubscriptionInterface, Threading):
-    """Setup Robot node with multithreading, subscriptions, publishers, services and actions."""
+class RobotNode(robot.ActionClient, robot.ServiceClient, robot.Publisher, robot.Subscriber, Threading):
+    """Setup Robot node with multithreading, subscribers, publishers, services and actions."""
 
     def __init__(self, useGoal = True):
         # Initialize ROS2 node
@@ -36,8 +36,8 @@ class RobotNode(robot.ActionClientInterface, robot.ServiceInterface, robot.Publi
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class CompanionNode(companion.PublisherInterface, companion.SubscriptionInterface, Threading):
-    """Setup Companion node with multithreading, subscriptions, publishers."""
+class CompanionNode(companion.Publisher, companion.Subscriber, Threading):
+    """Setup Companion node with multithreading, subscribers, publishers."""
 
     def __init__(self):
         # Initialize ROS2 node
@@ -60,8 +60,8 @@ class CompanionNode(companion.PublisherInterface, companion.SubscriptionInterfac
         super().shutdown() # trigger original code before it gets overwritten
         rclpy.shutdown()
 
-class RemoteNode(remote.PublisherInterface, remote.SubscriptionInterface, Threading):
-    """Setup Remote node with multithreading, subscriptions, publishers."""
+class RemoteNode(remote.Publisher, remote.Subscriber, Threading):
+    """Setup Remote node with multithreading, subscribers, publishers."""
 
     def __init__(self):
         # Initialize ROS2 node

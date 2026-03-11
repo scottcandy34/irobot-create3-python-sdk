@@ -9,7 +9,7 @@ from rclpy.task import Future
 
 from create3.utils import Threading
 
-class GoalCallbacks(Threading if TYPE_CHECKING else object):
+class ActionHandler(Threading if TYPE_CHECKING else object):
     """Handles callbacks for action goals."""
 
     def _goal_response_callback(self, future: Future):
