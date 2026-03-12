@@ -10,7 +10,7 @@ from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
 class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
     """Setup Robot node with multithreading, subscribers, publishers, services and actions."""
 
-    def __init__(self, use_goal = True):
+    def __init__(self, enable_debugger = True, use_goal = True):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('create3_robot')
@@ -25,7 +25,8 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
         self.start()
         
         # Add node to Debugger
-        global_debugger.add_device(self)
+        if enable_debugger:
+            global_debugger.add_device(self)
 
         # Reset the robot position to 0, 0, 0
         self.reset_navigation()

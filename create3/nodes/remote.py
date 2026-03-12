@@ -10,7 +10,7 @@ from create3.ros.remote import Publisher, Subscriber
 class RemoteNode(Publisher, Subscriber, Threading):
     """Setup Remote node with multithreading, subscribers, publishers."""
 
-    def __init__(self):
+    def __init__(self, enable_debugger = True):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('create3_remote')
@@ -24,7 +24,8 @@ class RemoteNode(Publisher, Subscriber, Threading):
         self.start()
 
         # Add node to Debugger
-        global_debugger.add_device(self)
+        if enable_debugger:
+            global_debugger.add_device(self)
 
     def shutdown(self):
         global_debugger.stop(self) # stops debugger watching node
