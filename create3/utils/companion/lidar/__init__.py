@@ -14,9 +14,9 @@ import random as _random
 from irobot_create_msgs.msg import LedColor as _LedColor
 
 from . import line, line_segment
-from ...robot import constraints as _constraints
-from ...robot import lightring as _lightring
-from ....models import Position as _Position
+from create3.utils.robot import constraints as _constraints
+from create3.utils.robot import lightring as _lightring
+from create3.models.robot import Position as _Position
 
 def get_motion_lightring(lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[_LedColor]:
     """Returns a list of LEDs that are highlighted based on the closest lidar scan."""

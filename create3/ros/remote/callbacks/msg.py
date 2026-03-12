@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from sensor_msgs.msg import Joy
 
 from create3.utils import Threading
-from create3.models import SubscriberTopics, Controller
+from create3.models.remote import Subscribe, Controller
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for remote subscriptions."""
@@ -17,7 +17,7 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         super().__init__(node)
 
         # Hidden global callback information
-        self._subscription_msgs = SubscriberTopics.Remote
+        self._subscription_msgs = Subscribe
         """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
 
     def _joy_callback(self, joy: Joy):

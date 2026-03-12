@@ -9,7 +9,7 @@ from sensor_msgs.msg import JoyFeedbackArray, JoyFeedback
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from create3.utils import Threading
-from create3.models import PublisherTopics
+from create3.models.remote import Publish
 
 class PublishHandler(Threading if TYPE_CHECKING else object):
     """Handles the publishing of messages to topics."""
@@ -18,7 +18,7 @@ class PublishHandler(Threading if TYPE_CHECKING else object):
         super().__init__(node) # trigger original code before it gets overwritten
 
         # Hidden global publish information
-        self._publisher_msgs = PublisherTopics.Remote
+        self._publisher_msgs = Publish
         """Contains the most recent messages to be published for each topic. Updated when a set function is called."""
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.

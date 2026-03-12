@@ -12,7 +12,7 @@ from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, Haz
 
 from create3.utils import Threading, ROUNDING_VALUE
 from create3.utils import robot as tools
-from create3.models import Position, HazardBumper, HazardCliff, SubscriberTopics
+from create3.models.robot import Position, HazardBumper, HazardCliff, Subscribe
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for robot subscriptions."""
@@ -21,7 +21,7 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         super().__init__(node)
 
         # Hidden global callback information
-        self._subscription_msgs = SubscriberTopics.ROBOT
+        self._subscription_msgs = Subscribe
         """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
 
     def _odom_callback(self, odom: Odometry):

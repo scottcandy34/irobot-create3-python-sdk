@@ -13,7 +13,7 @@ from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, Int
 
 from .callbacks import MessageHandler
 from create3.utils import Threading
-from create3.models import Position, HazardBumper, HazardCliff, Acceleration, DockingValues
+from create3.models.robot import Position, HazardBumper, HazardCliff, Acceleration, DockingValues
 
 qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,

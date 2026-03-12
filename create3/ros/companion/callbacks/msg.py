@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from sensor_msgs.msg import LaserScan, Range
 
 from create3.utils import Threading
-from create3.models import SubscriberTopics
+from create3.models.companion import Subscribe
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles incoming messages for subscribed topics."""
@@ -18,7 +18,7 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         super().__init__(node)
 
         # Hidden global callback information
-        self._subscription_msgs = SubscriberTopics.Companion
+        self._subscription_msgs = Subscribe
         """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
 
     def _scan_callback(self, scan: LaserScan):
