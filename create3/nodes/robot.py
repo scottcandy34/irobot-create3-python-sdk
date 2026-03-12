@@ -4,7 +4,7 @@
 #
 
 from create3.utils import robot as tools
-from create3.utils import rclpy, Threading, global_debugger
+from create3.utils import rclpy, Threading, global_interrupt, global_debugger
 from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
 
 class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
@@ -14,6 +14,8 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
         # Initialize ROS2 node
         rclpy.init()
         node = rclpy.create_node('create3_robot')
+
+        global_interrupt.add_device(self)
 
         super().__init__(node) # trigger original code before it gets overwritten
         self.node._logger.name = "Create3"
