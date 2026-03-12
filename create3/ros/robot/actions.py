@@ -21,7 +21,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
-        self._useGoal = True
+        self._use_goal = True
 
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         action_callback_group = MutuallyExclusiveCallbackGroup()
@@ -124,7 +124,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         # Send Undock Goal message
         self._undock.send_goal(undockingMsg)
         
-    def navigate_to(self, x: float | int, y: float | int, heading: float | int = None, speed: float | int = 20, useGoal: bool = True):
+    def navigate_to(self, x: float | int, y: float | int, heading: float | int = None, speed: float | int = 20, use_goal: bool = True):
         """ If heading is None, then it will be ignored, and the robot will arrive to its destination
         pointing towards the direction of the line between the destination and the origin points.
         
@@ -134,7 +134,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             x, y: cm
             heading: deg
             speed: cm/s
-            useGoal: bool
+            use_goal: bool
         """
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
@@ -151,7 +151,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         speed = speed / 100 # convert to meters
         angularSpeed = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Navigation Goal message
             nav_msg = NavigateToPosition.Goal()
             nav_msg.goal_pose.pose.position.x = x / 100 # Convert to meters
@@ -182,23 +182,23 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # First action turn to face new coords
             direction = angle / abs(angle)
             if direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, useGoal=False)
+                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
             elif direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, useGoal=False)
+                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
             
             # Second action move to new coords
             if dist > 0:
-                self.move(dist * 100, speed * 100, useGoal=False)
+                self.move(dist * 100, speed * 100, use_goal=False)
                 
             # Third and final action turn to new heading from current heading.        
             direction = dif_w / abs(dif_w) if heading else 0
             if heading and direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, useGoal=False)
+                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
             elif heading and direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, useGoal=False)
+                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
         
-    def turn_left(self, angle: float | int, speed: float | int = 20, useGoal: bool = True):
-        """Rotate left for specific angle in degrees. Speed in cm/s. useGoal to enable or disable goals."""
+    def turn_left(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
+        """Rotate left for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
@@ -208,7 +208,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Rotate Goal message
             rotate_msg = RotateAngle.Goal()
             rotate_msg.angle = angle
@@ -229,8 +229,8 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Send twist with time
             self._run_twist(twist_msg, t)
         
-    def turn_right(self, angle: float | int, speed: float | int = 20, useGoal: bool = True):
-        """Rotate right for specific angle in degrees. Speed in cm/s. useGoal to enable or disable goals."""
+    def turn_right(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
+        """Rotate right for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
@@ -240,7 +240,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Rotate Goal message
             rotate_msg = RotateAngle.Goal()
             rotate_msg.angle = angle
@@ -261,8 +261,8 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Send twist with time
             self._run_twist(twist_msg, t)
     
-    def move(self, distance: float | int, speed: float | int = 20, useGoal: bool = True):
-        """Drive distance in centimeters. Speed in cm/s. useGoal to enable or disable goals."""
+    def move(self, distance: float | int, speed: float | int = 20, use_goal: bool = True):
+        """Drive distance in centimeters. Speed in cm/s. use_goal to enable or disable goals."""
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
@@ -271,7 +271,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         # Calculate time
         t = abs(distance / speed) # time = distance(m) / linear_velocity(m/s)
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Drive Distance Goal message
             move_msg = DriveDistance.Goal()
             move_msg.distance = distance
@@ -291,12 +291,12 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Send twist with time
             self._run_twist(twist_msg, t)
 
-    def arc_left(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, useGoal: bool = True):
+    def arc_left(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True):
         """Drive arc 'left' defined by angle in degrees and radius in cm.
         
         direction is 1 for forward and -1 for backwards
         
-        Speed in cm/s. useGoal to enable or disable goals.
+        Speed in cm/s. use_goal to enable or disable goals.
         """
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
@@ -312,7 +312,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
         
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Drive Arc Goal message
             arc_msg = DriveArc.Goal()
             arc_msg.angle = angle # must be a positive to turn left and convert to radians
@@ -336,12 +336,12 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Send twist with time
             self._run_twist(twist_msg, t)
         
-    def arc_right(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, useGoal: bool = True):
+    def arc_right(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True):
         """Drive arc 'right' defined by angle in degrees and radius in cm.
         
         direction is 1 for forward and -1 for backwards
         
-        Speed in cm/s. useGoal to enable or disable goals.
+        Speed in cm/s. use_goal to enable or disable goals.
         """
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
@@ -355,7 +355,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         # Calculate time
         t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
         
-        if useGoal and self._useGoal:
+        if use_goal and self._use_goal:
             # Create Drive Arc Goal message
             arc_msg = DriveArc.Goal()
             arc_msg.angle = angle
