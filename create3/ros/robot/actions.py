@@ -107,6 +107,26 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         future = self._audio_sequence.send_goal_async(audio_msg)
         future.add_done_callback(self._goal_response_callback)
         
+    # def play_note_sequence(self):
+    #     """PLay note with frequency in hertz for duration in seconds."""
+
+    #     audio_msg = AudioNoteSequence.Goal()
+    #     audio_msg.note_sequence = AudioNoteVector()
+    #     audio_msg.iterations = 1
+    #     audio_msg.note_sequence.notes = []
+        
+    #     music = MarioTheme()
+        
+    #     for note in music.notes:
+    #         duration = Duration(sec=int(note.length), nanosec=round((note.length - int(note.length)) * 1000000000))
+            
+    #         duration_spacer = Duration(sec=int(note.delay), nanosec=round((note.delay - int(note.delay)) * 1000000000))
+            
+    #         audio_msg.note_sequence.notes += [AudioNote(frequency=note.frequency, max_runtime=duration)]
+    #         audio_msg.note_sequence.notes += [AudioNote(frequency=Note.REST, max_runtime=duration_spacer)]
+            
+    #     self._audio_sequence.send_goal(audio_msg)
+        
     def dock(self):
         """Request a docking action"""
         
