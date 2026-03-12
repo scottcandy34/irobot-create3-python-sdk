@@ -14,6 +14,7 @@ from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
 from .callbacks import ActionHandler
+import create3.utils.robot as tools
 from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
 class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
@@ -147,7 +148,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         angle = math.atan2(dif_y, dif_x) - math.radians(self._subscription_msgs.position.angle) # Get angle (in radians) to Turn to for new coords | atan2( difference_y(m), difference_x(m) ) - current_angle(rad) = angle_facing_move(rad)
         dif_w = math.radians(heading - angle) if heading else 0 # Difference in W orientation (Heading) | heading(rad) - angle_facing_move(rad) = heading_angle_left(rad)
         
-        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         speed = speed / 100 # convert to meters
         angularSpeed = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         
@@ -162,7 +163,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Configure Heading part of message
             if heading is not None:
                 nav_msg.achieve_goal_heading = True # Tell robot to Turn to heading value
-                orientation = self.tools.convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
+                orientation = tools.convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
                 nav_msg.goal_pose.pose.orientation.z = orientation[2] # Set z value from Quaternion rotation
                 nav_msg.goal_pose.pose.orientation.w = orientation[3] # Set w value from Quaternion rotation
             else:
@@ -203,7 +204,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
-        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
@@ -235,7 +236,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         angle = -abs(math.radians(angle)) # must be a negative to turn right and convert to radians
-        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
