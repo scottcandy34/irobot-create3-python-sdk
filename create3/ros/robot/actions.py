@@ -1,48 +1,52 @@
 #
-# ROS Action Examples for iRobot Create3 - Jazzy
+# Action Interface for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
 import time, math
 from typing import TYPE_CHECKING
 
-from rclpy.task import Future
-from rclpy.action import ActionClient
 from geometry_msgs.msg import Twist
+from rclpy.action import ActionClient as CreateActionClient
 from builtin_interfaces.msg import Duration
-from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
+from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
-from ..threading import RobotThreading
-from ..objects import TIMEOUT, DEFAULT_WAIT
+from .callbacks import ActionHandler
+from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
-class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
+class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
     """Setup ROS action clients, and handle goals."""
+
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
         self._useGoal = True
 
+        # Creates a exclusive callback group so not to interrupt the other callbacks.
+        action_callback_group = MutuallyExclusiveCallbackGroup()
+
         # Create Action Clients
-        self._led_animate = led_animation = ActionClient(self.node, LedAnimation, 'led_animation', callback_group=self._otherCbGroup,)
+        self._led_animate = CreateActionClient(self.node, LedAnimation, 'led_animation', callback_group=action_callback_group)
         self._led_animate.wait_for_server(TIMEOUT)
-        self._audio_sequence = audio_note_sequence = ActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=self._otherCbGroup)
+        self._audio_sequence = CreateActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=action_callback_group)
         self._audio_sequence.wait_for_server(TIMEOUT)
-        self._navigate = navigate_to_position = ActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=self._actionCbGroup)
+        self._navigate = CreateActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=action_callback_group)
         self._navigate.wait_for_server(TIMEOUT)
-        self._drive_arc = drive_arc = ActionClient(self.node, DriveArc, 'drive_arc', callback_group=self._actionCbGroup)
+        self._drive_arc = CreateActionClient(self.node, DriveArc, 'drive_arc', callback_group=action_callback_group)
         self._drive_arc.wait_for_server(TIMEOUT)
-        self._drive_distance = drive_distance = ActionClient(self.node, DriveDistance, 'drive_distance', callback_group=self._actionCbGroup)
+        self._drive_distance = CreateActionClient(self.node, DriveDistance, 'drive_distance', callback_group=action_callback_group)
         self._drive_distance.wait_for_server(TIMEOUT)
-        self._rotate_angle = rotate_angle = ActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=self._actionCbGroup)
+        self._rotate_angle = CreateActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=action_callback_group)
         self._rotate_angle.wait_for_server(TIMEOUT)
-        self._dock = dock = ActionClient(self.node, Dock, 'dock', callback_group=self._actionCbGroup)
+        self._dock = CreateActionClient(self.node, Dock, 'dock', callback_group=action_callback_group)
         self._dock.wait_for_server(TIMEOUT)
-        self._undock = undock = ActionClient(self.node, Undock, 'undock', callback_group=self._actionCbGroup)
+        self._undock = CreateActionClient(self.node, Undock, 'undock', callback_group=action_callback_group)
         self._undock.wait_for_server(TIMEOUT)
 
         # Add actions to debugger
-        self.debug.actions = [led_animation, audio_note_sequence, navigate_to_position, drive_arc, drive_distance, rotate_angle, dock, undock]
-        
+        self.debug.actions = [self._led_animate, self._audio_sequence, self._navigate, self._drive_arc, self._drive_distance, self._rotate_angle, self._dock, self._undock]
+
     def set_lights_spin_rgb(self, r: int, g: int, b: int):
         """Set robot's LED to spin with desired color red, green, blue."""
         
@@ -61,8 +65,8 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         led_msg.lightring.leds = [led1, led2, led3, led4, led5, led6]
         led_msg.max_runtime = Duration(sec = 500, nanosec = 0) # how long animation lasts
         
-        # Save locally so publish in background
-        self._publish.led_animation = led_msg
+        future = self._led_animate.send_goal_async(led_msg)
+        future.add_done_callback(self._goal_response_callback)
         
     def set_lights_blink_rgb(self, r: int, g: int, b: int):
         """Set robot's LED to blink with desired color red, gree, blue."""
@@ -83,8 +87,8 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         # led_msg.max_runtime.sec = 500 # how long animation lasts
         led_msg.max_runtime = Duration(sec = 500, nanosec = 0)
         
-        # Save locally so publish in background
-        self._publish.led_animation = led_msg
+        future = self._led_animate.send_goal_async(led_msg)
+        future.add_done_callback(self._goal_response_callback)
         
     def play_note(self, frequency: float | int, duration: float | int):
         """PLay note with frequency in hertz for duration in seconds."""
@@ -99,8 +103,8 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         audio_msg.append = False
         audio_msg.notes = [note]
         
-        # Save locally so publish in background
-        self._publish.audio_note = audio_msg
+        future = self._audio_sequence.send_goal_async(audio_msg)
+        future.add_done_callback(self._goal_response_callback)
         
     def dock(self):
         """Request a docking action"""
@@ -136,14 +140,14 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         # Calculate differences between current position and new position
-        dif_x = (x - self._subscribe.position.x) / 100 # Difference in X coords and convert to (m) | x(cm) - current_x(cm) / 100
-        dif_y = (y - self._subscribe.position.y) / 100 # Difference in Y coords and convert to (m) | y(cm) - current_y(cm) / 100
+        dif_x = (x - self._subscription_msgs.position.x) / 100 # Difference in X coords and convert to (m) | x(cm) - current_x(cm) / 100
+        dif_y = (y - self._subscription_msgs.position.y) / 100 # Difference in Y coords and convert to (m) | y(cm) - current_y(cm) / 100
         dist = math.sqrt(dif_x**2 + dif_y**2) # Get distance to move to new coords (Pythagorean Theorem) | sqrt( difference_x(m)^2 + difference_y(m)^2 ) = distance(m)
         
-        angle = math.atan2(dif_y, dif_x) - math.radians(self._subscribe.position.angle) # Get angle (in radians) to Turn to for new coords | atan2( difference_y(m), difference_x(m) ) - current_angle(rad) = angle_facing_move(rad)
+        angle = math.atan2(dif_y, dif_x) - math.radians(self._subscription_msgs.position.angle) # Get angle (in radians) to Turn to for new coords | atan2( difference_y(m), difference_x(m) ) - current_angle(rad) = angle_facing_move(rad)
         dif_w = math.radians(heading - angle) if heading else 0 # Difference in W orientation (Heading) | heading(rad) - angle_facing_move(rad) = heading_angle_left(rad)
         
-        radius = self.tools.values.wheelDistanceApart / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         speed = speed / 100 # convert to meters
         angularSpeed = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         
@@ -158,7 +162,7 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
             # Configure Heading part of message
             if heading is not None:
                 nav_msg.achieve_goal_heading = True # Tell robot to Turn to heading value
-                orientation = self.tools.convertToQuaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
+                orientation = self.tools.convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
                 nav_msg.goal_pose.pose.orientation.z = orientation[2] # Set z value from Quaternion rotation
                 nav_msg.goal_pose.pose.orientation.w = orientation[3] # Set w value from Quaternion rotation
             else:
@@ -199,7 +203,7 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
-        radius = self.tools.values.wheelDistanceApart / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
@@ -231,7 +235,7 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         angle = -abs(math.radians(angle)) # must be a negative to turn right and convert to radians
-        radius = self.tools.values.wheelDistanceApart / 100 / 2 # convert to meters and divide by 2 to get radius
+        radius = self.tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
         angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
         # Calculate time
         t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
@@ -392,28 +396,3 @@ class RobotActionClients(RobotThreading if TYPE_CHECKING else object):
         
         # Final wait to not get interrupted by possible other commands
         time.sleep(0.5)
-        
-    def _publishHandler(self):
-        super()._publishHandler() # trigger original code before it gets overwritten
-        
-        # Led Animation Action
-        if self._publish.led_animation != self._publish.last_led_animation:
-            future = self._led_animate.send_goal_async(self._publish.led_animation)
-            future.add_done_callback(self._goal_response_callback)
-
-        self._publish.last_led_animation = self._publish.led_animation
-
-    def _goal_response_callback(self, future: Future):
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.print_warning(f"Goal rejected: {goal_handle}")
-            return
-
-        # Optionally request the result future (if you care about completion status)
-        result_future: Future = goal_handle.get_result_async()
-        result_future.add_done_callback(self._get_result_callback)
-
-    def _get_result_callback(self, future: Future):
-        result = future.result().result
-        if not result:
-            self.print_error(f"Action failed: {result}")

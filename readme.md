@@ -20,8 +20,8 @@ The code is structured as a modular library that can be imported into your ROS2 
 ## Prerequisites
 - iRobot Create3 robot with ROS2 firmware installed.
 - Ubuntu (or compatible Linux) with ROS2 Jazzy installed.
-- Optional: Raspberry Pi attached to the Create3 for additional sensors (e.g., lidar).
-- Optional: PS controller for remote PC input.
+- **Optional:** Raspberry Pi attached to the Create3 for additional sensors (e.g., lidar).
+- **Optional:** PS controller for remote PC input.
 
 ## Setup for iRobot Create3
 Before using this library, set up your iRobot Create3 robot with ROS2. Follow the official iRobot Create3 documentation for hardware setup, firmware installation, and ROS2 configuration:
@@ -52,7 +52,7 @@ This library is designed to replace your ROS2 packages. Here's a basic example t
 1. **Import the Library:**
   	Create a Python script (e.g., my_robot_node.py):
 	```python
-	from create3.nodes import RobotNode  # Adjust import path as needed
+	from create3.nodes import RobotNode
 	from create3.music import Note
 
 	# Initialize the Robot Node
@@ -80,10 +80,10 @@ This library is designed to replace your ROS2 packages. Here's a basic example t
 	```
 
 2. **Advanced Usage:**
-   - **Raspberry Pi Node:** Use RpiNode for lidar/ultrasonic handling.
-   - **PC Node:** Use PcNode for controller input and rumble feedback.
+   - **Companion Node:** Use CompanionNode for lidar/ultrasonic handling.
+   - **Remote Node:** Use RemoteNode for controller input and rumble feedback.
    - Access sensor data via methods like robot.get_position().x or robot.get_battery_level().
-   - **Use tools:** robot.tools.robot.getIrAngle(0) or rpi.tools.lidar.find_line().
+   - **Use tools:** robot.tools.robot.getIrAngle(0) or companion.tools.lidar.find_line().
    - **Debugging:** The built-in debugger logs topic availability, uptime warnings, and errors.
 
    For full API details, refer to the source files (e.g., [actions.py](create3/interfaces/actions.py), [subscriptions.py](create3/interfaces/subscriptions.py), [tools.py](create3/tools.py)).
