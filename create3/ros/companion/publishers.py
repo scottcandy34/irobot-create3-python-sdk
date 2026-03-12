@@ -38,3 +38,78 @@ class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
         servo_msg.data = angle * 1.0 # Make sure angle is a float
 
         self._publisher_msgs.servo = servo_msg
+
+    # def servo_angle(self, angle: float | int, speed: float | int = 171.43):
+    #     """
+    #     Sets current angle of servo.
+        
+    #     angle is between 50 deg and 180 deg, max speed of servo is 171.43 deg/s
+    #     """
+        
+    #     servo = Servo()
+    #     servo.angle = float(abs(angle))
+    #     servo.angular_velocity = speed
+        
+    #     self._publish.servo = servo
+        
+    # def servo_adjust_angle(self, angle: float | int, speed: float | int = 171.43):
+    #     """
+    #     Adjust servo angle by specific degree. Angle in deg.
+        
+    #     max speed of servo is 171.43 deg/s
+    #     """
+        
+    #     servo = Servo()
+    #     servo.angle = float(abs(angle))
+    #     servo.angular_velocity = speed
+    #     servo.desired_angle = False
+        
+    #     self._publish.servo = servo
+        
+    # def servo_hold(self):
+    #     """Holds last known angle position."""
+        
+    #     servo = Servo()
+    #     servo.angle = self._subscribe.servo_angle
+    #     servo.hold_angle = True
+        
+    #     self._publish.servo = servo
+        
+    # def servo_hold_stop(self):
+    #     """Stops the hold on the servo position."""
+        
+    #     servo = Servo()
+    #     servo.angle = self._subscribe.servo_angle
+    #     servo.hold_angle = False
+        
+    #     self._publish.servo = servo
+        
+    # def set_first_led(self, brightness: float | int, blink_timing: float | int = 0.0):
+    #     """Set the First LED brightness from 0 to 100 and set blink timing in seconds."""
+        
+    #     if 100 < brightness < 0:
+    #         raise Exception("Error LED brightness needs to between 0 to 100")
+        
+    #     if blink_timing < 0:
+    #         raise Exception("Error LED blink timing needs to be 0 or higher")
+        
+    #     led = Led()
+    #     led.brightness = brightness
+    #     led.blink_timing = blink_timing
+        
+    #     self._publish.leds.leds[0] = led
+        
+    # def set_second_led(self, brightness: float | int, blink_timing: float | int = 0.0):
+    #     """Set the Second LED brightness from 0 to 100 and set blink timing in seconds."""
+        
+    #     if 100 < brightness < 0:
+    #         raise Exception("Error LED brightness needs to between 0 to 100")
+        
+    #     if blink_timing < 0:
+    #         raise Exception("Error LED blink timing needs to be 0 or higher")
+        
+    #     led = Led()
+    #     led.brightness = brightness
+    #     led.blink_timing = blink_timing
+        
+    #     self._publish.leds.leds[1] = led
