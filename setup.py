@@ -8,13 +8,13 @@ fp = open("create3/__version__.py", "r").read()
 VERSION = eval(fp.strip().split()[-1])
 
 requirements = [
-    "irobot_create_msgs",
-    "rclpy",
-    "geometry_msgs",
-    "sensor_msgs",
-    "nav_msgs",
-    "builtin_interfaces",
-    "std_msgs",
+    "rclpy>=7.1.9",
+    "std_msgs>=5.3.6",
+    "nav_msgs>=5.3.6",
+    "sensor_msgs>=5.3.6",
+    "geometry_msgs>=5.3.6",
+    "builtin_interfaces>=2.0.3",
+    "irobot_create_msgs>=3.0.0",
 ]
 
 VERSION += "+" + datetime.datetime.now().strftime("%Y%m%d%H%M")[2:]
