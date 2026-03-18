@@ -17,7 +17,7 @@ requirements = [
     "std_msgs",
 ]
 
-VERSION += "_" + datetime.datetime.now().strftime("%Y%m%d%H%M")[2:]
+VERSION += "+" + datetime.datetime.now().strftime("%Y%m%d%H%M")[2:]
 
 setup(
     name="create3",
