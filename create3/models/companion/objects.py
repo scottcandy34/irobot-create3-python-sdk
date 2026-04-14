@@ -16,6 +16,26 @@ class Lidar():
     scan_time: float = 0.0 # time between scans
     ranges: list[float] = []
 
+    def size(self) -> int:
+        """Returns the number of measurements in the scan."""
+        return len(self.ranges)
+
+    def __str__(self):
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
+    
+class Wall():
+    """Stores information about a detected wall."""
+    length: float = 0.0
+    xmin: float = 0.0
+    xmax: float = 0.0
+    slope: float = 0.0
+    intercept: float = 0.0
+
+class DetectedShapes():
+    """Stores information about all detected walls."""
+    walls: list[Wall] = []
+    coords: list[tuple[float, float]] = []
+
     def __str__(self):
         return _pprint.pformat(vars(self), indent = 4, width = 80)
 

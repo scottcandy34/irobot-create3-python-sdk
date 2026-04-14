@@ -34,3 +34,6 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
 
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]
+
+    def get_scans(self):
+        return self._subscription_msgs.lidar.ranges

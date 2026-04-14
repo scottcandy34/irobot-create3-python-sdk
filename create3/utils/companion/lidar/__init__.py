@@ -17,6 +17,7 @@ from . import line, line_segment
 from create3.utils.robot import constraints as _constraints
 from create3.utils.robot import lightring as _lightring
 from create3.models.robot import Position as _Position
+from create3.models.companion import Wall
 
 def get_motion_lightring(lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[_LedColor]:
     """Returns a list of LEDs that are highlighted based on the closest lidar scan."""
@@ -44,12 +45,12 @@ def get_coords(lidar_scans: list[float], index: int, angle_increment: float, rob
     distance = lidar_scans[index]
     if _math.isinf(distance):
         return None
-    angle = angle_increment * index
+    angle = _math.radians(angle_increment) * index
     x = -distance * _math.cos(angle) + robot_position.x
     y = distance * _math.sin(angle) + robot_position.y
     return (x, y)
 
-def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 100, distance_threshold = 1, min_inliers = 30, max_gap = 5, min_points_per_segment = 30) -> list[tuple[float, tuple[float, float], tuple[float, float]]]:
+def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 100, distance_threshold = 1, min_inliers = 30, max_gap = 5, min_points_per_segment = 30) -> list[Wall]:
     """
     Find lines and their segments in a set of 2D points using RANSAC, returning x-limits for each segment.
     
@@ -66,8 +67,8 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
     """
 
     remaining_points = points.copy()
-    results = []
-    
+    results: list[Wall] = []
+
     while len(remaining_points) >= min_inliers:
         best_inliers = []
         for _ in range(max_iterations):
@@ -79,10 +80,10 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
                     best_inliers = inliers
             except ValueError:
                 continue
-        
+
         if len(best_inliers) < min_inliers:
             break
-        
+
         m, b = line.fit_line(best_inliers)
         segments = line_segment.find(best_inliers, m, b, max_gap, min_points=min_points_per_segment)
         
@@ -94,7 +95,14 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
                 xmin = proj_first[0]
                 xmax = proj_last[0]
                 length = line_segment.calculate_length(segment, m, b)
-                results.append((length, (m, b), (xmin, xmax)))
+                
+                wall = Wall()
+                wall.length = length
+                wall.slope = m
+                wall.intercept = b
+                wall.xmin = min(xmin, xmax)
+                wall.xmax = max(xmin, xmax)
+                results.append(wall)
         
         remaining_points = [point for point in remaining_points if point not in best_inliers]
     
