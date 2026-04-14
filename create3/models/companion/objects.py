@@ -31,10 +31,23 @@ class Wall():
     slope: float = 0.0
     intercept: float = 0.0
 
+class WallInteraction():
+    """
+    Stores information about the interaction between the robot and a wall, including whether the wall 
+    is in the robot's path, the distance to the wall, and the angle between the robot's heading and the wall.
+    """
+    in_path: bool = False
+    distance: float = 0.0
+    angle: float = 0.0
+
+    def __str__(self):
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
+
 class DetectedShapes():
     """Stores information about all detected walls."""
     walls: list[Wall] = []
     coords: list[tuple[float, float]] = []
+    interactions: list[WallInteraction] = []
 
     def __str__(self):
         return _pprint.pformat(vars(self), indent = 4, width = 80)

@@ -1,11 +1,11 @@
 
 import math
 
-from create3.models.companion import Wall
+from create3.models.companion import Wall, WallInteraction
 from create3.models.robot import Position
 from create3.utils.robot.constraints import RADIUS
 
-def circle_to_wall_distance(wall: Wall, position: Position) -> tuple[bool, float, float]:
+def circle_to_wall_distance(wall: Wall, position: Position) -> WallInteraction:
     """
     Calculate the distance to a wall along a circle's heading, the angle between the heading and the wall,
     and whether the wall is in the circle's path.
@@ -50,7 +50,12 @@ def circle_to_wall_distance(wall: Wall, position: Position) -> tuple[bool, float
     distance_to_segment = min(distance_to_line, distance_to_P1, distance_to_P2)
     
     if distance_to_segment <= RADIUS:
-        return 0.0, angle, True
+        interaction = WallInteraction()
+        interaction.angle = angle
+        interaction.distance = 0.0
+        interaction.in_path = True
+        
+        return interaction
     
     # Find potential distances where circle touches the wall
     candidates = []
@@ -90,5 +95,10 @@ def circle_to_wall_distance(wall: Wall, position: Position) -> tuple[bool, float
     else:
         distance = float('inf')
         in_path = False
+
+    interaction = WallInteraction()
+    interaction.angle = angle
+    interaction.distance = distance
+    interaction.in_path = in_path
     
-    return in_path, distance, angle
+    return interaction

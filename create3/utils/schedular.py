@@ -149,6 +149,7 @@ class TaskSchedular():
         
         detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
         detected_shapes.walls = tools.lidar.find_lines_and_segments([point for point in detected_shapes.coords if point != None])
+        detected_shapes.interactions = [tools.lidar.predictive.circle_to_wall_distance(wall, robot.position) for wall in detected_shapes.walls]
 
         task_name = CompanionTasks.WALL_DETECTION.name.lower()
         self._outputs[task_name] = detected_shapes
