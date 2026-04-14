@@ -17,7 +17,7 @@ class Lidar():
     ranges: list[float] = []
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
 
 class Ultrasonic():
     """Stores companion ultrasonic sensor values."""
@@ -27,4 +27,4 @@ class Ultrasonic():
     range: float = 0.0
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)

@@ -37,3 +37,8 @@ class rclpy:
     def create_node(cls, node_name: str) -> Node:
         """Create a ROS node with the given name."""
         return _rclpy.create_node(node_name)
+    
+    @classmethod
+    def count_nodes(cls) -> int:
+        """Return the number of nodes that have been created."""
+        return cls._startedCount

@@ -37,4 +37,4 @@ class Controller():
     buttons = JoyButtons()
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)

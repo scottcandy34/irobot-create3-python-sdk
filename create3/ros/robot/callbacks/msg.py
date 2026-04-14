@@ -10,7 +10,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
-from create3.utils import Threading, ROUNDING_VALUE
+from create3.utils import Threading
 from create3.utils import robot as tools
 from create3.models.robot import Position, HazardBumper, HazardCliff, Subscribe
 
@@ -29,10 +29,10 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         self.update_uptime(self._odom.topic_name)
 
         position = Position()
-        position.x = round(odom.pose.pose.position.x * 100, ROUNDING_VALUE) # convert to centimeters
-        position.y = round(odom.pose.pose.position.y * 100, ROUNDING_VALUE) # convert to centimeters
+        position.x = odom.pose.pose.position.x * 100 # convert to centimeters
+        position.y = odom.pose.pose.position.y * 100 # convert to centimeters
         turn = odom.pose.pose.orientation
-        position.angle = round(math.degrees(tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]), ROUNDING_VALUE) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+        position.angle = math.degrees(tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
         self._subscription_msgs.position = position
         
     def _ir_intensity_callback(self, ir: IrIntensityVector):
@@ -101,9 +101,9 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
     def _imu_callback(self, imu: Imu):
         self.update_uptime(self._imu.topic_name)
 
-        self._subscription_msgs.acceleration.x = round(imu.linear_acceleration.x, ROUNDING_VALUE)
-        self._subscription_msgs.acceleration.y = round(imu.linear_acceleration.y, ROUNDING_VALUE)
-        self._subscription_msgs.acceleration.z = round(imu.linear_acceleration.z, ROUNDING_VALUE)
+        self._subscription_msgs.acceleration.x = imu.linear_acceleration.x
+        self._subscription_msgs.acceleration.y = imu.linear_acceleration.y
+        self._subscription_msgs.acceleration.z = imu.linear_acceleration.z
         
     def _dock_status_callback(self, status: DockStatus):
         self.update_uptime(self._dock_status.topic_name)
