@@ -12,7 +12,7 @@ class Position():
     angle: int | float = 0.0
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
 
 class HazardBumper():
     """Stores robot bumper values."""
@@ -23,7 +23,7 @@ class HazardBumper():
     left: bool = False
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
 class HazardCliff():
     """Stores robot cliff sensor values."""
@@ -33,7 +33,7 @@ class HazardCliff():
     side_left: bool = False
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
 class Acceleration():
     """Stores robot acceleration values."""
@@ -42,7 +42,7 @@ class Acceleration():
     z: int | float = 0.0
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
 class DockingValues():
     """Stores robot docking values."""
@@ -54,7 +54,7 @@ class DockingValues():
     forceField = False
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
 class RobotButtons():
     """Stores robot button pressed values."""
@@ -63,4 +63,4 @@ class RobotButtons():
     button_2 = False
 
     def __str__(self):
-        return _pprint.pformat(self, indent = 4, width = 80)
+        return _pprint.pformat(vars(self), indent = 4, width = 80)

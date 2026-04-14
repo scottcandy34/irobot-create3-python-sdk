@@ -3,7 +3,7 @@
 # Created by scottcandy34
 #
 
-from create3.ros import companion as tools
+from create3.utils import companion as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.companion import Publisher, Subscriber
 
