@@ -13,10 +13,12 @@ import random as _random
 
 from irobot_create_msgs.msg import LedColor as _LedColor
 
-from . import line, line_segment
+from . import line, line_segment, predictive
 from create3.utils.robot import constraints as _constraints
 from create3.utils.robot import lightring as _lightring
 from create3.models.robot import Position as _Position
+from create3.models.companion import Wall as _Wall
+from create3.models.companion import Lidar as _Lidar
 
 def get_motion_lightring(lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[_LedColor]:
     """Returns a list of LEDs that are highlighted based on the closest lidar scan."""
@@ -38,18 +40,31 @@ def get_motion_lightring(lidar_scans: list[float], red: int = None, green: int =
         
     return None
 
-def get_coords(lidar_scans: list[float], index: int, angle_increment: float, robot_position: _Position) -> tuple[float, float]:
+def get_coords(lidar: _Lidar, index: int, robot_position: _Position) -> tuple[float, float]:
     """Convert a lidar scan at a specific index to (x, y) coordinates in the robot's frame of reference."""
 
-    distance = lidar_scans[index]
+    distance = lidar.ranges[index]
     if _math.isinf(distance):
         return None
-    angle = angle_increment * index
-    x = -distance * _math.cos(angle) + robot_position.x
-    y = distance * _math.sin(angle) + robot_position.y
-    return (x, y)
+    
+    # 1. Angle of this ray in robot frame (radians)
+    phi_deg = lidar.angle_min + index * lidar.angle_increment
+    phi = _math.radians(phi_deg)
 
-def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 100, distance_threshold = 1, min_inliers = 30, max_gap = 5, min_points_per_segment = 30) -> list[tuple[float, tuple[float, float], tuple[float, float]]]:
+    # 2. Local point in robot frame (X forward, Y left)
+    local_x = distance * _math.cos(phi)
+    local_y = distance * _math.sin(phi)
+
+    # 3. Robot heading in radians
+    theta = _math.radians(robot_position.angle)
+
+    # 4. Rotate to world frame + translate
+    world_x = -robot_position.x + local_x * _math.cos(theta) - local_y * _math.sin(theta)
+    world_y = robot_position.y + local_x * _math.sin(theta) + local_y * _math.cos(theta)
+
+    return (world_x, world_y)
+
+def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 100, distance_threshold = 1, min_inliers = 30, max_gap = 5, min_points_per_segment = 30) -> list[_Wall]:
     """
     Find lines and their segments in a set of 2D points using RANSAC, returning x-limits for each segment.
     
@@ -66,8 +81,8 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
     """
 
     remaining_points = points.copy()
-    results = []
-    
+    results: list[_Wall] = []
+
     while len(remaining_points) >= min_inliers:
         best_inliers = []
         for _ in range(max_iterations):
@@ -79,10 +94,10 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
                     best_inliers = inliers
             except ValueError:
                 continue
-        
+
         if len(best_inliers) < min_inliers:
             break
-        
+
         m, b = line.fit_line(best_inliers)
         segments = line_segment.find(best_inliers, m, b, max_gap, min_points=min_points_per_segment)
         
@@ -94,7 +109,14 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
                 xmin = proj_first[0]
                 xmax = proj_last[0]
                 length = line_segment.calculate_length(segment, m, b)
-                results.append((length, (m, b), (xmin, xmax)))
+                
+                wall = _Wall()
+                wall.length = length
+                wall.slope = m
+                wall.intercept = b
+                wall.xmin = min(xmin, xmax)
+                wall.xmax = max(xmin, xmax)
+                results.append(wall)
         
         remaining_points = [point for point in remaining_points if point not in best_inliers]
     

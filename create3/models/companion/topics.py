@@ -5,7 +5,7 @@
 
 from std_msgs.msg import Float32
 
-from .objects import Lidar, Ultrasonic
+from .objects import Lidar, Ultrasonic, DetectedShapes
 
 class Subscribe():
     """Holds all companion subscribed topics."""
