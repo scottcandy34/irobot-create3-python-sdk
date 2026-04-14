@@ -147,7 +147,7 @@ class TaskSchedular():
 
         detected_shapes = DetectedShapes()
         
-        detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar.ranges, index, companion.lidar.angle_increment, robot.position)) for index in range(companion.lidar.size())]
+        detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
         detected_shapes.walls = tools.lidar.find_lines_and_segments([point for point in detected_shapes.coords if point != None])
 
         task_name = CompanionTasks.WALL_DETECTION.name.lower()
@@ -159,7 +159,7 @@ class TaskSchedular():
         if task_name in self._outputs:
             return self._outputs[task_name]
         else:
-            self.print_warn(f'No output found for {task_name} task.')
+            # self.print_warn(f'No output found for {task_name} task.')
             return None
 
     def shutdown(self):

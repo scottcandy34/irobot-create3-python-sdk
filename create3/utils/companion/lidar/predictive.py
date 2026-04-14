@@ -1,10 +1,11 @@
 
 import math
 
+from create3.models.companion import Wall
 from create3.models.robot import Position
 from create3.utils.robot.constraints import RADIUS
 
-def circle_to_wall_distance(wall: tuple[float, tuple[float, float], tuple[float, float]], position: Position) -> tuple[bool, float, float]:
+def circle_to_wall_distance(wall: Wall, position: Position) -> tuple[bool, float, float]:
     """
     Calculate the distance to a wall along a circle's heading, the angle between the heading and the wall,
     and whether the wall is in the circle's path.
@@ -24,27 +25,26 @@ def circle_to_wall_distance(wall: tuple[float, tuple[float, float], tuple[float,
     - in_path: bool, True if the wall is in the circle's path, False otherwise
     """
     # Unpack inputs
-    wall_length, (m, b), (xmin, xmax) = wall
     x = position.x
     y = position.y
     heading = math.radians(position.angle)
     
     # Precompute terms
-    A = m * math.cos(heading) - math.sin(heading)  # Component for angle and distance
-    B = m * x - y + b                              # Signed distance term
-    sqrt_m2_1 = math.sqrt(m**2 + 1)                # Normalizer
+    A = wall.slope * math.cos(heading) - math.sin(heading)  # Component for angle and distance
+    B = wall.slope * x - y + wall.intercept                              # Signed distance term
+    sqrt_m2_1 = math.sqrt(wall.slope**2 + 1)                # Normalizer
     
     # Calculate angle between heading and wall (acute angle)
     angle = math.asin(abs(A) / sqrt_m2_1)
     
     # Check if circle is already intersecting the wall
-    x_proj = (x + m * y - m * b) / (1 + m**2)
-    if xmin <= x_proj <= xmax:
+    x_proj = (x + wall.slope * y - wall.slope * wall.intercept) / (1 + wall.slope**2)
+    if wall.xmin <= x_proj <= wall.xmax:
         distance_to_line = abs(B) / sqrt_m2_1
     else:
         distance_to_line = float('inf')
-    P1_x, P1_y = xmin, m * xmin + b
-    P2_x, P2_y = xmax, m * xmax + b
+    P1_x, P1_y = wall.xmin, wall.slope * wall.xmin + wall.intercept
+    P2_x, P2_y = wall.xmax, wall.slope * wall.xmax + wall.intercept
     distance_to_P1 = math.sqrt((x - P1_x)**2 + (y - P1_y)**2)
     distance_to_P2 = math.sqrt((x - P2_x)**2 + (y - P2_y)**2)
     distance_to_segment = min(distance_to_line, distance_to_P1, distance_to_P2)
@@ -62,13 +62,13 @@ def circle_to_wall_distance(wall: tuple[float, tuple[float, float], tuple[float,
             if t > 0:
                 x_c = x + t * math.cos(heading)
                 y_c = y + t * math.sin(heading)
-                x_proj = (x_c + m * y_c - m * b) / (1 + m**2)
-                if xmin <= x_proj <= xmax:
+                x_proj = (x_c + wall.slope * y_c - wall.slope * wall.intercept) / (1 + wall.slope**2)
+                if wall.xmin <= x_proj <= wall.xmax:
                     candidates.append(t)
     
     # Case 2: Circle touches the endpoints
-    for p_x in [xmin, xmax]:
-        p_y = m * p_x + b
+    for p_x in [wall.xmin, wall.xmax]:
+        p_y = wall.slope * p_x + wall.intercept
         dx = x - p_x
         dy = y - p_y
         coeff_b = 2 * (dx * math.cos(heading) + dy * math.sin(heading))
