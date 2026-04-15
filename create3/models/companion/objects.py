@@ -41,11 +41,21 @@ class WallInteraction:
     angle: float = 0.0
 
 @dataclass
+class Column:
+    cx: float
+    cy: float
+    radius: float
+    start_angle: float
+    end_angle: float
+    arc_length: float
+
+@dataclass
 class DetectedShapes:
     """Stores information about all detected walls."""
     walls: list[Wall] = field(default_factory=list)
     coords: list[tuple[float, float]] = field(default_factory=list)
     interactions: list[WallInteraction] = field(default_factory=list)
+    columns: list[Column] = field(default_factory=list)
 
 @dataclass
 class Ultrasonic:

@@ -63,6 +63,8 @@ class TaskSchedular():
         match task:
             case CompanionTasks.WALL_DETECTION:
                 return self._wall_detection_task
+            case CompanionTasks.COLUMN_DETECTION:
+                return self._column_detection_task
             case _:
                 self.print_error(f'{task_name} is not found as a executable task.')
                 return None
@@ -71,6 +73,17 @@ class TaskSchedular():
         task_name: str = task.name.lower()
         match task:
             case CompanionTasks.WALL_DETECTION:
+                if self._get_companion_subscriptions() is None and self._get_robot_subscriptions() is None:
+                    self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
+                    return False
+                if self._get_companion_subscriptions() is None:
+                    self.print_warn(f'{task_name} task requires the Companion node to be added to the Schedular.')
+                    return False
+                if self._get_robot_subscriptions() is None:
+                    self.print_warn(f'{task_name} task requires the Robot node to be added to the Schedular.')
+                    return False
+                return True
+            case CompanionTasks.COLUMN_DETECTION:
                 if self._get_companion_subscriptions() is None and self._get_robot_subscriptions() is None:
                     self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
                     return False
@@ -162,6 +175,19 @@ class TaskSchedular():
         else:
             # self.print_warn(f'No output found for {task_name} task.')
             return None
+        
+    def _column_detection_task(self):
+        """Task callback function for column detection. Uses the Lidar data to find columns and segments, and stores the output in a dictionary with the task name as the key."""
+        companion = self._get_companion_subscriptions()
+        robot = self._get_robot_subscriptions()
+
+        detected_shapes = DetectedShapes()
+        
+        detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
+        detected_shapes.columns = tools.lidar.find_circles_and_arcs([point for point in detected_shapes.coords if point != None])
+
+        task_name = CompanionTasks.COLUMN_DETECTION.name.lower()
+        self._outputs[task_name] = detected_shapes
 
     def shutdown(self):
         """Shutdown the Schedular and clean up resources. This will stop all tasks from running and will shutdown."""
