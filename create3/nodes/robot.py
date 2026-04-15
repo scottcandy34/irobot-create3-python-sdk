@@ -3,6 +3,7 @@
 # Created by scottcandy34
 #
 
+from create3.models import Nodes
 from create3.utils import robot as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
@@ -13,7 +14,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True, use_goal = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('create3_robot')
+        node = rclpy.create_node(Nodes.CREATE3_ROBOT.name.lower())
 
         super().__init__(node) # trigger original code before it gets overwritten
         self.node._logger.name = "Create3"

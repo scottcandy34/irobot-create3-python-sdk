@@ -15,6 +15,7 @@ from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 
 from . import rclpy
+from create3.models import Nodes
 from .ros_threading import Threading
 
 UPTIME_FREQUENCY = 100 # in Hz
@@ -59,7 +60,7 @@ class Debugger():
 
     def __init__(self):
         rclpy.init()
-        self.node: Node = rclpy.create_node('ros_debugger')
+        self.node: Node = rclpy.create_node(Nodes.ROS_DEBUGGER.name.lower())
         self.node._logger.name = "Debugger"
 
         self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Watching Topics Sub/Pub, Services and Actions.')

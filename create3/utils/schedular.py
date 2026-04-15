@@ -13,12 +13,12 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor
 
 from . import rclpy
+from create3.models import Nodes
 from .ros_threading import Threading
-from create3.models.companion import Tasks as CompanionTasks
 from create3.utils import companion as tools
-from create3.models.companion import Subscribe as CompanionSubs
 from create3.models.robot import Subscribe as RobotSubs
 from create3.models.remote import Subscribe as RemoteSubs
+from create3.models.companion import Tasks as CompanionTasks, Subscribe as CompanionSubs
 
 colorama.init(autoreset=True)
 
@@ -33,12 +33,12 @@ class TaskSchedular():
 
     def __init__(self):
         rclpy.init()
-        self.node: Node = rclpy.create_node('task_schedular')
+        self.node: Node = rclpy.create_node(Nodes.TASK_SCHEDULAR.name.lower())
         self.node._logger.name = "Schedular"
 
         self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Waiting for tasks.')
 
-        self._devices: list[Threading] = []
+        self._devices: dict[Threading] = {}
         self._tasks: dict[str, Timer] = {}
         self._outputs: dict[str, any] = {}
 
@@ -46,16 +46,28 @@ class TaskSchedular():
         self._thread = Thread(target=self._spin)
         self._thread.start()
 
+    def _find_device(self, device_name: str) -> bool:
+        """Find a device in the Schedular by name. Returns the device if found, False otherwise."""
+        return device_name in self._devices
+
     def add_device(self, device: Threading):
         """Add a device to the Schedular to watch for tasks. Devices must be added before adding tasks that require them."""
-        self._devices.append(device)
+        device_name = device.get_name()
+        if not self._find_device(device_name):
+            self._devices[device_name] = device
+            self.print(f'Added {device_name} device to the Schedular.')
+        else:
+            self.print_warn(f'{device_name} device is already added to the Schedular. Can not add more than 1 of the same device.')
 
     def remove_device(self, device: Threading) -> bool:
         """Remove a device from the Schedular."""
-        for index, obj in enumerate(self._devices):
-            if obj.get_name() == device.get_name():
-                self._devices.pop(index)
-                return True
+        device_name = device.get_name()
+        if self._find_device(device_name):
+            self._devices.pop(device_name)
+            self.print(f'Removed {device_name} device from the Schedular.')
+            return True
+        else:
+            self.print_warn(f'{device_name} device is not found in the Schedular. Can not remove.')
         return False
 
     def _get_task_callback(self, task: CompanionTasks) -> callable:
@@ -77,7 +89,7 @@ class TaskSchedular():
         task_name: str = task.name.lower()
         match task:
             case CompanionTasks.GENERATE_COORDS:
-                if self._get_companion_subscriptions() is None or self._get_robot_subscriptions() is None:
+                if self._find_device(Nodes.CREATE3_COMPANION.name.lower()) is None or self._find_device(Nodes.CREATE3_ROBOT.name.lower()) is None:
                     self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
                     return False
             case CompanionTasks.WALL_DETECTION:
@@ -116,15 +128,17 @@ class TaskSchedular():
         for task in tasks:
             self.add_task(task, frequency)
 
-    def remove_task(self, task: CompanionTasks):
+    def remove_task(self, task: CompanionTasks) -> bool:
         """Remove a task from the Schedular."""
         task_name = task.name.lower()
         if self._find_task(task):
             self._tasks[task_name].destroy()
             self._tasks.pop(task_name)
             self.print(f'Task Schedular removed {task_name} task.')
+            return True
         else:
             self.print_warn(f'{task_name} task does not exist. Can not remove.')
+            return False
 
     def clear_tasks(self):
         """Remove all tasks from the Schedular."""
@@ -135,24 +149,18 @@ class TaskSchedular():
         self.print(f'Task Schedular cleared all tasks.')
 
     def _get_robot_subscriptions(self) -> RobotSubs:
-        for device in self._devices:
-            if device.node.get_name() == 'create3_robot':
-                return device._subscription_msgs
-
+        if self._find_device(Nodes.CREATE3_ROBOT.name.lower()):
+            return self._devices[Nodes.CREATE3_ROBOT.name.lower()]._subscription_msgs
         return None
             
     def _get_companion_subscriptions(self) -> CompanionSubs:
-        for device in self._devices:
-            if device.node.get_name() == 'create3_companion':
-                return device._subscription_msgs
-
+        if self._find_device(Nodes.CREATE3_COMPANION.name.lower()):
+            return self._devices[Nodes.CREATE3_COMPANION.name.lower()]._subscription_msgs
         return None
     
     def _get_remote_subscriptions(self) -> RemoteSubs:
-        for device in self._devices:
-            if device.node.get_name() == 'create3_remote':
-                return device._subscription_msgs
-
+        if self._find_device(Nodes.CREATE3_REMOTE.name.lower()):
+            return self._devices[Nodes.CREATE3_REMOTE.name.lower()]._subscription_msgs
         return None
 
     def get_task_output(self, task: CompanionTasks):
@@ -206,7 +214,7 @@ class TaskSchedular():
         
         task_name = CompanionTasks.COLUMN_DETECTION.name.lower()
         self._outputs[task_name] = tools.lidar.find_circles_and_arcs([point for point in coords if point != None])
-
+    
     def shutdown(self):
         """Shutdown the Schedular and clean up resources. This will stop all tasks from running and will shutdown."""
         self.clear_tasks()

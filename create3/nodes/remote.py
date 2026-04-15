@@ -3,6 +3,7 @@
 # Created by scottcandy34
 #
 
+from create3.models import Nodes
 from create3.utils import remote as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.remote import Publisher, Subscriber
@@ -13,10 +14,10 @@ class RemoteNode(Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('create3_remote')
+        node = rclpy.create_node(Nodes.CREATE3_REMOTE.name.lower())
 
         super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Remote"
+        self.node._logger.name = "Computer"
 
         self.tools = tools
 
