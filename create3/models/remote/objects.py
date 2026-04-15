@@ -3,19 +3,22 @@
 # Created by scottcandy34
 #
 
-import pprint as _pprint
+from dataclasses import dataclass, field
 
+@dataclass
 class Joystick():
     horizontal: float = 0.0
     vertical: float = 0.0
     button: bool = False
 
+@dataclass
 class Dpad():
     left: bool = False
     right: bool = False
     up: bool = False
     down: bool = False
 
+@dataclass
 class JoyButtons():
     x: bool = False
     circle: bool = False
@@ -27,6 +30,7 @@ class JoyButtons():
     options: bool = False
     ps: bool = False
 
+@dataclass
 class Controller():
     """Stores ps controller button pressed values."""
     left_joy = Joystick()
@@ -35,6 +39,3 @@ class Controller():
     right_trigger: float = 0.0
     dpad = Dpad()
     buttons = JoyButtons()
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)

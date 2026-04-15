@@ -3,6 +3,9 @@
 #
 
 # Helper constants for making music with robots
+from dataclasses import dataclass, field
+
+@dataclass(frozen=True)
 class Note:
     REST = 0
 

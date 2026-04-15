@@ -3,17 +3,16 @@
 # Created by scottcandy34
 #
 
-import pprint as _pprint
+from dataclasses import dataclass, field
 
+@dataclass
 class Position():
     """Stores robot position values."""
     x: int | float = 0.0
     y: int | float = 0.0
     angle: int | float = 0.0
 
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
-
+@dataclass
 class HazardBumper():
     """Stores robot bumper values."""
     right: bool = False
@@ -22,28 +21,22 @@ class HazardBumper():
     front_left: bool = False
     left: bool = False
 
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
-    
+@dataclass
 class HazardCliff():
     """Stores robot cliff sensor values."""
     side_right: bool = False
     front_right: bool = False
     front_left: bool = False
     side_left: bool = False
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
+@dataclass
 class Acceleration():
     """Stores robot acceleration values."""
     x: int | float = 0.0
     y: int | float = 0.0
     z: int | float = 0.0
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
+@dataclass
 class DockingValues():
     """Stores robot docking values."""
     is_docked = False
@@ -52,15 +45,10 @@ class DockingValues():
     greenBuoy = False
     redBuoy = False
     forceField = False
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
     
+@dataclass
 class RobotButtons():
     """Stores robot button pressed values."""
     button_1 = False
     button_power = False
     button_2 = False
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
