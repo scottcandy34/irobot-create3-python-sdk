@@ -7,3 +7,5 @@ class Tasks(StrEnum):
     """Detect walls using Lidar data."""
     COLUMN_DETECTION = auto()
     """Detect columns using Lidar data."""
+    LIDAR_LIGHTRING = auto()
+    """Use Lidar data to create a light ring pattern on the robot's lights."""
