@@ -1,4 +1,4 @@
-import math as math
+import math
 
 def fit_circle(points: list[tuple[float, float]]) -> tuple[float, float, float]:
     """Fit a circle to a set of points and return (cx, cy, r).

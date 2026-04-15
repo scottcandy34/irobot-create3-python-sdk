@@ -23,7 +23,7 @@ class Lidar:
 
 @dataclass
 class Wall:
-    """Stores information about a detected wall."""
+    """Stores information about a detected wall (flat object)."""
     length: float = 0.0
     xmin: float = 0.0
     xmax: float = 0.0
@@ -31,17 +31,8 @@ class Wall:
     intercept: float = 0.0
 
 @dataclass
-class WallInteraction:
-    """
-    Stores information about the interaction between the robot and a wall, including whether the wall 
-    is in the robot's path, the distance to the wall, and the angle between the robot's heading and the wall.
-    """
-    in_path: bool = False
-    distance: float = 0.0
-    angle: float = 0.0
-
-@dataclass
 class Column:
+    """Stores information about a detected column (circular object)."""
     cx: float
     cy: float
     radius: float
@@ -50,12 +41,14 @@ class Column:
     arc_length: float
 
 @dataclass
-class DetectedShapes:
-    """Stores information about all detected walls."""
-    walls: list[Wall] = field(default_factory=list)
-    coords: list[tuple[float, float]] = field(default_factory=list)
-    interactions: list[WallInteraction] = field(default_factory=list)
-    columns: list[Column] = field(default_factory=list)
+class Interaction:
+    """
+    Stores information about the interaction between the robot and a wall, including whether the wall 
+    is in the robot's path, the distance to the wall, and the angle between the robot's heading and the wall.
+    """
+    in_path: bool = False
+    distance: float = 0.0
+    angle: float = 0.0
 
 @dataclass
 class Ultrasonic:

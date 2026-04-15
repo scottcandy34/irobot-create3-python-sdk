@@ -14,7 +14,7 @@ from rclpy.executors import SingleThreadedExecutor
 
 from . import rclpy
 from .ros_threading import Threading
-from create3.models.companion import DetectedShapes, Tasks as CompanionTasks
+from create3.models.companion import Tasks as CompanionTasks
 from create3.utils import companion as tools
 from create3.models.companion import Subscribe as CompanionSubs
 from create3.models.robot import Subscribe as RobotSubs
@@ -60,65 +60,79 @@ class TaskSchedular():
 
     def _get_task_callback(self, task: CompanionTasks) -> callable:
         task_name: str = task.name.lower()
+        self._outputs[task_name] = None
+
         match task:
+            case CompanionTasks.GENERATE_COORDS:
+                return self._gernerate_coords_task
             case CompanionTasks.WALL_DETECTION:
                 return self._wall_detection_task
             case CompanionTasks.COLUMN_DETECTION:
                 return self._column_detection_task
             case _:
                 self.print_error(f'{task_name} is not found as a executable task.')
-                return None
+                return self._blank_task
             
-    def _check_for_devices(self, task: CompanionTasks) -> bool:
+    def _check_requirements(self, task: CompanionTasks) -> bool:
         task_name: str = task.name.lower()
         match task:
+            case CompanionTasks.GENERATE_COORDS:
+                if self._get_companion_subscriptions() is None or self._get_robot_subscriptions() is None:
+                    self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
+                    return False
             case CompanionTasks.WALL_DETECTION:
-                if self._get_companion_subscriptions() is None and self._get_robot_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
+                if not self._find_task(CompanionTasks.GENERATE_COORDS):
+                    self.print_warn(f'{task_name} task requires the {CompanionTasks.GENERATE_COORDS.name.lower()} task to be added to the Schedular.')
                     return False
-                if self._get_companion_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Companion node to be added to the Schedular.')
-                    return False
-                if self._get_robot_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Robot node to be added to the Schedular.')
-                    return False
-                return True
             case CompanionTasks.COLUMN_DETECTION:
-                if self._get_companion_subscriptions() is None and self._get_robot_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Robot and Companion nodes to be added to the Schedular.')
+                if not self._find_task(CompanionTasks.GENERATE_COORDS):
+                    self.print_warn(f'{task_name} task requires the {CompanionTasks.GENERATE_COORDS.name.lower()} task to be added to the Schedular.')
                     return False
-                if self._get_companion_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Companion node to be added to the Schedular.')
-                    return False
-                if self._get_robot_subscriptions() is None:
-                    self.print_warn(f'{task_name} task requires the Robot node to be added to the Schedular.')
-                    return False
-                return True
             case _:
                 self.print_error(f'{task_name} is not found as a executable task.')
                 return False
 
+        return True
+    
+    def _find_task(self, task: CompanionTasks) -> bool:
+        """Find a task in the Schedular. Returns True if the task is found, False otherwise."""
+        task_name = task.name.lower()
+        return task_name in self._tasks
+
     def add_task(self, task: CompanionTasks, frequency: float = 20.0):
         """Add a task to the Schedular with a specified frequency. The Schedular will automatically check for required devices before adding the task."""
         task_name = task.name.lower()
-        if not self._check_for_devices(task):
+        if not self._check_requirements(task):
             return
         
-        if not task_name in self._tasks:
+        if not self._find_task(task):
             self._tasks[task_name] = self.node.create_timer(1.0 / frequency, self._get_task_callback(task))
             self.print(f'Task Schedular added {task_name} task.')
         else:
             self.print_warn(f'Can not have more than 1 of the same task: {task_name}')
 
+    def add_tasks(self, tasks: list[CompanionTasks], frequency: float = 20.0):
+        """Add multiple tasks to the Schedular with a specified frequency."""
+        for task in tasks:
+            self.add_task(task, frequency)
+
     def remove_task(self, task: CompanionTasks):
         """Remove a task from the Schedular."""
         task_name = task.name.lower()
-        if task_name in self._tasks:
+        if self._find_task(task):
             self._tasks[task_name].destroy()
             self._tasks.pop(task_name)
             self.print(f'Task Schedular removed {task_name} task.')
         else:
             self.print_warn(f'{task_name} task does not exist. Can not remove.')
+
+    def clear_tasks(self):
+        """Remove all tasks from the Schedular."""
+        for task in self._tasks:
+            self._tasks[task].destroy()
+        self._tasks.clear()
+        self._outputs.clear()
+        self.print(f'Task Schedular cleared all tasks.')
 
     def _get_robot_subscriptions(self) -> RobotSubs:
         for device in self._devices:
@@ -141,6 +155,15 @@ class TaskSchedular():
 
         return None
 
+    def get_task_output(self, task: CompanionTasks):
+        """Get the output of a task. Output is stored in a dictionary with the task name as the key."""
+        task_name = task.name.lower()
+        if task_name in self._outputs:
+            return self._outputs[task_name]
+        else:
+            # self.print_warn(f'No output found for {task_name} task.')
+            return None
+
     def print(self, msg: str):
         """Print a message to the console with the Schedular's logger"""
         self.node.get_logger().info(Fore.CYAN + msg)
@@ -153,47 +176,40 @@ class TaskSchedular():
         """Print an error message to the console with the Schedular's logger"""
         self.node.get_logger().error(msg)
 
-    def _wall_detection_task(self):
+    def _blank_task(self):
+        """Blank task to use as a placeholder for tasks that are not found or do not have the required devices."""
+        pass
+
+    def _gernerate_coords_task(self):
         """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
         companion = self._get_companion_subscriptions()
         robot = self._get_robot_subscriptions()
 
-        detected_shapes = DetectedShapes()
-        
-        detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
-        detected_shapes.walls = tools.lidar.find_lines_and_segments([point for point in detected_shapes.coords if point != None])
-        detected_shapes.interactions = [tools.lidar.predictive.circle_to_wall_distance(wall, robot.position) for wall in detected_shapes.walls]
+        task_name = CompanionTasks.GENERATE_COORDS.name.lower()
+        self._outputs[task_name] = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
+
+    def _wall_detection_task(self):
+        """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
+        coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
+        if coords is None:
+            return
+        # detected_shapes.interactions = [tools.lidar.predictive.circle_to_wall_distance(wall, robot.position) for wall in detected_shapes.walls]
 
         task_name = CompanionTasks.WALL_DETECTION.name.lower()
-        self._outputs[task_name] = detected_shapes
+        self._outputs[task_name] = tools.lidar.find_lines_and_segments([point for point in coords if point != None])
 
-    def get_task_output(self, task: CompanionTasks):
-        """Get the output of a task. Output is stored in a dictionary with the task name as the key."""
-        task_name = task.name.lower()
-        if task_name in self._outputs:
-            return self._outputs[task_name]
-        else:
-            # self.print_warn(f'No output found for {task_name} task.')
-            return None
-        
     def _column_detection_task(self):
         """Task callback function for column detection. Uses the Lidar data to find columns and segments, and stores the output in a dictionary with the task name as the key."""
-        companion = self._get_companion_subscriptions()
-        robot = self._get_robot_subscriptions()
-
-        detected_shapes = DetectedShapes()
+        coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
+        if coords is None:
+            return
         
-        detected_shapes.coords = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
-        detected_shapes.columns = tools.lidar.find_circles_and_arcs([point for point in detected_shapes.coords if point != None])
-
         task_name = CompanionTasks.COLUMN_DETECTION.name.lower()
-        self._outputs[task_name] = detected_shapes
+        self._outputs[task_name] = tools.lidar.find_circles_and_arcs([point for point in coords if point != None])
 
     def shutdown(self):
         """Shutdown the Schedular and clean up resources. This will stop all tasks from running and will shutdown."""
-        for task in self._tasks:
-            self._tasks[task].destroy()
-        self._tasks.clear()
+        self.clear_tasks()
 
         self._executor.shutdown()
         while self._thread.is_alive():
