@@ -16,8 +16,7 @@ from rclpy.executors import SingleThreadedExecutor
 from . import rclpy
 from create3.models import Nodes
 from .ros_threading import Threading
-from create3.utils import companion as tools
-from create3.models.robot import Subscribe as RobotSubs, Publish as RobotPubs
+from create3.models.robot import Tasks as RobotTasks, Subscribe as RobotSubs, Publish as RobotPubs
 from create3.models.remote import Subscribe as RemoteSubs, Publish as RemotePubs
 from create3.models.companion import Tasks as CompanionTasks, Publish as CompanionPubs, Subscribe as CompanionSubs
 
@@ -83,6 +82,8 @@ class TaskSchedular():
                 return self._column_detection_task
             case CompanionTasks.LIDAR_LIGHTRING:
                 return self._lidar_lightring_task
+            case RobotTasks.IR_LIGHTRING:
+                return self._ir_lightring_task
             case _:
                 self.print_error(f'{task} is not found as a executable task.')
                 return self._blank_task
@@ -104,6 +105,16 @@ class TaskSchedular():
             case CompanionTasks.LIDAR_LIGHTRING:
                 if self._find_device(Nodes.CREATE3_COMPANION) is None or self._find_device(Nodes.CREATE3_ROBOT) is None:
                     self.print_warn(f'{task} task requires the Companion and Robot nodes to be added to the Schedular.')
+                    return False
+                if self._find_task(RobotTasks.IR_LIGHTRING):
+                    self.print_warn(f'{task} task can not be added to the Schedular with the {RobotTasks.IR_LIGHTRING} task. Please remove one of the tasks before adding the other.')
+                    return False
+            case RobotTasks.IR_LIGHTRING:
+                if self._find_device(Nodes.CREATE3_ROBOT) is None:
+                    self.print_warn(f'{task} task requires the Robot node to be added to the Schedular.')
+                    return False
+                if self._find_task(CompanionTasks.LIDAR_LIGHTRING):
+                    self.print_warn(f'{task} task can not be added to the Schedular with the {CompanionTasks.LIDAR_LIGHTRING} task. Please remove one of the tasks before adding the other.')
                     return False
             case _:
                 self.print_error(f'{task} is not found as a executable task.')
@@ -160,6 +171,11 @@ class TaskSchedular():
             return self._devices[device]._publisher_msgs
         return None
 
+    def _get_tools(self, device: Nodes):
+        if self._find_device(device):
+            return self._devices[device].tools
+        return None
+
     def get_task_output(self, task: CompanionTasks):
         """Get the output of a task. Output is stored in a dictionary with the task name as the key."""
         if self._find_task(task):
@@ -188,11 +204,13 @@ class TaskSchedular():
         """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
         companion: CompanionSubs = self._get_subscriptions(Nodes.CREATE3_COMPANION)
         robot: RobotSubs = self._get_subscriptions(Nodes.CREATE3_ROBOT)
+        tools = self._get_tools(Nodes.CREATE3_COMPANION)
 
         self._outputs[CompanionTasks.GENERATE_COORDS] = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
 
     def _wall_detection_task(self):
         """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
+        tools = self._get_tools(Nodes.CREATE3_COMPANION)
         coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
         if coords is None:
             return
@@ -202,6 +220,7 @@ class TaskSchedular():
 
     def _column_detection_task(self):
         """Task callback function for column detection. Uses the Lidar data to find columns and segments, and stores the output in a dictionary with the task name as the key."""
+        tools = self._get_tools(Nodes.CREATE3_COMPANION)
         coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
         if coords is None:
             return
@@ -211,12 +230,26 @@ class TaskSchedular():
     def _lidar_lightring_task(self):
         companion: CompanionSubs = self._get_subscriptions(Nodes.CREATE3_COMPANION)
         robot: RobotPubs = self._get_publishers(Nodes.CREATE3_ROBOT)
+        tools = self._get_tools(Nodes.CREATE3_COMPANION)
         if not companion.lidar.ranges:
             return
 
         lightMsg = LightringLeds()
         lightMsg.override_system = True
         lightMsg.leds = tools.lidar.get_motion_lightring(companion.lidar.ranges)
+
+        robot.lightring = lightMsg
+
+    def _ir_lightring_task(self):
+        subscription: RobotSubs = self._get_subscriptions(Nodes.CREATE3_ROBOT)
+        robot: RobotPubs = self._get_publishers(Nodes.CREATE3_ROBOT)
+        tools = self._get_tools(Nodes.CREATE3_ROBOT)
+        if not subscription.ir_values:
+            return
+
+        lightMsg = LightringLeds()
+        lightMsg.override_system = True
+        lightMsg.leds = tools.ir.get_motion_lightring(subscription.ir_values)
 
         robot.lightring = lightMsg
 

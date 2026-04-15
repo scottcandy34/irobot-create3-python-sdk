@@ -4,6 +4,7 @@
 #
 
 from create3.models import Nodes
+from create3.models.companion import Tasks
 from create3.utils import companion as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.companion import Publisher, Subscriber
@@ -20,6 +21,9 @@ class CompanionNode(Publisher, Subscriber, Threading):
         self.node._logger.name = "Raspberry"
 
         self.tools = tools
+        """Expose tools for working with the lidar sensor on the iRobot Create3."""
+        self.tasks = Tasks
+        """Expose available tasks that can be added to the TaskSchedular."""
 
         # Start the Threading/Spinning
         self.start()

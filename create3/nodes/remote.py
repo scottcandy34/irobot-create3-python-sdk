@@ -20,6 +20,7 @@ class RemoteNode(Publisher, Subscriber, Threading):
         self.node._logger.name = "Computer"
 
         self.tools = tools
+        """Expose tools for working with the remote node on the iRobot Create3."""
 
         # Start the Threading/Spinning
         self.start()

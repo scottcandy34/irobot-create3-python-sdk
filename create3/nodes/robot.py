@@ -4,6 +4,7 @@
 #
 
 from create3.models import Nodes
+from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
@@ -21,6 +22,9 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
         self._use_goal = use_goal
 
         self.tools = tools
+        """Expose tools for working with the robot's sensors and controls."""
+        self.tasks = Tasks
+        """Expose available tasks that can be added to the TaskSchedular."""
 
         # Start the Threading/Spinning
         self.start()
