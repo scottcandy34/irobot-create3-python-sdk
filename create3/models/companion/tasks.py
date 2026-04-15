@@ -1,6 +1,6 @@
-from enum import Enum, auto
+from enum import StrEnum, auto
 
-class Tasks(Enum):
+class Tasks(StrEnum):
     GENERATE_COORDS = auto()
     """Generate coordinates for detected walls and columns."""
     WALL_DETECTION = auto()

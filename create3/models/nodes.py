@@ -1,6 +1,6 @@
-from enum import Enum, auto
+from enum import StrEnum, auto
 
-class Nodes(Enum):
+class Nodes(StrEnum):
     CREATE3_ROBOT = auto()
     """Control the Create3 using the robot's built in interface."""
     CREATE3_COMPANION = auto()

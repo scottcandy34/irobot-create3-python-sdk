@@ -60,7 +60,7 @@ class Debugger():
 
     def __init__(self):
         rclpy.init()
-        self.node: Node = rclpy.create_node(Nodes.ROS_DEBUGGER.name.lower())
+        self.node: Node = rclpy.create_node(Nodes.ROS_DEBUGGER)
         self.node._logger.name = "Debugger"
 
         self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Watching Topics Sub/Pub, Services and Actions.')

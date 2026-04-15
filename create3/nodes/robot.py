@@ -14,7 +14,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True, use_goal = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node(Nodes.CREATE3_ROBOT.name.lower())
+        node = rclpy.create_node(Nodes.CREATE3_ROBOT)
 
         super().__init__(node) # trigger original code before it gets overwritten
         self.node._logger.name = "Create3"

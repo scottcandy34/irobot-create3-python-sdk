@@ -14,7 +14,7 @@ class CompanionNode(Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node(Nodes.CREATE3_COMPANION.name.lower())
+        node = rclpy.create_node(Nodes.CREATE3_COMPANION)
 
         super().__init__(node) # trigger original code before it gets overwritten
         self.node._logger.name = "Raspberry"
