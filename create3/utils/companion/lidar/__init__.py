@@ -14,11 +14,9 @@ import random as _random
 from irobot_create_msgs.msg import LedColor as _LedColor
 
 from . import line, line_segment, predictive
-from create3.utils.robot import constraints as _constraints
-from create3.utils.robot import lightring as _lightring
+from create3.utils.robot import constraints as _constraints, lightring as _lightring
 from create3.models.robot import Position as _Position
-from create3.models.companion import Wall as _Wall
-from create3.models.companion import Lidar as _Lidar
+from create3.models.companion import Wall as _Wall, Lidar as _Lidar
 
 def get_motion_lightring(lidar_scans: list[float], red: int = None, green: int = None, blue: int = None) -> list[_LedColor]:
     """Returns a list of LEDs that are highlighted based on the closest lidar scan."""
@@ -59,7 +57,7 @@ def get_coords(lidar: _Lidar, index: int, robot_position: _Position) -> tuple[fl
     theta = _math.radians(robot_position.angle)
 
     # 4. Rotate to world frame + translate
-    world_x = -robot_position.x + local_x * _math.cos(theta) - local_y * _math.sin(theta)
+    world_x = robot_position.x + local_x * _math.cos(theta) - local_y * _math.sin(theta)
     world_y = robot_position.y + local_x * _math.sin(theta) + local_y * _math.cos(theta)
 
     return (world_x, world_y)
@@ -110,12 +108,7 @@ def find_lines_and_segments(points: list[tuple[float, float]], max_iterations = 
                 xmax = proj_last[0]
                 length = line_segment.calculate_length(segment, m, b)
                 
-                wall = _Wall()
-                wall.length = length
-                wall.slope = m
-                wall.intercept = b
-                wall.xmin = min(xmin, xmax)
-                wall.xmax = max(xmin, xmax)
+                wall = _Wall(length=length, slope=m, intercept=b, xmin=min(xmin, xmax), xmax=max(xmin, xmax))
                 results.append(wall)
         
         remaining_points = [point for point in remaining_points if point not in best_inliers]
