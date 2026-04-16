@@ -9,10 +9,11 @@ from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
+from yolo_msgs.msg import DetectionArray
 
 from .callbacks import MessageHandler
 from create3.utils import Threading
-from create3.models.remote import Controller, Map
+from create3.models.remote import Controller, Map, Yolo
 
 qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
@@ -33,9 +34,10 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
         # Create Subscription
         self._joy = self.node.create_subscription(Joy, 'joy', self._joy_callback, qos_profile, callback_group=subscriber_callback_group)
         self._map = self.node.create_subscription(OccupancyGrid, 'map', self._map_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._yolo_detections = self.node.create_subscription(DetectionArray, '/yolo/detections', self._yolo_detections_callback, qos_profile, callback_group=subscriber_callback_group)
 
         # Add topics to debugger
-        self.debug.subscriptions = [self._joy, self._map]
+        self.debug.subscriptions = [self._joy, self._map, self._yolo_detections]
 
     def get_controller(self) -> Controller:
         """Returns the controller input."""
@@ -44,3 +46,7 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
     def get_map(self) -> Map:
         """Returns the latest map message."""
         return self._subscription_msgs.map
+
+    def get_yolo(self) -> Yolo:
+        """Returns the latest YOLO detections."""
+        return self._subscription_msgs.yolo

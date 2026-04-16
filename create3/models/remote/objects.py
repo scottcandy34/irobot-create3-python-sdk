@@ -48,4 +48,22 @@ class Map:
     """Stores companion map data."""
     resolution: float = 0.0
     origin: Position = field(default_factory=Position)
-    data: np.ndarray = field(default_factory=lambda: np.empty((1, 2))) 
+    data: np.ndarray = field(default_factory=lambda: np.empty((1, 2)))
+
+@dataclass
+class BoundingBox:
+    """Stores information about a detected bounding box from YOLO."""
+    class_id: int = 0
+    class_name: str = ''
+    score: float = 0.0
+    tracking_id: int = 0
+    center_x: float = 0.0
+    center_y: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
+    theta: float = 0.0
+
+@dataclass
+class Yolo:
+    """Stores information about all detected objects from YOLO."""
+    bounding_boxes: list[BoundingBox] = field(default_factory=list)

@@ -7,13 +7,14 @@ import math
 from typing import TYPE_CHECKING
 
 from sensor_msgs.msg import Joy
+from nav_msgs.msg import OccupancyGrid
+from yolo_msgs.msg import DetectionArray
 
 from create3.utils import Threading
-from nav_msgs.msg import OccupancyGrid
 from create3.models.common import Position
 from create3.utils import remote as tools
 from create3.utils.common import convert_to_euler
-from create3.models.remote import Subscribe, Controller
+from create3.models.remote import Subscribe, Controller, BoundingBox
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for remote subscriptions."""
@@ -71,3 +72,22 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         turn = grid.info.origin.orientation
         position.angle = math.degrees(convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
         self._subscription_msgs.map.origin = position
+
+    def _yolo_detections_callback(self, yolo: DetectionArray):
+        self.update_uptime(self._yolo_detections.topic_name)
+
+        self._subscription_msgs.yolo.bounding_boxes.clear()
+    
+        for detection in yolo.detections:
+            bounding_box = BoundingBox(
+                class_id=detection.class_id,
+                class_name=detection.class_name,
+                score=detection.score,
+                tracking_id=detection.id,
+                center_x=detection.bbox.center.position.x,
+                center_y=detection.bbox.center.position.y,
+                theta=detection.bbox.center.theta,
+                width=detection.bbox.size.x,
+                height=detection.bbox.size.y,
+            )
+            self._subscription_msgs.yolo.bounding_boxes.append(bounding_box)
