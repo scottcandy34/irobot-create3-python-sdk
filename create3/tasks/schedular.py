@@ -8,17 +8,19 @@ from threading import Thread
 import colorama
 from colorama import Fore, Style
 
-from rclpy.timer import Timer
 from rclpy.node import Node
+from rclpy.timer import Timer
+from geometry_msgs.msg import Twist
 from irobot_create_msgs.msg import LightringLeds
 from rclpy.executors import SingleThreadedExecutor
 
-from . import rclpy
+from create3.utils import rclpy
 from create3.models import Nodes
-from .ros_threading import Threading
-from create3.models.robot import Tasks as RobotTasks, Subscribe as RobotSubs, Publish as RobotPubs
-from create3.models.remote import Subscribe as RemoteSubs, Publish as RemotePubs
-from create3.models.companion import Tasks as CompanionTasks, Publish as CompanionPubs, Subscribe as CompanionSubs
+from create3.utils import Threading
+from create3.models.robot import Tasks as RobotTasks
+from create3.models.remote import Tasks as RemoteTasks
+from create3.models.companion import Tasks as CompanionTasks
+from create3 import RobotNode, CompanionNode, RemoteNode
 
 colorama.init(autoreset=True)
 
@@ -41,6 +43,7 @@ class TaskSchedular():
         self._devices: dict[Threading] = {}
         self._tasks: dict[str, Timer] = {}
         self._outputs: dict[str, any] = {}
+        self._states: dict[str, any] = {}
 
         self._executor = SingleThreadedExecutor()
         self._thread = Thread(target=self._spin)
@@ -70,7 +73,7 @@ class TaskSchedular():
             self.print_warn(f'{device_name} device is not found in the Schedular. Can not remove.')
         return False
 
-    def _get_task_callback(self, task: CompanionTasks) -> callable:
+    def _get_task_callback(self, task: RobotTasks | CompanionTasks | RemoteTasks) -> callable:
         self._outputs[task] = None
 
         match task:
@@ -84,15 +87,17 @@ class TaskSchedular():
                 return self._lidar_lightring_task
             case RobotTasks.IR_LIGHTRING:
                 return self._ir_lightring_task
+            case RemoteTasks.CONTROLLER:
+                return self._controller_task
             case _:
                 self.print_error(f'{task} is not found as a executable task.')
                 return self._blank_task
             
-    def _check_requirements(self, task: CompanionTasks) -> bool:
+    def _check_requirements(self, task: RobotTasks | CompanionTasks | RemoteTasks) -> bool:
         match task:
             case CompanionTasks.GENERATE_COORDS:
                 if self._find_device(Nodes.CREATE3_COMPANION) is None or self._find_device(Nodes.CREATE3_ROBOT) is None:
-                    self.print_warn(f'{task} task requires the Robot and Companion nodes to be added to the Schedular.')
+                    self.print_warn(f'{task} task requires the {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes to be added to the Schedular.')
                     return False
             case CompanionTasks.WALL_DETECTION:
                 if not self._find_task(CompanionTasks.GENERATE_COORDS):
@@ -104,29 +109,36 @@ class TaskSchedular():
                     return False
             case CompanionTasks.LIDAR_LIGHTRING:
                 if self._find_device(Nodes.CREATE3_COMPANION) is None or self._find_device(Nodes.CREATE3_ROBOT) is None:
-                    self.print_warn(f'{task} task requires the Companion and Robot nodes to be added to the Schedular.')
+                    self.print_warn(f'{task} task requires the {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes to be added to the Schedular.')
                     return False
                 if self._find_task(RobotTasks.IR_LIGHTRING):
                     self.print_warn(f'{task} task can not be added to the Schedular with the {RobotTasks.IR_LIGHTRING} task. Please remove one of the tasks before adding the other.')
                     return False
             case RobotTasks.IR_LIGHTRING:
                 if self._find_device(Nodes.CREATE3_ROBOT) is None:
-                    self.print_warn(f'{task} task requires the Robot node to be added to the Schedular.')
+                    self.print_warn(f'{task} task requires the {Nodes.CREATE3_ROBOT} node to be added to the Schedular.')
                     return False
                 if self._find_task(CompanionTasks.LIDAR_LIGHTRING):
                     self.print_warn(f'{task} task can not be added to the Schedular with the {CompanionTasks.LIDAR_LIGHTRING} task. Please remove one of the tasks before adding the other.')
                     return False
+            case RemoteTasks.CONTROLLER:
+                if self._find_device(Nodes.CREATE3_ROBOT) is None or self._find_device(Nodes.CREATE3_REMOTE) is None:
+                    self.print_warn(f'{task} task requires the {Nodes.CREATE3_ROBOT} and {Nodes.CREATE3_REMOTE} nodes to be added to the Schedular.')
+                    return False
+                if self._find_device(Nodes.CREATE3_COMPANION) is None:
+                    self.print_warn(f'{task} task requires the {Nodes.CREATE3_COMPANION} only for moving the camera. Task will still operate normally.')
+                    return True
             case _:
                 self.print_error(f'{task} is not found as a executable task.')
                 return False
 
         return True
     
-    def _find_task(self, task: CompanionTasks) -> bool:
+    def _find_task(self, task: RobotTasks | CompanionTasks | RemoteTasks) -> bool:
         """Find a task in the Schedular. Returns True if the task is found, False otherwise."""
         return str(task) in self._tasks
 
-    def add_task(self, task: CompanionTasks, frequency: float = 20.0):
+    def add_task(self, task: RobotTasks | CompanionTasks | RemoteTasks, frequency: float = 20.0):
         """Add a task to the Schedular with a specified frequency. The Schedular will automatically check for required devices before adding the task."""
         if not self._check_requirements(task):
             return
@@ -137,12 +149,12 @@ class TaskSchedular():
         else:
             self.print_warn(f'Can not have more than 1 of the same task: {task}')
 
-    def add_tasks(self, tasks: list[CompanionTasks], frequency: float = 20.0):
+    def add_tasks(self, tasks: list[RobotTasks | CompanionTasks | RemoteTasks], frequency: float = 20.0):
         """Add multiple tasks to the Schedular with a specified frequency."""
         for task in tasks:
             self.add_task(task, frequency)
 
-    def remove_task(self, task: CompanionTasks) -> bool:
+    def remove_task(self, task: RobotTasks | CompanionTasks | RemoteTasks) -> bool:
         """Remove a task from the Schedular."""
         if self._find_task(task):
             self._tasks[task].destroy()
@@ -161,27 +173,32 @@ class TaskSchedular():
         self._outputs.clear()
         self.print(f'Task Schedular cleared all tasks.')
 
-    def _get_subscriptions(self, device: Nodes):
+    def _get_device(self, device: Nodes):
         if self._find_device(device):
-            return self._devices[device]._subscription_msgs
-        return None
-        
-    def _get_publishers(self, device: Nodes):
-        if self._find_device(device):
-            return self._devices[device]._publisher_msgs
+            return self._devices[device]
         return None
 
-    def _get_tools(self, device: Nodes):
-        if self._find_device(device):
-            return self._devices[device].tools
-        return None
-
-    def get_task_output(self, task: CompanionTasks):
+    def get_task_output(self, task: RobotTasks | CompanionTasks | RemoteTasks):
         """Get the output of a task. Output is stored in a dictionary with the task name as the key."""
         if self._find_task(task):
             return self._outputs[task]
         else:
             # self.print_warn(f'No output found for {task_name} task.')
+            return None
+
+    def _find_state(self, state: States) -> bool:
+        """Find a state in the Schedular. Returns True if the state is found, False otherwise."""
+        return str(state) in self._states
+    
+    def _update_state(self, state: States, value: any):
+        """Update the value of a state. State is stored in a dictionary with the state name as the key."""
+        self._states[state] = value
+
+    def _get_states(self, state: States):
+        """Get the variable of a task. State is stored in a dictionary with the state name as the key."""
+        if state in self._states:
+            return self._states[state]
+        else:
             return None
 
     def print(self, msg: str):
@@ -202,56 +219,62 @@ class TaskSchedular():
 
     def _generate_coords_task(self):
         """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
-        companion: CompanionSubs = self._get_subscriptions(Nodes.CREATE3_COMPANION)
-        robot: RobotSubs = self._get_subscriptions(Nodes.CREATE3_ROBOT)
-        tools = self._get_tools(Nodes.CREATE3_COMPANION)
+        companion: CompanionNode = self._get_device(Nodes.CREATE3_COMPANION)
+        robot: RobotNode = self._get_device(Nodes.CREATE3_ROBOT)
 
-        self._outputs[CompanionTasks.GENERATE_COORDS] = [(tools.lidar.get_coords(companion.lidar, index, robot.position)) for index in range(companion.lidar.size())]
+        self._outputs[CompanionTasks.GENERATE_COORDS] = [(companion.tools.lidar.get_coords(companion.get_scans(), index, robot.get_position())) for index in range(companion.get_scans().size())]
 
     def _wall_detection_task(self):
         """Task callback function for wall detection. Uses the Lidar data to find walls and segments, and stores the output in a dictionary with the task name as the key."""
-        tools = self._get_tools(Nodes.CREATE3_COMPANION)
+        companion: CompanionNode = self._get_device(Nodes.CREATE3_COMPANION)
         coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
         if coords is None:
             return
-        # detected_shapes.interactions = [tools.lidar.predictive.circle_to_wall_distance(wall, robot.position) for wall in detected_shapes.walls]
 
-        self._outputs[CompanionTasks.WALL_DETECTION] = tools.lidar.find_lines_and_segments([point for point in coords if point != None])
+        self._outputs[CompanionTasks.WALL_DETECTION] = companion.tools.lidar.find_lines_and_segments([point for point in coords if point != None])
 
     def _column_detection_task(self):
         """Task callback function for column detection. Uses the Lidar data to find columns and segments, and stores the output in a dictionary with the task name as the key."""
-        tools = self._get_tools(Nodes.CREATE3_COMPANION)
+        companion: CompanionNode = self._get_device(Nodes.CREATE3_COMPANION)
         coords: list[tuple[float, float]] = self.get_task_output(CompanionTasks.GENERATE_COORDS)
         if coords is None:
             return
         
-        self._outputs[CompanionTasks.COLUMN_DETECTION] = tools.lidar.find_circles_and_arcs([point for point in coords if point != None])
-    
+        self._outputs[CompanionTasks.COLUMN_DETECTION] = companion.tools.lidar.find_circles_and_arcs([point for point in coords if point != None])
+
+    def _controller_task(self):
+        robot: RobotNode = self._get_device(Nodes.CREATE3_ROBOT)
+        remote: RemoteNode = self._get_device(Nodes.CREATE3_REMOTE)
+        companion: CompanionNode = self._get_device(Nodes.CREATE3_COMPANION)
+
+        if remote.get_controller().buttons.r1: # R1 PS4
+            twist_msg = remote.tools.joy.get_twist(remote.get_controller().left_joy.horizontal, remote.get_controller().left_joy.vertical)
+            robot.send_twist(twist_msg)
+
+        elif (remote.get_controller().buttons.options and robot.get_docking_values().is_docked):  # Options PS4
+            self.node.get_logger().info('Undocking')
+            robot.dock()
+            self.node.get_logger().info('Undocking Completed')
+
+        elif (remote.get_controller().buttons.options and not robot.get_docking_values().is_docked):  # Options PS4
+            self.node.get_logger().info('Docking')
+            robot.undock()
+            self.node.get_logger().info('Docking Completed')
+        
     def _lidar_lightring_task(self):
-        companion: CompanionSubs = self._get_subscriptions(Nodes.CREATE3_COMPANION)
-        robot: RobotPubs = self._get_publishers(Nodes.CREATE3_ROBOT)
-        tools = self._get_tools(Nodes.CREATE3_COMPANION)
-        if not companion.lidar.ranges:
+        companion: CompanionNode = self._get_device(Nodes.CREATE3_COMPANION)
+        robot: RobotNode = self._get_device(Nodes.CREATE3_ROBOT)
+        if not companion.get_scans().ranges:
             return
 
-        lightMsg = LightringLeds()
-        lightMsg.override_system = True
-        lightMsg.leds = tools.lidar.get_motion_lightring(companion.lidar.ranges)
-
-        robot.lightring = lightMsg
+        robot.set_lights(companion.tools.lidar.get_motion_lightring(companion.get_scans().ranges))
 
     def _ir_lightring_task(self):
-        subscription: RobotSubs = self._get_subscriptions(Nodes.CREATE3_ROBOT)
-        robot: RobotPubs = self._get_publishers(Nodes.CREATE3_ROBOT)
-        tools = self._get_tools(Nodes.CREATE3_ROBOT)
-        if not subscription.ir_values:
+        robot: RobotNode = self._get_device(Nodes.CREATE3_ROBOT)
+        if not robot.get_ir_proximity():
             return
 
-        lightMsg = LightringLeds()
-        lightMsg.override_system = True
-        lightMsg.leds = tools.ir.get_motion_lightring(subscription.ir_values)
-
-        robot.lightring = lightMsg
+        robot.set_lights(robot.tools.ir.get_motion_lightring(robot.get_ir_proximity()))
 
     def shutdown(self):
         """Shutdown the Schedular and clean up resources. This will stop all tasks from running and will shutdown."""

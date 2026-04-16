@@ -11,6 +11,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, Durabilit
 
 from create3.utils import Threading
 from .callbacks import MessageHandler
+from create3.models.companion import Lidar
 
 qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
@@ -35,5 +36,5 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]
 
-    def get_scans(self):
-        return self._subscription_msgs.lidar.ranges
+    def get_scans(self) -> Lidar:
+        return self._subscription_msgs.lidar

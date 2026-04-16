@@ -1,3 +1,8 @@
+#
+# Node Names for iRobot Create3 - Jazzy
+# Created by scottcandy34
+#
+
 from enum import StrEnum, auto
 
 class Nodes(StrEnum):

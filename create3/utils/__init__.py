@@ -13,6 +13,5 @@ from . import robot, companion, remote
 from .rclpy_override import rclpy
 from .debugger import global_debugger
 from .ros_threading import Threading
-from .schedular import TaskSchedular
 from .robot.music import Note
 from .other import object_to_string, DEFAULT_WAIT, TIMEOUT

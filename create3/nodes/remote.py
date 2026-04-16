@@ -4,6 +4,7 @@
 #
 
 from create3.models import Nodes
+from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.remote import Publisher, Subscriber
@@ -21,6 +22,8 @@ class RemoteNode(Publisher, Subscriber, Threading):
 
         self.tools = tools
         """Expose tools for working with the remote node on the iRobot Create3."""
+        self.tasks = Tasks
+        """Expose available tasks that can be added to the TaskSchedular."""
 
         # Start the Threading/Spinning
         self.start()

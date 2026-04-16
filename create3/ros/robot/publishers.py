@@ -100,3 +100,7 @@ class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
         
         # set wheel speeds
         self.set_wheel_speeds(left_wheel, speed)
+
+    def send_twist(self, twist_msg: Twist):
+        """Send a twist message. lasts for 0.5s"""
+        self._velocities.publish(twist_msg)
