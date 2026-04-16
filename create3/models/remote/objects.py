@@ -4,6 +4,8 @@
 #
 
 from dataclasses import dataclass, field
+import numpy as np
+from create3.models.robot import Position
 
 @dataclass
 class Joystick():
@@ -39,3 +41,10 @@ class Controller():
     right_trigger: float = 0.0
     dpad = Dpad()
     buttons = JoyButtons()
+
+@dataclass
+class Map:
+    """Stores companion map data."""
+    resolution: float = 0.0
+    origin: Position = field(default_factory=Position)
+    data: np.ndarray = field(default_factory=lambda: np.empty((1, 2))) 

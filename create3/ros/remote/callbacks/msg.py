@@ -3,11 +3,16 @@
 # Created by scottcandy34
 #
 
+import math
 from typing import TYPE_CHECKING
 
 from sensor_msgs.msg import Joy
 
 from create3.utils import Threading
+from nav_msgs.msg import OccupancyGrid
+from create3.models.robot import Position
+from create3.utils import companion as tools
+from create3.utils.robot import convert_to_euler
 from create3.models.remote import Subscribe, Controller
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
@@ -53,3 +58,16 @@ class MessageHandler(Threading if TYPE_CHECKING else object):
         controller.right_joy.button = joy_buttons[12] == 1
 
         self._subscription_msgs.controller = controller
+    
+    def _map_callback(self, grid: OccupancyGrid):
+        self.update_uptime(self._map.topic_name)
+
+        self._subscription_msgs.map.resolution = grid.info.resolution
+        self._subscription_msgs.map.data = tools.slam.occupancy_grid_to_2d(grid)
+
+        position = Position()
+        position.x = grid.info.origin.position.x * 100 # convert to centimeters
+        position.y = grid.info.origin.position.y * 100 # convert to centimeters
+        turn = grid.info.origin.orientation
+        position.angle = math.degrees(convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+        self._subscription_msgs.map.origin = position

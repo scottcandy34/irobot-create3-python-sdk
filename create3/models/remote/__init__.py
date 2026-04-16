@@ -1,2 +1,2 @@
 from .topics import Subscribe, Publish
-from .objects import Controller
+from .objects import Controller, Map
