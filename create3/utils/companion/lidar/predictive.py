@@ -1,9 +1,9 @@
 
 import math
 
-from create3.models.companion import Wall, Interaction
-from create3.models.robot import Position
+from create3.models.common import Position
 from create3.utils.robot.constraints import RADIUS
+from create3.models.companion import Wall, Interaction
 
 def circle_to_wall_distance(wall: Wall, position: Position) -> Interaction:
     """

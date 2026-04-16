@@ -10,9 +10,9 @@ from sensor_msgs.msg import Joy
 
 from create3.utils import Threading
 from nav_msgs.msg import OccupancyGrid
-from create3.models.robot import Position
-from create3.utils import companion as tools
-from create3.utils.robot import convert_to_euler
+from create3.models.common import Position
+from create3.utils import remote as tools
+from create3.utils.common import convert_to_euler
 from create3.models.remote import Subscribe, Controller
 
 class MessageHandler(Threading if TYPE_CHECKING else object):

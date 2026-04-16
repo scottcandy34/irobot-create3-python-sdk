@@ -12,7 +12,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, Durabilit
 from create3.utils import Threading
 from .callbacks import MessageHandler
 
-sub_qos_profile = QoSProfile(
+qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
     liveliness = LivelinessPolicy.AUTOMATIC,
     durability = DurabilityPolicy.VOLATILE,
@@ -29,8 +29,8 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
         subscriber_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Create Subscription
-        self._scan = self.node.create_subscription(LaserScan, 'scan', self._scan_callback, sub_qos_profile, callback_group=subscriber_callback_group)
-        self._range = self.node.create_subscription(Range, 'range', self._range_callback, sub_qos_profile, callback_group=subscriber_callback_group)
+        self._scan = self.node.create_subscription(LaserScan, 'scan', self._scan_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._range = self.node.create_subscription(Range, 'range', self._range_callback, qos_profile, callback_group=subscriber_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]

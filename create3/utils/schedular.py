@@ -1,5 +1,5 @@
 #
-# Task Schedular Callback Functions for iRobot Create3 - Jazzy
+# Task Schedular for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 

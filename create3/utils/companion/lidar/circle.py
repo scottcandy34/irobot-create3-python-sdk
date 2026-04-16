@@ -1,3 +1,10 @@
+#
+# Circle Tools for iRobot Create3 - Jazzy
+# Created by scottcandy34
+#
+
+"""Tools for working with circles, including fitting a circle to a set of points and calculating the distance from a point to a circle."""
+
 import math
 
 def fit_circle(points: list[tuple[float, float]]) -> tuple[float, float, float]:

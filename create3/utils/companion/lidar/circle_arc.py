@@ -1,3 +1,10 @@
+#
+# Circle Arc Tools for iRobot Create3 - Jazzy
+# Created by scottcandy34
+#
+
+"""Tools for working with circle arcs, including finding contiguous arc segments of inliers along a circle and calculating the angle range and arc length of an arc segment."""
+
 import math
 
 def find(inliers: list[tuple[float, float]], cx: float, cy: float, r: float, max_angular_gap: float, min_points=2) -> list[list[tuple[float, float]]]:
