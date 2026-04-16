@@ -12,6 +12,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, Durabilit
 
 from .callbacks import MessageHandler
 from create3.utils import Threading
+from create3.models.remote import Controller, Map
 
 qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
@@ -35,3 +36,11 @@ class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
 
         # Add topics to debugger
         self.debug.subscriptions = [self._joy, self._map]
+
+    def get_controller(self) -> Controller:
+        """Returns the controller input."""
+        return self._subscription_msgs.controller
+    
+    def get_map(self) -> Map:
+        """Returns the latest map message."""
+        return self._subscription_msgs.map
