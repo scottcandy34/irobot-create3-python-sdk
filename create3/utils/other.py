@@ -7,7 +7,6 @@ import pprint as _pprint
 
 TIMEOUT = 0.8 # timeout for action servers
 DEFAULT_WAIT = 3 # delay in receiving command
-ROUNDING_VALUE = 6
 
 def object_to_string(obj) -> str:
     """Returns a pretty string with the object data"""
