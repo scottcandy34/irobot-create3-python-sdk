@@ -3,6 +3,8 @@
 # Created by scottcandy34
 #
 
+from create3.models import Nodes
+from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils import rclpy, Threading, global_interrupt, global_debugger
 from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
@@ -13,7 +15,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True, use_goal = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('create3_robot')
+        node = rclpy.create_node(Nodes.CREATE3_ROBOT)
 
         global_interrupt.add_device(self)
 
@@ -22,6 +24,9 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
         self._use_goal = use_goal
 
         self.tools = tools
+        """Expose tools for working with the robot's sensors and controls."""
+        self.tasks = Tasks
+        """Expose available tasks that can be added to the TaskSchedular."""
 
         # Start the Threading/Spinning
         self.start()

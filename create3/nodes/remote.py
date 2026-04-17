@@ -3,6 +3,8 @@
 # Created by scottcandy34
 #
 
+from create3.models import Nodes
+from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils import rclpy, Threading, global_interrupt, global_debugger
 from create3.ros.remote import Publisher, Subscriber
@@ -13,14 +15,17 @@ class RemoteNode(Publisher, Subscriber, Threading):
     def __init__(self, enable_debugger = True):
         # Initialize ROS2 node
         rclpy.init()
-        node = rclpy.create_node('create3_remote')
+        node = rclpy.create_node(Nodes.CREATE3_REMOTE)
 
         global_interrupt.add_device(self)
 
         super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Remote"
+        self.node._logger.name = "Computer"
 
         self.tools = tools
+        """Expose tools for working with the remote node on the iRobot Create3."""
+        self.tasks = Tasks
+        """Expose available tasks that can be added to the TaskSchedular."""
 
         # Start the Threading/Spinning
         self.start()

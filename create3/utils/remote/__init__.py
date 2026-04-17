@@ -9,3 +9,4 @@ input data and mapping it to robot commands, used for controlling the robot with
 """
 
 from . import joy
+from . import slam

@@ -36,7 +36,7 @@ def get_ir_angle(index: int) -> float:
             
     return angle
             
-def get_led_angle(self, index: int) -> float:
+def get_led_angle(index: int) -> float:
     """Return the angle for LED location"""
     
     angle = 0.0
