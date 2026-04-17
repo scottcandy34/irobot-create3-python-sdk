@@ -11,10 +11,20 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, InterfaceButtons, DockStatus, IrOpcode
 
-from .callbacks import MessageHandler
 from create3.utils import Threading
 from create3.models.common import Position
-from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues
+from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe
+
+from .callbacks.msg import (
+    odom_callback,
+    ir_intensity_callback,
+    hazard_detection_callback,
+    interface_buttons_callback,
+    battery_state_callback,
+    imu_callback,
+    dock_status_callback,
+    ir_opcode_callback
+)
 
 qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
@@ -23,24 +33,28 @@ qos_profile = QoSProfile(
     depth = 1
 )
 
-class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
+class Subscriber(Threading if TYPE_CHECKING else object):
     """Handles ROS subscribers for robot data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
+        # Hidden global callback information
+        self._subscription_msgs = Subscribe()
+        """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
+
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         subscriber_callback_group = MutuallyExclusiveCallbackGroup()
-
+    
         # Create Subscription
-        self._odom = self.node.create_subscription(Odometry, 'odom', self._odom_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', self._ir_intensity_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', self._hazard_detection_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', self._interface_buttons_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', self._battery_state_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._imu = self.node.create_subscription(Imu, 'imu', self._imu_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', self._dock_status_callback, qos_profile, callback_group=subscriber_callback_group)
-        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', self._ir_opcode_callback, qos_profile, callback_group=subscriber_callback_group)
+        self._odom = self.node.create_subscription(Odometry, 'odom', lambda msg: odom_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', lambda msg: ir_intensity_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', lambda msg: hazard_detection_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', lambda msg: interface_buttons_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', lambda msg: battery_state_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._imu = self.node.create_subscription(Imu, 'imu', lambda msg: imu_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', lambda msg: dock_status_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', lambda msg: ir_opcode_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._odom, self._ir_intensity, self._hazard_detection, self._interface_buttons, self._battery_state, self._imu, self._dock_status, self._ir_opcode]
