@@ -17,6 +17,7 @@ from rclpy.subscription import Subscription
 from . import rclpy
 from create3.models import Nodes
 from .ros_threading import Threading
+from .logger import Logger
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
@@ -55,7 +56,7 @@ class NodeTesting():
             return False
         return True
 
-class Debugger():
+class Debugger(Logger):
     """A class to watch the ROS interfaces and uptime of attached nodes, and print warnings or errors if they are not working as expected."""
 
     def __init__(self):
@@ -83,18 +84,6 @@ class Debugger():
             if obj.get_name() == device.get_name():
                 self._devices.pop(index)
                 break
-
-    def print(self, msg: str):
-        """Print a message to the console with the Debugger's logger"""
-        self.node.get_logger().info(Fore.GREEN + msg)
-
-    def print_warn(self, msg: str):
-        """Print a warning message to the console with the Debugger's logger"""
-        self.node.get_logger().warn(msg)
-    
-    def print_error(self, msg: str):
-        """Print an error message to the console with the Debugger's logger"""
-        self.node.get_logger().error(msg)
 
     def _check_interface(self, interface):
         """Check if a given interface is available on the node, and print a warning or error if it is not."""
@@ -131,7 +120,7 @@ class Debugger():
 
         elif exist and not self._validated.get(name, True):
             self._validated[name] = True
-            self.print(f'{type_} \'{name}\' is now available.')
+            self.print_healthy(f'{type_} \'{name}\' is now available.')
 
     def _watcher(self):
         # Wait for first device to connect
@@ -152,7 +141,7 @@ class Debugger():
                             self._logged[topic_name] = [self.node.get_clock().now().nanoseconds]
                         else:
                             if self._logged[topic_name][-1] - self._logged[topic_name][0] >= 1000000000:
-                                self.print_warn(f'Node receiving \'{topic_name}\' data at over {UPTIME_FREQUENCY} Hz. Check for infinite loops or excessive publishing. Possibly stopped receiving data.')
+                                self.print_warning(f'Node receiving \'{topic_name}\' data at over {UPTIME_FREQUENCY} Hz. Check for infinite loops or excessive publishing. Possibly stopped receiving data.')
                                 self._logged[topic_name] = []
                             self._logged[topic_name].append(self.node.get_clock().now().nanoseconds)
 
@@ -178,7 +167,7 @@ class Debugger():
                 time.sleep(0.1)
             self._thread.join()
 
-            self.print_warn(f'{self.node.get_name()} node has shutdown.')
+            self.print_warning(f'{self.node.get_name()} node has shutdown.')
             self.node.destroy_node()
             rclpy.shutdown()
 
