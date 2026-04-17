@@ -6,6 +6,7 @@
 import time, math
 from typing import TYPE_CHECKING
 
+from rclpy.publisher import Publisher
 from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient as CreateActionClient
 from builtin_interfaces.msg import Duration
@@ -13,12 +14,20 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import AudioNoteVector, LedColor, AudioNote
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
-from .callbacks import ActionHandler
+from create3.models.robot import Subscribe
 import create3.utils.robot as tools
+from create3.utils.common import convert_to_quaternion
 from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
-class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
+from .callbacks.goal import (
+    goal_response_callback,
+)
+
+class ActionClient(Threading if TYPE_CHECKING else object):
     """Setup ROS action clients, and handle goals."""
+
+    _velocities: Publisher
+    _subscription_msgs: Subscribe
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
@@ -67,7 +76,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         led_msg.max_runtime = Duration(sec = 500, nanosec = 0) # how long animation lasts
         
         future = self._led_animate.send_goal_async(led_msg)
-        future.add_done_callback(self._goal_response_callback)
+        future.add_done_callback(lambda msg: goal_response_callback(self, msg))
         
     def set_lights_blink_rgb(self, r: int, g: int, b: int):
         """Set robot's LED to blink with desired color red, gree, blue."""
@@ -89,7 +98,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         led_msg.max_runtime = Duration(sec = 500, nanosec = 0)
         
         future = self._led_animate.send_goal_async(led_msg)
-        future.add_done_callback(self._goal_response_callback)
+        future.add_done_callback(lambda msg: goal_response_callback(self, msg))
         
     def play_note(self, frequency: float | int, duration: float | int):
         """PLay note with frequency in hertz for duration in seconds."""
@@ -105,7 +114,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
         audio_msg.notes = [note]
         
         future = self._audio_sequence.send_goal_async(audio_msg)
-        future.add_done_callback(self._goal_response_callback)
+        future.add_done_callback(lambda msg: goal_response_callback(self, msg))
         
     def dock(self):
         """Request a docking action"""
@@ -163,7 +172,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             # Configure Heading part of message
             if heading is not None:
                 nav_msg.achieve_goal_heading = True # Tell robot to Turn to heading value
-                orientation = tools.convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
+                orientation = convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
                 nav_msg.goal_pose.pose.orientation.z = orientation[2] # Set z value from Quaternion rotation
                 nav_msg.goal_pose.pose.orientation.w = orientation[3] # Set w value from Quaternion rotation
             else:
@@ -171,7 +180,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Navigate Goal message
             future = self._navigate.send_goal_async(nav_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Calculate Time to complete goal
             # Turn and face the new coordinate point  |  Move distance to new coordinate point  |  Turn to new heading
@@ -217,7 +226,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Rotate Goal message
             future = self._rotate_angle.send_goal_async(rotate_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Calculate time and wait
             time.sleep(DEFAULT_WAIT + t)
@@ -249,7 +258,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Rotate Goal message and wait
             future = self._rotate_angle.send_goal_async(rotate_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Calculate time and wait
             time.sleep(DEFAULT_WAIT + t)
@@ -280,7 +289,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Drive Distance Goal message and wait
             future = self._drive_distance.send_goal_async(move_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Calculate time and wait
             time.sleep(DEFAULT_WAIT + t)
@@ -323,7 +332,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Drive Arc Goal message and wait
             future = self._drive_arc.send_goal_async(arc_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Wait for goal to finish with calculated time
             time.sleep(DEFAULT_WAIT + t)
@@ -366,7 +375,7 @@ class ActionClient(ActionHandler, Threading if TYPE_CHECKING else object):
             
             # Send Drive Arc Goal message and wait
             future = self._drive_arc.send_goal_async(arc_msg)
-            future.add_done_callback(self._goal_response_callback)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
             
             # Wait for goal to finish with calculated time
             time.sleep(DEFAULT_WAIT + t)

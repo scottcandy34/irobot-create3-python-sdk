@@ -12,4 +12,3 @@ from .subscribers import Subscriber
 from .publishers import Publisher
 from .actions import ActionClient
 from .services import ServiceClient
-from . import callbacks

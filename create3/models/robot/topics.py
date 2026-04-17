@@ -7,7 +7,8 @@ from geometry_msgs.msg import Twist
 from irobot_create_msgs.action import LedAnimation
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
-from .objects import Position, HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
+from create3.models.common import Position
+from .objects import HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
 
 class Subscribe():
     """Holds all robot subscribed topics."""
