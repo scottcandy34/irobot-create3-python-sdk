@@ -6,43 +6,20 @@
 import time
 from threading import Thread
 from typing import Callable
-from colorama import init, Fore, Style 
 
 from rclpy.node import Node
 from rclpy.timer import Timer
 from rclpy.executors import SingleThreadedExecutor
 
-from .other import object_to_string
 from create3.models import Debug
+from .logger import Logger
 
-init(autoreset=True)
-
-class Threading():
+class Threading(Logger):
     """Provides multithreading capabilities and helper functions for ROS nodes."""
 
     def __init__(self, node: Node):
         self.node = node
         self.debug = Debug()
-        
-    def print(self, msg):
-        """Prints a value to node Info stream"""
-        self.node.get_logger().info(object_to_string(msg))
-
-    def print_good(self, msg):
-        """Prints a value to node Info stream as Green"""
-        self.node.get_logger().info(Fore.GREEN + object_to_string(msg))
-
-    def print_fatal(self, msg):
-        """Prints a value to node Fatal stream"""
-        self.node.get_logger().fatal(object_to_string(msg))
-
-    def print_error(self, msg):
-        """Prints a value to node Error stream"""
-        self.node.get_logger().error(object_to_string(msg))
-
-    def print_warning(self, msg):
-        """Prints a value to node Warning stream"""
-        self.node.get_logger().warning(object_to_string(msg))
 
     def time(self) -> int:
         """Returns the current time in nanoseconds."""
@@ -66,7 +43,7 @@ class Threading():
     def start(self):
         """Starts the ROS spinning in a separate thread."""
 
-        self.print(f'{self.node.get_name()} node is initiating... Listening for Topics Sub/Pub, Services and Actions.')
+        self.print(f'{self.get_name()} node is initiating... Listening for Topics Sub/Pub, Services and Actions.')
         self._executor = SingleThreadedExecutor()
         self._ros_thread = Thread(target=self._spin)
         self._ros_thread.start()
@@ -79,7 +56,7 @@ class Threading():
             time.sleep(0.1)
         self._ros_thread.join()
 
-        self.print_warning(f'{self.node.get_name()} node has shutdown.')
+        self.print_warning(f'{self.get_name()} node has shutdown.')
         self.node.destroy_node()
 
     def delay_callback(self, delay_time: float | int, callback: Callable, *args, **kwargs) -> Timer:
