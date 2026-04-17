@@ -6,6 +6,7 @@
 from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
+from rclpy.publisher import Publisher
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from create3.utils import Threading
@@ -13,6 +14,10 @@ from create3.models.robot import Publish
 
 class PublishHandler(Threading if TYPE_CHECKING else object):
     """Handles the publishing of messages to topics."""
+
+    _velocities: Publisher
+    _lightring: Publisher
+    _audio: Publisher
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
@@ -28,7 +33,7 @@ class PublishHandler(Threading if TYPE_CHECKING else object):
         self.node.create_timer(0.05, self._publish_handler, callback_group=publish_handler_callback_group)
 
         # Creates a timer that will loop every 0.499s and set wheel speeds if exist
-        node.create_timer(0.05, self._set_wheel_speed_handler, callback_group=set_wheel_speed_callback_group)
+        self.node.create_timer(0.05, self._set_wheel_speed_handler, callback_group=set_wheel_speed_callback_group)
 
     def _set_wheel_speed_handler(self):
         """Loop for setting wheel speeds Constantly every 0.5 sec if they have been updated."""

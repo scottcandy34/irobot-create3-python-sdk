@@ -7,6 +7,7 @@ import math
 from typing import TYPE_CHECKING
 
 from nav_msgs.msg import Odometry
+from rclpy.subscription import Subscription
 from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
@@ -17,6 +18,15 @@ from create3.models.robot import HazardBumper, HazardCliff, Subscribe
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for robot subscriptions."""
+
+    _odom: Subscription
+    _ir_intensity: Subscription
+    _hazard_detection: Subscription
+    _interface_buttons: Subscription
+    _battery_state: Subscription
+    _imu: Subscription
+    _dock_status: Subscription
+    _ir_opcode: Subscription
 
     def __init__(self, node):
         super().__init__(node)

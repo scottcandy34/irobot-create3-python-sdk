@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from yolo_msgs.msg import DetectionArray
+from rclpy.subscription import Subscription
 
 from create3.utils import Threading
 from create3.models.common import Position
@@ -18,6 +19,10 @@ from create3.models.remote import Subscribe, Controller, BoundingBox
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles callback functions for remote subscriptions."""
+
+    _joy: Subscription
+    _map: Subscription
+    _yolo_detections: Subscription
 
     def __init__(self, node):
         super().__init__(node)

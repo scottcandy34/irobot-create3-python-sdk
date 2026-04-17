@@ -5,6 +5,7 @@
 
 from typing import TYPE_CHECKING
 
+from rclpy.publisher import Publisher
 from sensor_msgs.msg import JoyFeedbackArray, JoyFeedback
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
@@ -13,6 +14,8 @@ from create3.models.remote import Publish
 
 class PublishHandler(Threading if TYPE_CHECKING else object):
     """Handles the publishing of messages to topics."""
+
+    _joy_feedback: Publisher
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten

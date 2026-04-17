@@ -6,6 +6,7 @@
 import math
 from typing import TYPE_CHECKING
 
+from rclpy.subscription import Subscription
 from sensor_msgs.msg import LaserScan, Range
 
 from create3.utils import Threading
@@ -13,6 +14,9 @@ from create3.models.companion import Subscribe
 
 class MessageHandler(Threading if TYPE_CHECKING else object):
     """Handles incoming messages for subscribed topics."""
+
+    _scan: Subscription
+    _range: Subscription
 
     def __init__(self, node):
         super().__init__(node)

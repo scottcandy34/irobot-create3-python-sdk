@@ -5,6 +5,7 @@
 
 from typing import TYPE_CHECKING
 
+from rclpy.publisher import Publisher
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 from create3.utils import Threading
@@ -12,6 +13,8 @@ from create3.models.companion import Publish
 
 class PublishHandler(Threading if TYPE_CHECKING else object):
     """Handles the publishing of messages to topics."""
+
+    _servo: Publisher
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
