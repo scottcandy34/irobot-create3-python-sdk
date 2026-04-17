@@ -5,7 +5,7 @@
 
 """Tools for working with lines, including fitting a line to a set of points, calculating the distance from a point to a line, and finding segments of inliers along a line."""
 
-import math as _math
+import math
 
 def fit_line(points: list[tuple[float, float]]) -> tuple[float, float]:
     """Fit a line to a set of points and return the slope and y-intercept."""
@@ -28,4 +28,4 @@ def distance_to_line(point: tuple[float, float], m: float, b: float):
     """Calculate the distance from a point to the line defined by y = mx + b."""
     
     x, y = point
-    return abs(y - (m * x + b)) / _math.sqrt(1 + m**2)
+    return abs(y - (m * x + b)) / math.sqrt(1 + m**2)

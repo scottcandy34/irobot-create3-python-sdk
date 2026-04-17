@@ -5,7 +5,7 @@
 
 """Tools for working with line segments, including projecting points onto a line, finding segments of inliers along a line, and calculating the length of a segment along a line."""
 
-import math as _math
+import math
 
 def project_point(point: tuple[float, float], m: float, b: float) -> tuple[float, float]:
     """Project a point onto the line defined by y = mx + b and return the projected point."""
@@ -27,7 +27,7 @@ def find(inliers: list[tuple[float, float]], m: float, b: float, max_gap: int, m
     
     # Sort projections along the line direction
     direction = (1, m)
-    norm = _math.sqrt(1 + m**2)
+    norm = math.sqrt(1 + m**2)
     direction = (1 / norm, m / norm)
     positions = [point[0] * direction[0] + point[1] * direction[1] for point in projections]
     sorted_indices = sorted(range(len(positions)), key=lambda i: positions[i])
@@ -54,6 +54,6 @@ def calculate_length(segment: tuple[float, float], m: float, b: float) -> float:
     if len(segment) < 2:
         return 0.0
     projections = [project_point(point, m, b) for point in segment]
-    positions = [p[0] * (1 / _math.sqrt(1 + m**2)) + p[1] * (m / _math.sqrt(1 + m**2)) for p in projections]
+    positions = [p[0] * (1 / math.sqrt(1 + m**2)) + p[1] * (m / math.sqrt(1 + m**2)) for p in projections]
     length = max(positions) - min(positions)
     return length

@@ -10,29 +10,44 @@ from geometry_msgs.msg import Twist
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector, LedColor
 
-from .callbacks import PublishHandler
 from create3.utils import Threading
 import create3.utils.robot as tools
+from create3.models.robot import Publish
+
+from .callbacks.handler import (
+    set_wheel_speed_handler,
+    publish_handler,
+)
 
 qos_profile = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     depth=1
 )
 
-class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
+class Publisher(Threading if TYPE_CHECKING else object):
     """Handles ROS publishers for robot data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
+        # Hidden global publish information
+        self._publisher_msgs = Publish
+        """Contains the most recent messages to be published for each topic. Updated when a set function is called."""
+
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         cmd_velocity_callback_group = MutuallyExclusiveCallbackGroup()
         publisher_callback_group = MutuallyExclusiveCallbackGroup()
+        publish_handler_callback_group = MutuallyExclusiveCallbackGroup()
+        set_wheel_speed_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Create Publishers
         self._lightring = self.node.create_publisher(LightringLeds, 'cmd_lightring', qos_profile, callback_group=publisher_callback_group)
         self._audio = self.node.create_publisher(AudioNoteVector, 'cmd_audio', qos_profile, callback_group=publisher_callback_group)
         self._velocities = self.node.create_publisher(Twist, 'cmd_vel', qos_profile, callback_group=cmd_velocity_callback_group)
+
+        # Creates a timer that will loop every 0.499s and set wheel speeds if exist
+        self.node.create_timer(0.05, lambda: set_wheel_speed_handler(self), callback_group=set_wheel_speed_callback_group)
+        self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=publish_handler_callback_group)
 
         # Add topics to debugger
         self.debug.publishers = [self._lightring, self._audio, self._velocities]
@@ -100,3 +115,7 @@ class Publisher(PublishHandler, Threading if TYPE_CHECKING else object):
         
         # set wheel speeds
         self.set_wheel_speeds(left_wheel, speed)
+
+    def send_twist(self, twist_msg: Twist):
+        """Send a twist message. lasts for 0.5s"""
+        self._velocities.publish(twist_msg)
