@@ -3,9 +3,10 @@
 # Created by scottcandy34
 #
 
-import pprint as _pprint
+from dataclasses import dataclass, field
 
-class Lidar():
+@dataclass
+class Lidar:
     """Stores companion lidar values."""
     angle_min: float = 0.0 # start angle of scan
     angle_max: float = 0.0 # end angle of scan
@@ -14,24 +15,33 @@ class Lidar():
     range_max: float = 0.0 # maximum range value
     time_increment: float = 0.0 # rime between measurements
     scan_time: float = 0.0 # time between scans
-    ranges: list[float] = []
+    ranges: list[float] = field(default_factory=list) # list of range measurements
 
     def size(self) -> int:
         """Returns the number of measurements in the scan."""
         return len(self.ranges)
 
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
-    
-class Wall():
-    """Stores information about a detected wall."""
+@dataclass
+class Wall:
+    """Stores information about a detected wall (flat object)."""
     length: float = 0.0
     xmin: float = 0.0
     xmax: float = 0.0
     slope: float = 0.0
     intercept: float = 0.0
 
-class WallInteraction():
+@dataclass
+class Column:
+    """Stores information about a detected column (circular object)."""
+    cx: float
+    cy: float
+    radius: float
+    start_angle: float
+    end_angle: float
+    arc_length: float
+
+@dataclass
+class Interaction:
     """
     Stores information about the interaction between the robot and a wall, including whether the wall 
     is in the robot's path, the distance to the wall, and the angle between the robot's heading and the wall.
@@ -40,24 +50,10 @@ class WallInteraction():
     distance: float = 0.0
     angle: float = 0.0
 
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
-
-class DetectedShapes():
-    """Stores information about all detected walls."""
-    walls: list[Wall] = []
-    coords: list[tuple[float, float]] = []
-    interactions: list[WallInteraction] = []
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
-
-class Ultrasonic():
+@dataclass
+class Ultrasonic:
     """Stores companion ultrasonic sensor values."""
     field_of_view: float = 0.0
     min_range: float = 0.0
     max_range: float = 0.0
     range: float = 0.0
-
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)

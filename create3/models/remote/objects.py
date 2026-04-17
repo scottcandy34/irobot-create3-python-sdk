@@ -3,20 +3,26 @@
 # Created by scottcandy34
 #
 
-import pprint as _pprint
+import numpy as np
+from dataclasses import dataclass, field
 
-class Joystick():
+from create3.models.common import Position
+
+@dataclass
+class Joystick:
     horizontal: float = 0.0
     vertical: float = 0.0
     button: bool = False
 
-class Dpad():
+@dataclass
+class Dpad:
     left: bool = False
     right: bool = False
     up: bool = False
     down: bool = False
 
-class JoyButtons():
+@dataclass
+class JoyButtons:
     x: bool = False
     circle: bool = False
     triangle: bool = False
@@ -27,14 +33,37 @@ class JoyButtons():
     options: bool = False
     ps: bool = False
 
-class Controller():
+@dataclass
+class Controller:
     """Stores ps controller button pressed values."""
-    left_joy = Joystick()
+    left_joy: Joystick = field(default_factory=Joystick)
     left_trigger: float = 0.0
-    right_joy = Joystick()
+    right_joy: Joystick = field(default_factory=Joystick)
     right_trigger: float = 0.0
-    dpad = Dpad()
-    buttons = JoyButtons()
+    dpad: Dpad = field(default_factory=Dpad)
+    buttons: JoyButtons = field(default_factory=JoyButtons)
 
-    def __str__(self):
-        return _pprint.pformat(vars(self), indent = 4, width = 80)
+@dataclass
+class Map:
+    """Stores companion map data."""
+    resolution: float = 0.0
+    origin: Position = field(default_factory=Position)
+    data: np.ndarray = field(default_factory=lambda: np.empty((1, 2)))
+
+@dataclass
+class BoundingBox:
+    """Stores information about a detected bounding box from YOLO."""
+    class_id: int = 0
+    class_name: str = ''
+    score: float = 0.0
+    tracking_id: int = 0
+    center_x: float = 0.0
+    center_y: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
+    theta: float = 0.0
+
+@dataclass
+class Yolo:
+    """Stores information about all detected objects from YOLO."""
+    bounding_boxes: list[BoundingBox] = field(default_factory=list)

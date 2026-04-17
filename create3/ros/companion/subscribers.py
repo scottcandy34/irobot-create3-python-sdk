@@ -10,30 +10,40 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 
 from create3.utils import Threading
-from .callbacks import MessageHandler
+from create3.models.companion import Lidar
+from create3.models.companion import Subscribe
 
-sub_qos_profile = QoSProfile(
+from .callbacks.msg import (
+    scan_callback,
+    range_callback
+)
+
+qos_profile = QoSProfile(
     reliability = ReliabilityPolicy.BEST_EFFORT,
     liveliness = LivelinessPolicy.AUTOMATIC,
     durability = DurabilityPolicy.VOLATILE,
     depth = 1
 )
 
-class Subscriber(MessageHandler, Threading if TYPE_CHECKING else object):
+class Subscriber(Threading if TYPE_CHECKING else object):
     """Handles ROS subscribers for companion data."""
 
     def __init__(self, node):
         super().__init__(node) # trigger original code before it gets overwritten
 
+        # Hidden global callback information
+        self._subscription_msgs = Subscribe
+        """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
+
         # Creates a exclusive callback group so not to interrupt the other callbacks.
         subscriber_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Create Subscription
-        self._scan = self.node.create_subscription(LaserScan, 'scan', self._scan_callback, sub_qos_profile, callback_group=subscriber_callback_group)
-        self._range = self.node.create_subscription(Range, 'range', self._range_callback, sub_qos_profile, callback_group=subscriber_callback_group)
+        self._scan = self.node.create_subscription(LaserScan, 'scan', lambda msg: scan_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self._range = self.node.create_subscription(Range, 'range', lambda msg: range_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
 
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]
 
-    def get_scans(self):
-        return self._subscription_msgs.lidar.ranges
+    def get_scans(self) -> Lidar:
+        return self._subscription_msgs.lidar
