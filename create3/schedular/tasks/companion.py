@@ -10,8 +10,10 @@ if TYPE_CHECKING:
 def generate_coords_task(scheduler: "TaskSchedular"):
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+
+    lidar = companion._subscription_msgs.lidar
     
-    scheduler._outputs[Tasks.GENERATE_COORDS] = [companion.tools.lidar.get_coords(companion.get_scans(), index, robot.get_position())for index in range(companion.get_scans().size())]
+    scheduler._outputs[Tasks.GENERATE_COORDS] = [companion.tools.lidar.get_coords(lidar.ranges, index, robot.get_position())for index in range(lidar.size())]
 
 def wall_detection_task(scheduler: "TaskSchedular"):
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
@@ -32,7 +34,7 @@ def column_detection_task(scheduler: "TaskSchedular"):
 def lidar_lightring_task(scheduler: "TaskSchedular"):
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
-    if not companion.get_scans().ranges:
+    if not companion.get_scans():
         return 
         
-    robot.set_lights(companion.tools.lidar.get_motion_lightring(companion.get_scans().ranges))
+    robot.set_lights(companion.tools.lidar.get_motion_lightring(companion.get_scans()))
