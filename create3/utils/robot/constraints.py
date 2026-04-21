@@ -13,6 +13,8 @@ RADIUS = 16.2
 """This is the radius of the robot from the center to the edge. 16.2cm"""
 MAX_SPEED = 46 # cm/s
 """This is the maximum speed of the robot. 46cm/s"""
+MAX_ANGULAR_SPEED = MAX_SPEED / RADIUS # rad/s
+"""This is the maximum angular speed of the robot, calculated based on the max linear speed and the radius. ~2.84 rad/s"""
 
 def get_ir_angle(index: int) -> float:
     """Return the angle for IR sensor location"""

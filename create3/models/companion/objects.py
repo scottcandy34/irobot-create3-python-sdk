@@ -21,6 +21,29 @@ class Lidar:
         """Returns the number of measurements in the scan."""
         return len(self.ranges)
 
+    def get_range(self, start: int, end: int) -> list[int]:
+        return self.ranges[start:end] if start < end else self.ranges[start:] + self.ranges[:end]
+    
+    def get_front_slice(self) -> float:
+        n = self.size()
+        slice_width = n // 12
+        center = n // 2
+
+        start = (center - slice_width) % n
+        end = (center + slice_width) % n
+
+        return self.get_range(start, end)
+
+    def get_left_slice(self) -> float:
+        n = self.size()
+        slice_width = n // 12
+        center = (3 * n) // 4
+
+        start = (center - slice_width) % n
+        end = (center + slice_width) % n
+
+        return self.get_range(start, end)
+
 @dataclass
 class Wall:
     """Stores information about a detected wall (flat object)."""

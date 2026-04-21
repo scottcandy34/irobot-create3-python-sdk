@@ -14,6 +14,7 @@ from .tasks.companion import (
     wall_detection_task,
     column_detection_task,
     lidar_lightring_task,
+    simple_wall_follower,
 )
 from .tasks.robot import ir_lightring_task
 from .tasks.remote import controller_task
@@ -24,6 +25,7 @@ TASK_CALLBACKS = {
     CompanionTasks.WALL_DETECTION: wall_detection_task,
     CompanionTasks.COLUMN_DETECTION: column_detection_task,
     CompanionTasks.LIDAR_LIGHTRING: lidar_lightring_task,
+    CompanionTasks.SIMPLE_WALL_FOLLOWER: simple_wall_follower,
     RobotTasks.IR_LIGHTRING: ir_lightring_task,
     RemoteTasks.CONTROLLER: controller_task,
 }
@@ -73,6 +75,11 @@ def check_requirements(scheduler: "TaskSchedular", task) -> bool:
             if not scheduler._find_device(Nodes.CREATE3_COMPANION):
                 scheduler.print_warning(f'{task} task works without {Nodes.CREATE3_COMPANION} (camera movement disabled).')
                 return True
+            
+        case CompanionTasks.SIMPLE_WALL_FOLLOWER:
+            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
+                scheduler.print_warning(f'{task} task requires the {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.')
+                return False
 
         case _:
             scheduler.print_error(f'{task} is not a known task.')

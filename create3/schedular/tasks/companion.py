@@ -1,5 +1,7 @@
 from torch import TYPE_CHECKING
 
+from geometry_msgs.msg import Twist
+    
 from create3.models import Nodes
 from create3.models.companion import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
@@ -38,3 +40,14 @@ def lidar_lightring_task(scheduler: "TaskSchedular"):
         return 
         
     robot.set_lights(companion.tools.lidar.get_motion_lightring(companion.get_scans()))
+
+def simple_wall_follower(scheduler: "TaskSchedular"):
+    companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
+    robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    if not companion.get_scans():
+        return 
+
+    lidar = companion._subscription_msgs.lidar
+
+    twist_msg = companion.tools.lidar.wall_follow.pid_lidar_to_twist(lidar)
+    robot.send_twist(twist_msg)

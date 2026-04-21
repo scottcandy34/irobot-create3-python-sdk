@@ -1,3 +1,7 @@
+#
+# Predictive Tools for iRobot Create3 - Jazzy
+# Created by scottcandy34
+#
 
 import math
 

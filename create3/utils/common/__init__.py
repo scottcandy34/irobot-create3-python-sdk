@@ -6,6 +6,7 @@
 """Common tools for working with the iRobot Create3, providing access to utility classes for working with positions and conversions between euler angles and quaternions."""
 
 import math as _math
+from pid import PID
 
 def convert_to_euler(x: int | float, y: int | float, z: int | float, w: int | float) -> tuple[float, float, float]:
     """
