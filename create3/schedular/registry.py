@@ -75,10 +75,16 @@ def check_requirements(scheduler: "TaskSchedular", task) -> bool:
             if not scheduler._find_device(Nodes.CREATE3_COMPANION):
                 scheduler.print_warning(f'{task} task works without {Nodes.CREATE3_COMPANION} (camera movement disabled).')
                 return True
+            if scheduler._find_task(CompanionTasks.SIMPLE_WALL_FOLLOWER):
+                scheduler.print_warning(f'{task} task cannot run together with {CompanionTasks.SIMPLE_WALL_FOLLOWER}.')
+                return False
             
         case CompanionTasks.SIMPLE_WALL_FOLLOWER:
             if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
                 scheduler.print_warning(f'{task} task requires the {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.')
+                return False
+            if scheduler._find_task(RemoteTasks.CONTROLLER):
+                scheduler.print_warning(f'{task} task cannot run together with {RemoteTasks.CONTROLLER}.')
                 return False
 
         case _:

@@ -52,8 +52,9 @@ class PIDTuner():
         self._selected = 0           # 0 = Kp, 1 = Ki, 2 = Kd
         self._param_names = ["Kp", "Ki", "Kd"]
 
-        # Step sizes – small for fine tuning, large for quick jumps
-        self._steps = { 'small': 0.001, 'large': 0.05 }
+        # Step sizes
+        self._step_options = [0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0]
+        self._current_step_idx = 3
 
         self._root = tk.Tk()
         self._root.title("iRobot Create3 - Jazzy PID Tuner")
@@ -75,10 +76,10 @@ class PIDTuner():
         tk.Label(
             self._root,
             text="1 / 2 / 3     → Select Kp / Ki / Kd\n"
-                 "↑ / ↓          → ± small step (0.001)\n"
-                 "Shift + ↑ / ↓  → ± large step (0.05)\n"
-                 "Enter (⏎)     → Type exact value for selected\n"
-                 "Esc or QUIT button → Close window",
+                 "↑ / ↓          → ± current step\n"
+                 "Tab            → Cycle step size (finer ↔ coarser)\n"
+                 "Enter (⏎)     → Type exact value\n"
+                 "Esc            → Close tuner",
             font=("Helvetica", 12),
             fg="#cccccc",
             bg="#111111",
@@ -104,8 +105,7 @@ class PIDTuner():
         self._root.bind("<Key-3>", lambda e: self._select_param(2))
         self._root.bind("<Up>", self._increase)
         self._root.bind("<Down>", self._decrease)
-        self._root.bind("<Shift-Up>", self._increase_large)
-        self._root.bind("<Shift-Down>", self._decrease_large)
+        self._root.bind("<Tab>", self._cycle_step_size)
         self._root.bind("<Return>", self._manual_edit)
         self._root.bind("<Escape>", lambda e: self._close_gui())
 
@@ -123,21 +123,23 @@ class PIDTuner():
 
     def _get_display_text(self) -> str:
         """Build the beautiful multi-line display (call while holding lock)"""
-        # Arrow shows which parameter is currently selected
         selected = [" ", " ", " "]
         selected[self._selected] = "→"
+
+        current_step = self._step_options[self._current_step_idx]
 
         return (
             f"Reference:   {self.pid.reference:6.1f} cm\n"
             f"Error:       {self.pid.get_error():6.2f} cm\n\n"
-            f"{selected[0]} Kp  = {self.pid.kp:8.5f}\n"
-            f"{selected[1]} Ki  = {self.pid.ki:8.5f}\n"
-            f"{selected[2]} Kd  = {self.pid.kd:8.5f}\n\n"
-            f"P term:      {self.pid.get_pid()[0]:8.3f}\n"
-            f"I term:      {self.pid.get_pid()[1]:8.3f}\n"
-            f"D term:      {self.pid.get_pid()[2]:8.3f}\n"
+            f"{selected[0]} Kp  = {self.pid.kp:8.6f}\n"
+            f"{selected[1]} Ki  = {self.pid.ki:8.6f}\n"
+            f"{selected[2]} Kd  = {self.pid.kd:8.6f}\n\n"
+            f"Step size:   {current_step:.6f}\n"
+            f"P term:      {self.pid.get_pid()[0]:8.4f}\n"
+            f"I term:      {self.pid.get_pid()[1]:8.4f}\n"
+            f"D term:      {self.pid.get_pid()[2]:8.4f}\n"
             f"────────────────────\n"
-            f"PID Output:  {self.pid.get_output():8.3f}"
+            f"PID Output:  {self.pid.get_output():8.4f}"
         )
 
     def _update_label(self):
@@ -159,27 +161,32 @@ class PIDTuner():
         self._selected = index % 3
         self._update_label()
 
+    def _get_current_step(self) -> float:
+        """Return the currently selected step size"""
+        return self._step_options[self._current_step_idx]
+
+    def _cycle_step_size(self, event=None):
+        """Tab cycles through finer → coarser steps"""
+        self._current_step_idx = (self._current_step_idx + 1) % len(self._step_options)
+        self._update_label()
+
     def _change_value(self, delta: float):
-        """Add delta to the currently selected gain (non-negative)"""
+        """Add delta to the currently selected gain"""
+        step = self._get_current_step() if delta > 0 else -self._get_current_step()
+        
         if self._selected == 0:      # Kp
-            self.pid.kp = max(0.0, self.pid.kp + delta)
+            self.pid.kp = max(0.0, self.pid.kp + step)
         elif self._selected == 1:    # Ki
-            self.pid.ki = max(0.0, self.pid.ki + delta)
+            self.pid.ki = max(0.0, self.pid.ki + step)
         elif self._selected == 2:    # Kd
-            self.pid.kd = max(0.0, self.pid.kd + delta)
+            self.pid.kd = max(0.0, self.pid.kd + step)
         self._update_label()
 
     def _increase(self, event=None):
-        self._change_value(self._steps['small'])
+        self._change_value(self._get_current_step())
 
     def _decrease(self, event=None):
-        self._change_value(-self._steps['small'])
-
-    def _increase_large(self, event=None):
-        self._change_value(self._steps['large'])
-
-    def _decrease_large(self, event=None):
-        self._change_value(-self._steps['large'])
+        self._change_value(-self._get_current_step())
         
     def _manual_edit(self, event=None):
         """NEW: Open a dialog so you can type an exact number directly"""
@@ -211,12 +218,12 @@ class PIDTuner():
         print("═" * 70)
         print(f"{'Final Tuned Gains':^70}")
         print("─" * 70)
-        print(f"   Kp  =  {self.pid.kp:8.5f}     ← Proportional")
-        print(f"   Ki  =  {self.pid.ki:8.5f}     ← Integral")
-        print(f"   Kd  =  {self.pid.kd:8.5f}     ← Derivative")
+        print(f"   Kp  =  {self.pid.kp:8.6f}     ← Proportional")
+        print(f"   Ki  =  {self.pid.ki:8.6f}     ← Integral")
+        print(f"   Kd  =  {self.pid.kd:8.6f}     ← Derivative")
         print("─" * 70)
         print("✅ Copy these values into your robot code for perfect wall following!")
-        print("   (Recommended: hard-code them or save to a config file.)\n")
+        print("   (Recommended: hard-code them.)\n")
 
     def _close_gui(self):
         """Close the GUI and print the fancy final PID summary"""
