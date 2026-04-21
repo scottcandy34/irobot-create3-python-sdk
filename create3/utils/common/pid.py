@@ -7,11 +7,11 @@ import time
 
 class PID:
     """A PID controller implementation with anti-windup and derivative filtering."""
-    def __init__(self, kp: float, ki: float, kd: float, setpoint: float = 0.0, derivative_tau: float = 0.08, output_min: float = -float('inf'), output_max: float = float('inf')):
+    def __init__(self, kp: float, ki: float, kd: float, reference: float = 0.0, derivative_tau: float = 0.08, output_min: float = -float('inf'), output_max: float = float('inf')):
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.setpoint = setpoint
+        self.reference = reference
         self.derivative_tau = derivative_tau
         self.output_min = output_min
         self.output_max = output_max
@@ -22,6 +22,22 @@ class PID:
         self._prev_derivative = 0.0
         self._prev_time = None
         self._first_call = True
+
+        self._pid: tuple[float, float, float] = (0.0, 0.0, 0.0) # (P, I, D)
+        self._error: float = 0.0
+        self._output: float = 0.0
+
+    def get_pid(self) -> tuple[float, float, float]:
+        """Return the current PID (P, I, D). For use with PIDTuner."""
+        return self._pid
+    
+    def get_error(self) -> float:
+        """Returns the error correction. For use with PIDTuner."""
+        return self._error
+    
+    def get_output(self) -> float:
+        """Returns the correction. For use with PIDTuner."""
+        return self._output
 
     def update(self, measurement: float, dt: float = None) -> float:
         """Convenience method to compute PID output. Can be used as an alias for __call__."""
@@ -43,7 +59,7 @@ class PID:
         if dt <= 0.0:
             dt = 0.1
 
-        error = self.setpoint - measurement
+        error = self.reference - measurement
 
         # Proportional
         P = self.kp * error
@@ -55,7 +71,7 @@ class PID:
         # Derivative (use delta_time if provided for real units)
         if self._first_call:
             raw_deriv = 0.0
-            self._first_Call = False
+            self._first_call = False
         else:
             raw_deriv = (error - self._prev_error) / dt
 
@@ -84,11 +100,16 @@ class PID:
         self._prev_derivative = filtered_deriv
         self._prev_time = current_time
 
+        # save final values for use in pid tuner
+        self._pid = (P, I, D)
+        self._error = error
+        self._output = output
+
         return output
 
-    def set_setpoint(self, setpoint: float):
-        """Update the setpoint for the PID controller."""
-        self.setpoint = setpoint
+    def set_reference(self, reference: float):
+        """Update the reference for the PID controller."""
+        self.reference = reference
 
     def set_output_limits(self, min_out: float, max_out: float):
         """Set output limits for the PID controller."""

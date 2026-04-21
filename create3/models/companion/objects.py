@@ -43,6 +43,17 @@ class Lidar:
         end = (center + slice_width) % n
 
         return self.get_range(start, end)
+    
+    def get_right_slice(self) -> list[float]:
+        """Right wall slice (90° when 0° = rear)"""
+        n = self.size()
+        slice_width = n // 12
+        center = n // 4
+
+        start = (center - slice_width) % n
+        end = (center + slice_width) % n
+        
+        return self.get_range(start, end)
 
 @dataclass
 class Wall:
