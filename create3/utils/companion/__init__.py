@@ -9,4 +9,4 @@ access to utility classes for working with the lightring, IR sensors, line fitti
 joystick input, and lidar data.
 """
 
-from . import lidar
+from . import lidar, servo

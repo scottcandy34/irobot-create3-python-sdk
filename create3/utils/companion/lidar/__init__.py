@@ -14,7 +14,7 @@ import random as _random
 from irobot_create_msgs.msg import LedColor as _LedColor
 
 from create3.models.common import Position as _Position
-from . import line, line_segment, predictive, circle, circle_arc
+from . import line, line_segment, predictive, circle, circle_arc, wall_follow
 from create3.utils.robot import constraints as _constraints, lightring as _lightring
 from create3.models.companion import Wall as _Wall, Lidar as _Lidar, Column as _Column
 

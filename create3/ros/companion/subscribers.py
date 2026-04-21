@@ -10,7 +10,6 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 
 from create3.utils import Threading
-from create3.models.companion import Lidar
 from create3.models.companion import Subscribe
 
 from .callbacks.msg import (
@@ -45,5 +44,10 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         # Add topics to debugger
         self.debug.subscriptions = [self._scan, self._range]
 
-    def get_scans(self) -> Lidar:
-        return self._subscription_msgs.lidar
+    def get_scans(self) -> list[float]:
+        """Returns the most recent lidar scan ranges."""
+        return self._subscription_msgs.lidar.ranges
+    
+    def get_range(self) -> float:
+        """Returns the most recent ultrasonic range."""
+        return self._subscription_msgs.ultrasonic.range
