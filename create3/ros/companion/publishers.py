@@ -7,6 +7,7 @@ import math
 import time
 from typing import TYPE_CHECKING
 
+from rclpy.node import Node
 from std_msgs.msg import Float32
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -25,67 +26,94 @@ qos_profile = QoSProfile(
 )
 
 class Publisher(Threading if TYPE_CHECKING else object):
-    """Handles ROS publishers for companion data."""
+    """ROS publisher for companion servo control.
+
+    Handles the `/servo_angle` topic used to command a pan/tilt servo
+    attached to the companion node (e.g. camera mount).
+
+    Uses a background timer (0.05 s) that calls the general `publish_handler`
+    so servo commands are published only when they change.
+    """
 
     tools: Tools
 
-    def __init__(self, node):
-        super().__init__(node) # trigger original code before it gets overwritten
+    def __init__(self, node: Node) -> None:
+        """Initialize the servo publisher and background publish timer.
 
-        # Hidden global publish information
-        self._publisher_msgs = Publish
-        """Contains the most recent messages to be published for each topic. Updated when a set function is called."""
+        Parameters
+        ----------
+        node : Node
+            The ROS node that owns this publisher.
+        """
+        super().__init__(node)  # initialize Threading + Logger
 
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
+        # Shared container that holds the latest messages to be published
+        self._publisher_msgs: Publish = Publish()
+
+        # Use a mutually exclusive callback group
         publisher_callback_group = MutuallyExclusiveCallbackGroup()
         publish_handler_callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Create Publishers
-        self._servo = self.node.create_publisher(Float32, 'servo_angle', qos_profile, callback_group=publisher_callback_group)
+        # Create the servo angle publisher
+        self._servo = self.node.create_publisher(Float32, "servo_angle", qos_profile, callback_group=publisher_callback_group)
 
+        # Background timer that drives the "publish only on change" logic
         self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=publish_handler_callback_group)
 
-        # Add topics to debugger
+        # Register with debugger for interface monitoring
         self.debug.publishers = [self._servo]
 
+        # Move servo to default position on startup
         self.reset_servo()
 
-    def reset_servo(self):
-        """Resets the servo to the default position."""
+    def reset_servo(self) -> None:
+        """Reset the servo to the default 90° (center) position.
+
+        Blocks for 1 second to allow the physical servo to reach the position.
+        """
         servo_msg = Float32()
         servo_msg.data = 90.0
+
         self._servo.publish(servo_msg)
         self._publisher_msgs.servo = servo_msg
-        time.sleep(1) # Give time for the servo to reset before any new commands are sent
 
-    def set_servo_angle(self, angle: float | int):
-        """Sets current angle of servo."""
+        time.sleep(1.0)  # give the servo time to physically move
+
+    def set_servo_angle(self, angle: float | int) -> None:
+        """Set the servo to an absolute angle (degrees)."""
         servo_msg = Float32()
-        servo_msg.data = angle * 1.0 # Make sure angle is a float
+        servo_msg.data = float(angle)
 
         self._publisher_msgs.servo = servo_msg
 
-    def set_servo_angle_with_speed(self, target_angle: float | int, speed: float | int):
-        """Move to target_angle at constant speed (rad/s)."""
-        target = self.tools.servo.validate_angle(target_angle)
-        speed = self.tools.servo.validate_speed(speed)                     # now always positive
+    def set_servo_angle_with_speed(self, target_angle: float | int, speed: float | int) -> None:
+        """Smoothly move the servo to `target_angle` (degrees) at constant speed (rad/s).
 
-        current = self._publisher_msgs.last_servo.data
+        Uses the validated servo tools to ensure safe limits and produces a
+        smooth ramp by sending incremental position commands at 50 Hz.
+        """
+        target = self.tools.servo.validate_angle(target_angle)
+        speed = self.tools.servo.validate_speed(speed)  # always positive
+
+        # Current position (default to 90° if no previous command)
+        current = getattr(self._publisher_msgs.last_servo, "data", 90.0)
+
         angle_diff = abs(target - current)
-        if angle_diff < 0.1:                              # already there
+        if angle_diff < 0.1:  # already at target
             self.set_servo_angle(target)
             return
 
         direction = 1 if target > current else -1
         desired_deg_per_s = math.degrees(speed)
-        dt = 1.0 / 50.0                                   # 50 Hz update rate
+        dt = 1.0 / 50.0  # 50 Hz update rate
         total_time = angle_diff / desired_deg_per_s
-        num_steps = max(1, round(total_time / dt))        # how many position updates
-        step_size = (angle_diff / num_steps) * direction  # degrees per update
+        num_steps = max(1, round(total_time / dt))
+        step_size = (angle_diff / num_steps) * direction
 
         for _ in range(num_steps):
             current += step_size
             self.set_servo_angle(current)
             time.sleep(dt)
 
-        self.set_servo_angle(target)                      # final snap to exact target
+        # Final snap to exact target
+        self.set_servo_angle(target)
