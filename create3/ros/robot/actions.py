@@ -16,7 +16,7 @@ from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistanc
 
 from create3.models.robot import Subscribe
 import create3.utils.robot as tools
-from create3.utils.common import convert_to_quaternion
+from create3.utils.common.coords import convert_to_quaternion, find_direction
 from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
 
 from .callbacks.goal import (
@@ -149,32 +149,27 @@ class ActionClient(Threading if TYPE_CHECKING else object):
         
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
-        # Calculate differences between current position and new position
-        dif_x = (x - self._subscription_msgs.position.x) / 100 # Difference in X coords and convert to (m) | x(cm) - current_x(cm) / 100
-        dif_y = (y - self._subscription_msgs.position.y) / 100 # Difference in Y coords and convert to (m) | y(cm) - current_y(cm) / 100
-        dist = math.sqrt(dif_x**2 + dif_y**2) # Get distance to move to new coords (Pythagorean Theorem) | sqrt( difference_x(m)^2 + difference_y(m)^2 ) = distance(m)
+        direction = find_direction((x, y), self._subscription_msgs.position)
         
-        angle = math.atan2(dif_y, dif_x) - math.radians(self._subscription_msgs.position.angle) # Get angle (in radians) to Turn to for new coords | atan2( difference_y(m), difference_x(m) ) - current_angle(rad) = angle_facing_move(rad)
-        dif_w = math.radians(heading - angle) if heading else 0 # Difference in W orientation (Heading) | heading(rad) - angle_facing_move(rad) = heading_angle_left(rad)
+        dif_w = math.radians(heading - direction.angle) if heading else 0 # Difference in W orientation (Heading) | heading(rad) - angle_facing_move(rad) = heading_angle_left(rad)
         
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        speed = speed / 100 # convert to meters
-        angularSpeed = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2 # convert to meters and divide by 2 to get radius
+        angular_speed = speed / radius
         
         if use_goal and self._use_goal:
             # Create Navigation Goal message
             nav_msg = NavigateToPosition.Goal()
             nav_msg.goal_pose.pose.position.x = x / 100 # Convert to meters
             nav_msg.goal_pose.pose.position.y = y / 100 # Convert to meters
-            nav_msg.max_translation_speed = speed
-            nav_msg.max_rotation_speed = angularSpeed
+            nav_msg.max_translation_speed = speed / 100
+            nav_msg.max_rotation_speed = angular_speed
             
             # Configure Heading part of message
             if heading is not None:
                 nav_msg.achieve_goal_heading = True # Tell robot to Turn to heading value
                 orientation = convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
-                nav_msg.goal_pose.pose.orientation.z = orientation[2] # Set z value from Quaternion rotation
-                nav_msg.goal_pose.pose.orientation.w = orientation[3] # Set w value from Quaternion rotation
+                nav_msg.goal_pose.pose.orientation.z = orientation.z # Set z value from Quaternion rotation
+                nav_msg.goal_pose.pose.orientation.w = orientation.w # Set w value from Quaternion rotation
             else:
                 nav_msg.achieve_goal_heading = False # Tell robot to ignore heading value
             
@@ -185,44 +180,42 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             # Calculate Time to complete goal
             # Turn and face the new coordinate point  |  Move distance to new coordinate point  |  Turn to new heading
             # angle(rad) / angular_velocity(rad/s)    +  distance(m) / linear_velocity(m/s)     +  angle(rad) / angular_velocity(rad/s)
-            t = abs(angle / angularSpeed) + abs(dist / speed) + abs(dif_w / angularSpeed)
+            t = abs(direction.angle / angular_speed) + abs(direction.distance / speed) + abs(dif_w / angular_speed)
             time.sleep(DEFAULT_WAIT + t) # wait for goal to complete
         
         else:
             # First action turn to face new coords
-            direction = angle / abs(angle)
-            if direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
-            elif direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
+            turn_direction = direction.angle / abs(direction.angle)
+            if turn_direction == -1:
+                self.turn_right(math.degrees(direction.angle), speed, use_goal=False)
+            elif turn_direction == 1:
+                self.turn_left(math.degrees(direction.angle), speed, use_goal=False)
             
             # Second action move to new coords
-            if dist > 0:
-                self.move(dist * 100, speed * 100, use_goal=False)
+            if direction.distance > 0:
+                self.move(direction.distance, speed, use_goal=False)
                 
             # Third and final action turn to new heading from current heading.        
-            direction = dif_w / abs(dif_w) if heading else 0
-            if heading and direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
-            elif heading and direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
+            turn_direction = dif_w / abs(dif_w) if heading else 0
+            if heading and turn_direction == -1:
+                self.turn_right(math.degrees(direction.angle), speed, use_goal=False)
+            elif heading and turn_direction == 1:
+                self.turn_left(math.degrees(direction.angle), speed, use_goal=False)
         
     def turn_left(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
         """Rotate left for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
-        
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
-        angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-        # Calculate time
-        t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2 # convert to meters and divide by 2 to get radius
+
+        twist_msg = tools.velocity.get_twist(abs(speed), radius)
+        t = tools.velocity.get_time_with_angle(twist_msg, abs(angle))
         
         if use_goal and self._use_goal:
             # Create Rotate Goal message
             rotate_msg = RotateAngle.Goal()
-            rotate_msg.angle = angle
-            rotate_msg.max_rotation_speed = angularSpeed
+            rotate_msg.angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
+            rotate_msg.max_rotation_speed = twist_msg.angular.z
             
             # Send Rotate Goal message
             future = self._rotate_angle.send_goal_async(rotate_msg)
@@ -232,29 +225,23 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             time.sleep(DEFAULT_WAIT + t)
         
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = angularSpeed * angle / abs(angle)
-            
             # Send twist with time
             self._run_twist(twist_msg, t)
         
     def turn_right(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
         """Rotate right for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
-        
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        angle = -abs(math.radians(angle)) # must be a negative to turn right and convert to radians
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-        # Calculate time
-        t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
+
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2 # convert to meters and divide by 2 to get radius
+
+        twist_msg = tools.velocity.get_twist(-abs(speed), radius)
+        t = tools.velocity.get_time_with_angle(twist_msg, abs(angle))
         
         if use_goal and self._use_goal:
             # Create Rotate Goal message
             rotate_msg = RotateAngle.Goal()
-            rotate_msg.angle = angle
-            rotate_msg.max_rotation_speed = angularSpeed
+            rotate_msg.angle = -abs(math.radians(angle))
+            rotate_msg.max_rotation_speed = twist_msg.angular.z
             
             # Send Rotate Goal message and wait
             future = self._rotate_angle.send_goal_async(rotate_msg)
@@ -264,28 +251,21 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             time.sleep(DEFAULT_WAIT + t)
         
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = angularSpeed * angle / abs(angle)
-            
             # Send twist with time
             self._run_twist(twist_msg, t)
     
     def move(self, distance: float | int, speed: float | int = 20, use_goal: bool = True):
         """Drive distance in centimeters. Speed in cm/s. use_goal to enable or disable goals."""
-        
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        distance = distance / 100 # convert to meters
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(distance / speed) # time = distance(m) / linear_velocity(m/s)
+
+        twist_msg = tools.velocity.get_twist(speed, 0.0)
+        t = tools.velocity.get_time_with_distance(twist_msg, abs(distance))
         
         if use_goal and self._use_goal:
             # Create Drive Distance Goal message
             move_msg = DriveDistance.Goal()
-            move_msg.distance = distance
-            move_msg.max_translation_speed = speed
+            move_msg.distance = abs(distance) / 100
+            move_msg.max_translation_speed = speed / 100
             
             # Send Drive Distance Goal message and wait
             future = self._drive_distance.send_goal_async(move_msg)
@@ -294,10 +274,6 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             # Calculate time and wait
             time.sleep(DEFAULT_WAIT + t)
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.linear.x = speed # Just set linear_velocity(m/s)
-            
             # Send twist with time
             self._run_twist(twist_msg, t)
 
@@ -308,28 +284,23 @@ class ActionClient(Threading if TYPE_CHECKING else object):
         
         Speed in cm/s. use_goal to enable or disable goals.
         """
-        
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         # Checks if direction input is valid
         if direction != 1 and direction != -1:
             raise Exception("Direction must be 1 or -1")
-        
-        angle = abs(math.radians(angle)) * direction # must be a positive to turn left and convert to radians
-        radius = abs(radius / 100) # convert to meters and must be positive
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
-        
+
+        twist_msg = tools.velocity.get_twist(abs(speed) * direction, abs(radius))
+        t = tools.velocity.get_time_with_angle(twist_msg, abs(angle))
         
         if use_goal and self._use_goal:
             # Create Drive Arc Goal message
             arc_msg = DriveArc.Goal()
-            arc_msg.angle = angle # must be a positive to turn left and convert to radians
-            arc_msg.radius = radius # convert to meters and must be positive
-            arc_msg.max_translation_speed = speed
+            arc_msg.angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
+            arc_msg.radius = abs(radius) / 100 # convert to meters and must be positive
+            arc_msg.max_translation_speed = abs(speed)
             arc_msg.translate_direction = direction # sets direction to move
-            
+
             # Send Drive Arc Goal message and wait
             future = self._drive_arc.send_goal_async(arc_msg)
             future.add_done_callback(lambda msg: goal_response_callback(self, msg))
@@ -338,11 +309,6 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             time.sleep(DEFAULT_WAIT + t)
         
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-            twist_msg.linear.x = speed * direction
-            
             # Send twist with time
             self._run_twist(twist_msg, t)
         
@@ -353,24 +319,20 @@ class ActionClient(Threading if TYPE_CHECKING else object):
         
         Speed in cm/s. use_goal to enable or disable goals.
         """
-        
         self.set_wheel_speeds(0,0) # Clear set wheel speeds
         
         if direction != 1 and direction != -1:
             raise Exception("Direction must be 1 or -1")
         
-        angle = -abs(math.radians(angle)) * direction # must be a negative to turn right and convert to radians
-        radius = abs(radius / 100) # convert to meters and must be negative
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
+        twist_msg = tools.velocity.get_twist(abs(speed) * direction, -abs(radius))
+        t = tools.velocity.get_time_with_angle(twist_msg, abs(angle))
         
         if use_goal and self._use_goal:
             # Create Drive Arc Goal message
             arc_msg = DriveArc.Goal()
-            arc_msg.angle = angle
-            arc_msg.radius = radius
-            arc_msg.max_translation_speed = speed
+            arc_msg.angle = -abs(math.radians(angle)) # must be a positive to turn right and convert to radians
+            arc_msg.radius = abs(radius) / 100 # convert to meters and must be positive
+            arc_msg.max_translation_speed = abs(speed)
             arc_msg.translate_direction = direction # sets direction to move
             
             # Send Drive Arc Goal message and wait
@@ -381,11 +343,6 @@ class ActionClient(Threading if TYPE_CHECKING else object):
             time.sleep(DEFAULT_WAIT + t)
         
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = -speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-            twist_msg.linear.x = speed * direction
-            
             # Send twist with time
             self._run_twist(twist_msg, t)
         

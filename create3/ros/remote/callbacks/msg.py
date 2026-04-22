@@ -12,7 +12,7 @@ from yolo_msgs.msg import DetectionArray
 
 from create3.models.common import Position
 from create3.utils import remote as tools
-from create3.utils.common import convert_to_euler
+from create3.utils.common.coords import convert_to_euler
 from create3.models.remote import Controller, BoundingBox
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid):
     position.x = grid.info.origin.position.x * 100 # convert to centimeters
     position.y = grid.info.origin.position.y * 100 # convert to centimeters
     turn = grid.info.origin.orientation
-    position.angle = math.degrees(convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+    position.angle = math.degrees(convert_to_euler(turn.x, turn.y, turn.z, turn.w).yaw_z) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
     subscriber._subscription_msgs.map.origin = position
 
 def yolo_detections_callback(subscriber: "Subscriber", yolo: DetectionArray):

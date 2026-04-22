@@ -25,7 +25,7 @@ def odom_callback(subscriber: "Subscriber", odom: Odometry):
     position.x = odom.pose.pose.position.x * 100 # convert to centimeters
     position.y = odom.pose.pose.position.y * 100 # convert to centimeters
     turn = odom.pose.pose.orientation
-    position.angle = math.degrees(tools.convert_to_euler(turn.x, turn.y, turn.z, turn.w)[2]) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
+    position.angle = math.degrees(tools.coords.convert_to_euler(turn.x, turn.y, turn.z, turn.w).yaw_z) # Convert quaternion rotation to euler angles to get z angle and convert to degrees
     subscriber._subscription_msgs.position = position
     
 def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector):
