@@ -94,7 +94,7 @@ class Debugger(Logger):
     def add_device(self, device: Threading) -> None:
         """Start watching a device's ROS interfaces and uptime statistics."""
         self._devices.append(device)
-        self._validated.update(device.debug.isAlive())  # copy initial validation state
+        self._validated.update(device.debug.is_alive())  # copy initial validation state
 
     def remove_device(self, device: Threading) -> None:
         """Stop watching a device (removes it from the debugger)."""
