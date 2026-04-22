@@ -10,29 +10,51 @@ from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.remote import Publisher, Subscriber
 
 class RemoteNode(Publisher, Subscriber, Threading):
-    """Setup Remote node with multithreading, subscribers, publishers."""
+    """Main remote control node for the iRobot Create3.
 
-    def __init__(self, enable_debugger = True):
-        # Initialize ROS2 node
+    This node typically runs on a laptop or computer and provides:
+      • Joystick input (controller)
+      • Map and YOLO detections (if available)
+      • Publishing capabilities for commands (rumble, etc.)
+
+    It combines Publisher, Subscriber, and Threading via multiple inheritance.
+    """
+
+    def __init__(self, enable_debugger: bool = True) -> None:
+        """Create and start the remote node.
+
+        Parameters
+        ----------
+        enable_debugger : bool
+            Whether to register this node with the global debugger.
+        """
+        # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_REMOTE)
+        node._logger.name = "Computer"
 
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Computer"
+        # Initialize the multiple-inheritance chain:
+        # Publisher → Subscriber → Threading
+        super().__init__(node)  # calls Publisher then Subscriber
 
         self.tools = tools
-        """Expose tools for working with the remote node on the iRobot Create3."""
-        self.tasks = Tasks
-        """Expose available tasks that can be added to the TaskSchedular."""
+        """Tools and utilities available to the remote node."""
 
-        # Start the Threading/Spinning
+        self.tasks = Tasks
+        """Available tasks that can be added to the TaskSchedular."""
+
+        # Start background ROS spinning
         self.start()
 
-        # Add node to Debugger
+        # Register with global debugger (optional)
         if enable_debugger:
             global_debugger.add_device(self)
 
-    def shutdown(self):
-        global_debugger.stop(self) # stops debugger watching node
-        super().shutdown() # trigger original code before it gets overwritten
+    def shutdown(self) -> None:
+        """Gracefully shut down the remote node.
+
+        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        """
+        global_debugger.stop(self)          # stop debugger monitoring
+        super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup
         rclpy.shutdown()
