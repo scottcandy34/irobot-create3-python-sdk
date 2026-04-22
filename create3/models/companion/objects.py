@@ -75,6 +75,11 @@ class Column:
     arc_length: float
 
 @dataclass
+class Detections:
+    columns: list[Column] = field(default_factory=list)
+    walls: list[Wall] = field(default_factory=list)
+
+@dataclass
 class Interaction:
     """
     Stores information about the interaction between the robot and a wall, including whether the wall 

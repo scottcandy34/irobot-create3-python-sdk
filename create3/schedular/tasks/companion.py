@@ -23,7 +23,7 @@ def wall_detection_task(scheduler: "TaskSchedular"):
     if coords is None:
         return 
     
-    scheduler._outputs[Tasks.WALL_DETECTION] = companion.tools.lidar.find_lines_and_segments([point for point in coords if point is not None])
+    scheduler._outputs[Tasks.WALL_DETECTION] = companion.tools.perception.detectors.find_line_segments([point for point in coords if point is not None])
 
 def column_detection_task(scheduler: "TaskSchedular"):
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
@@ -31,7 +31,7 @@ def column_detection_task(scheduler: "TaskSchedular"):
     if coords is None:
         return 
         
-    scheduler._outputs[Tasks.COLUMN_DETECTION] = companion.tools.lidar.find_circles_and_arcs([point for point in coords if point is not None])
+    scheduler._outputs[Tasks.COLUMN_DETECTION] = companion.tools.perception.detectors.find_circle_arcs([point for point in coords if point is not None])
 
 def lidar_lightring_task(scheduler: "TaskSchedular"):
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
@@ -49,5 +49,5 @@ def simple_wall_follower(scheduler: "TaskSchedular"):
 
     lidar = companion._subscription_msgs.lidar
 
-    twist_msg = companion.tools.lidar.wall_follow.pid_lidar_to_twist(lidar)
+    twist_msg = companion.tools.wall_follow.pid_lidar_to_twist(lidar)
     robot.send_twist(twist_msg)

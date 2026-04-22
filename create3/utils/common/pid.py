@@ -6,8 +6,33 @@
 import time
 
 class PID:
-    """A PID controller implementation with anti-windup and derivative filtering."""
-    def __init__(self, kp: float, ki: float, kd: float, reference: float = 0.0, derivative_tau: float = 0.08, output_min: float = -float('inf'), output_max: float = float('inf')):
+    """A robust PID controller with derivative filtering and anti-windup.
+
+    Features:
+      • First-order low-pass filter on the derivative term (prevents derivative kick)
+      • Anti-windup that clamps the integral term when the output saturates
+      • Automatic or manual dt (uses wall-clock time if not provided)
+      • Tunable output limits
+      • Easy access to P, I, D, error, and output for debugging/tuning
+
+    This is the standard form used in most ROS differential-drive controllers.
+    """
+
+    def __init__(self, kp: float, ki: float, kd: float, reference: float = 0.0, derivative_tau: float = 0.08, output_min: float = -float("inf"), output_max: float = float("inf")) -> None:
+        """Initialize a PID controller.
+
+        Parameters
+        ----------
+        kp, ki, kd : float
+            Proportional, integral, and derivative gains.
+        reference : float
+            Target value (setpoint).
+        derivative_tau : float
+            Time constant (seconds) for the derivative low-pass filter.
+            Smaller = faster response, larger = smoother.
+        output_min, output_max : float
+            Saturation limits for the controller output.
+        """
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -16,59 +41,73 @@ class PID:
         self.output_min = output_min
         self.output_max = output_max
 
-        # state
-        self._integral = 0.0
-        self._prev_error = 0.0
-        self._prev_derivative = 0.0
-        self._prev_time = None
-        self._first_call = True
+        # Internal state
+        self._integral: float = 0.0
+        self._prev_error: float = 0.0
+        self._prev_derivative: float = 0.0
+        self._prev_time: float | None = None
+        self._first_call: bool = True
 
-        self._pid: tuple[float, float, float] = (0.0, 0.0, 0.0) # (P, I, D)
+        # Values exposed for PIDTuner / debugging
+        self._pid: tuple[float, float, float] = (0.0, 0.0, 0.0)  # (P, I, D)
         self._error: float = 0.0
         self._output: float = 0.0
 
     def get_pid(self) -> tuple[float, float, float]:
-        """Return the current PID (P, I, D). For use with PIDTuner."""
+        """Return the current PID components (P, I, D) for tuning/debugging."""
         return self._pid
-    
+
     def get_error(self) -> float:
-        """Returns the error correction. For use with PIDTuner."""
+        """Return the current error (reference - measurement)."""
         return self._error
-    
+
     def get_output(self) -> float:
-        """Returns the correction. For use with PIDTuner."""
+        """Return the most recent controller output."""
         return self._output
 
-    def update(self, measurement: float, dt: float = None) -> float:
-        """Convenience method to compute PID output. Can be used as an alias for __call__."""
+    def update(self, measurement: float, dt: float | None = None) -> float:
+        """Convenience alias for __call__ (identical behavior)."""
         return self.__call__(measurement, dt)
 
-    def __call__(self, measurement: float, dt: float = None) -> float:
-        """
-        Compute the PID output given a measurement and optional time step.
-        If dt is not provided, it will be calculated based on the time since the last call.
+    def __call__(self, measurement: float, dt: float | None = None) -> float:
+        """Compute PID output for the current measurement.
+
+        If `dt` is not supplied, it is automatically calculated from
+        wall-clock time (time.perf_counter).
+
+        Parameters
+        ----------
+        measurement : float
+            Current sensor reading.
+        dt : float | None
+            Time step in seconds. If None, computed automatically.
+
+        Returns
+        -------
+        float
+            Saturated PID output (P + I + D).
         """
         current_time = time.perf_counter()
 
-        # calculate dt (auto or manual)
+        # Calculate dt (auto or manual)
         if dt is None:
             if self._prev_time is not None:
                 dt = current_time - self._prev_time
             else:
-                dt = 0.1 # safe fallback on first call
+                dt = 0.1  # safe fallback on first call
         if dt <= 0.0:
             dt = 0.1
 
         error = self.reference - measurement
 
-        # Proportional
+        # Proportional term
         P = self.kp * error
 
-        # Integral with anti-windup (will be adjusted after output clamping)
+        # Integral term (will be corrected by anti-windup later)
         self._integral += error * dt
         I = self.ki * self._integral
 
-        # Derivative (use delta_time if provided for real units)
+        # Derivative term with low-pass filter
         if self._first_call:
             raw_deriv = 0.0
             self._first_call = False
@@ -76,48 +115,45 @@ class PID:
             raw_deriv = (error - self._prev_error) / dt
 
         alpha = self.derivative_tau / (self.derivative_tau + dt)
-        filtered_deriv = alpha * self._prev_derivative + (1 - alpha) * raw_deriv
-
+        filtered_deriv = alpha * self._prev_derivative + (1.0 - alpha) * raw_deriv
         D = self.kd * filtered_deriv
 
-        # Raw PID sum
+        # Raw output
         output = P + I + D
 
         # Clamp output and apply anti-windup
         if output > self.output_max:
             output = self.output_max
-            # Anti-windup: prevent integral from increasing if output is saturated
-            if self.ki != 0:
+            if self.ki != 0.0:
                 self._integral = (output - P - D) / self.ki
         elif output < self.output_min:
             output = self.output_min
-            # Anti-windup: prevent integral from decreasing if output is saturated
-            if self.ki != 0:
+            if self.ki != 0.0:
                 self._integral = (output - P - D) / self.ki
 
-        # Update state
+        # Update internal state
         self._prev_error = error
         self._prev_derivative = filtered_deriv
         self._prev_time = current_time
 
-        # save final values for use in pid tuner
+        # Store final values for PID tuner / debugging
         self._pid = (P, I, D)
         self._error = error
         self._output = output
 
         return output
 
-    def set_reference(self, reference: float):
-        """Update the reference for the PID controller."""
+    def set_reference(self, reference: float) -> None:
+        """Update the controller setpoint (reference value)."""
         self.reference = reference
 
-    def set_output_limits(self, min_out: float, max_out: float):
-        """Set output limits for the PID controller."""
+    def set_output_limits(self, min_out: float, max_out: float) -> None:
+        """Set new output saturation limits."""
         self.output_min = min_out
         self.output_max = max_out
 
-    def reset(self):
-        """Call when robot stops or you change mode"""
+    def reset(self) -> None:
+        """Reset all internal state (call when robot stops or mode changes)."""
         self._integral = 0.0
         self._prev_error = 0.0
         self._prev_derivative = 0.0

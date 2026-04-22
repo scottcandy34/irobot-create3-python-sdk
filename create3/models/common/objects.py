@@ -31,3 +31,12 @@ class Position:
 class Direction:
     distance: float = 0.0
     angle: float = 0.0
+
+@dataclass
+class RansacConfig:
+    """Unified configuration for RANSAC and MSAC line/circle detection."""
+    max_iterations: int = 0
+    distance_threshold: float = 0.0      # max distance for inlier / MSAC cutoff
+    min_inliers: int = 0
+    max_gap: float = 0.0                 # lines: distance gap | circles: angular gap (degrees)
+    min_points: int = 0                 # min points per segment or arc

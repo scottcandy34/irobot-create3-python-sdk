@@ -16,44 +16,47 @@ MAX_SPEED = 46 # cm/s
 MAX_ANGULAR_SPEED = MAX_SPEED / RADIUS # rad/s
 """This is the maximum angular speed of the robot, calculated based on the max linear speed and the radius. ~2.84 rad/s"""
 
-def get_ir_angle(index: int) -> float:
-    """Return the angle for IR sensor location"""
+def get_ir_angle(index: int) -> float | None:
+    """Return the angle (in degrees) for the given IR sensor index (0-6).
 
-    angle: float = None
-    match index:
-        case 0:
-            angle = 130.6
-        case 1:
-            angle = 103.3
-        case 2:
-            angle = 85.3
-        case 3:
-            angle = 68.3
-        case 4:
-            angle = 51.05
-        case 5:
-            angle = 31.3
-        case 6:
-            angle = 0.0
-            
-    return angle
-            
+    These angles represent the physical direction of each of the 7 IR sensors
+    relative to the robot's forward axis (index 6 = 0°).
+
+    Index layout:
+      0 → 130.6°    1 → 103.3°    2 → 85.3°
+      3 → 68.3°     4 → 51.05°    5 → 31.3°
+      6 → 0.0°
+
+    Returns None for any index outside 0–6.
+    """
+    ir_angles = {
+        0: 130.6,
+        1: 103.3,
+        2: 85.3,
+        3: 68.3,
+        4: 51.05,
+        5: 31.3,
+        6: 0.0,
+    }
+    return ir_angles.get(index)
+
 def get_led_angle(index: int) -> float:
-    """Return the angle for LED location"""
-    
-    angle = 0.0
-    match index:
-        case 0:
-            angle = 60.0
-        case 1:
-            angle = 120.0
-        case 2:
-            angle = 180.0
-        case 3:
-            angle = 240.0
-        case 4:
-            angle = 300.0
-        case 5:
-            angle = 0.0
-            
-    return angle
+    """Return the angle (in degrees) for the given LED index (0-5) on the 6-LED lightring.
+
+    LEDs are placed evenly at 60° intervals around the robot.
+
+    Index layout:
+      0 → 60.0°     1 → 120.0°    2 → 180.0°
+      3 → 240.0°    4 → 300.0°    5 → 0.0°
+
+    Returns 0.0° for any index outside 0–5 (safe default).
+    """
+    led_angles = {
+        0: 60.0,
+        1: 120.0,
+        2: 180.0,
+        3: 240.0,
+        4: 300.0,
+        5: 0.0,
+    }
+    return led_angles.get(index, 0.0)

@@ -17,7 +17,8 @@ from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistanc
 from create3.models.robot import Subscribe
 import create3.utils.robot as tools
 from create3.utils.common.coords import convert_to_quaternion, find_direction
-from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
+from create3.utils import Threading
+from create3.utils.common.other import TIMEOUT, DEFAULT_WAIT
 
 from .callbacks.goal import (
     goal_response_callback,

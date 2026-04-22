@@ -8,3 +8,5 @@
 from .pid import PID
 from .pid_tuner import PIDTuner
 from . import coords
+from . import algorithms
+from . import other
