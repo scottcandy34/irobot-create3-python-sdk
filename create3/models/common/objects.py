@@ -3,7 +3,9 @@
 # Created by scottcandy34
 #
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from threading import Thread
 
 @dataclass
 class QuaternionAngles:
@@ -51,3 +53,60 @@ class RansacConfig:
     min_inliers: int = 0                 # minimum number of inliers required to accept a model
     max_gap: float = 0.0                 # lines: max distance gap | circles: max angular gap (degrees)
     min_points: int = 0                  # minimum points required for a valid segment/arc
+    
+class Button:
+    """A single button that tracks its pressed state and supports rising-edge callbacks.
+
+    Callbacks are executed in separate daemon threads so they never block the
+    main controller task or ROS callbacks.
+    """
+
+    def __init__(self) -> None:
+        self._is_pressed: bool = False
+        self._was_pressed: bool = False
+        self._callbacks: list[Callable[[], None]] = []
+
+    def pressed(self, callback: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback to be called on the rising edge (when the button is first pressed).
+
+        The callback is executed in its own daemon thread.
+
+        Usage:
+            @controller.buttons.l1.pressed
+            def on_l1_pressed():
+                ...
+        """
+        self._callbacks.append(callback)
+        return callback  # allows use as a decorator
+
+    def __bool__(self) -> bool:
+        """Allow direct boolean usage: `if ctrl.buttons.l1:`"""
+        return self._is_pressed
+
+    def _update_state(self, is_pressed: bool) -> None:
+        """Update the raw button state (called internally by joy_callback)."""
+        self._is_pressed = is_pressed
+
+    def _check_and_trigger(self) -> None:
+        """Check for rising edge and trigger all registered callbacks.
+
+        Called by controller_task on every update cycle.
+        """
+        if self._is_pressed and not self._was_pressed:
+            for callback in self._callbacks:
+                # Run each callback in its own daemon thread (non-blocking)
+                thread = Thread(
+                    target=self._safe_call,
+                    args=(callback,),
+                    daemon=True,  # automatically cleaned up on shutdown
+                )
+                thread.start()
+
+        self._was_pressed = self._is_pressed
+
+    def _safe_call(self, callback: Callable[[], None]) -> None:
+        """Safely execute a callback and log any exceptions."""
+        try:
+            callback()
+        except Exception as e:  # noqa: BLE001
+            print(f"Error in button callback: {e}")

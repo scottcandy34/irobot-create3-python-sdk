@@ -6,7 +6,7 @@
 import numpy as np
 from dataclasses import dataclass, field
 
-from create3.models.common import Position
+from create3.models.common import Position, Button
 
 @dataclass
 class Joystick:
@@ -14,30 +14,30 @@ class Joystick:
 
     horizontal: float = 0.0
     vertical: float = 0.0
-    button: bool = False
+    button: Button = field(default_factory=Button)
 
 @dataclass
 class Dpad:
     """Stores the four directional pad states."""
 
-    left: bool = False
-    right: bool = False
-    up: bool = False
-    down: bool = False
+    left: Button = field(default_factory=Button)
+    right: Button = field(default_factory=Button)
+    up: Button = field(default_factory=Button)
+    down: Button = field(default_factory=Button)
 
 @dataclass
 class JoyButtons:
     """Stores all face, shoulder, and special buttons on a PlayStation-style controller."""
 
-    x: bool = False
-    circle: bool = False
-    triangle: bool = False
-    square: bool = False
-    l1: bool = False
-    r1: bool = False
-    share: bool = False
-    options: bool = False
-    ps: bool = False
+    x: Button = field(default_factory=Button)
+    circle: Button = field(default_factory=Button)
+    triangle: Button = field(default_factory=Button)
+    square: Button = field(default_factory=Button)
+    l1: Button = field(default_factory=Button)
+    r1: Button = field(default_factory=Button)
+    share: Button = field(default_factory=Button)
+    options: Button = field(default_factory=Button)
+    ps: Button = field(default_factory=Button)
 
 @dataclass
 class Controller:

@@ -10,7 +10,7 @@ from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from yolo_msgs.msg import DetectionArray
 
-from create3.models.common import Position
+from create3.models.common import Position, Button
 from create3.utils import remote as tools
 from create3.utils.common.coords import convert_to_euler
 from create3.models.remote import Controller, BoundingBox
@@ -29,7 +29,7 @@ def joy_callback(subscriber: "Subscriber", joy: Joy) -> None:
     axes = joy.axes
     buttons = joy.buttons
 
-    controller = Controller()
+    controller = subscriber._subscription_msgs.controller
 
     # Left stick + triggers
     controller.left_joy.horizontal = axes[0]
@@ -42,27 +42,25 @@ def joy_callback(subscriber: "Subscriber", joy: Joy) -> None:
     controller.right_trigger = axes[5]
 
     # D-pad (treated as axes on many controllers)
-    controller.dpad.left = axes[6] > 0
-    controller.dpad.right = axes[6] < 0
-    controller.dpad.up = axes[7] > 0
-    controller.dpad.down = axes[7] < 0
+    controller.dpad.left._update_state(axes[6] > 0)
+    controller.dpad.right._update_state(axes[6] < 0)
+    controller.dpad.up._update_state(axes[7] > 0)
+    controller.dpad.down._update_state(axes[7] < 0)
 
     # Face buttons + shoulder + special buttons
-    controller.buttons.x = buttons[0] == 1
-    controller.buttons.circle = buttons[1] == 1
-    controller.buttons.triangle = buttons[2] == 1
-    controller.buttons.square = buttons[3] == 1
-    controller.buttons.l1 = buttons[4] == 1
-    controller.buttons.r1 = buttons[5] == 1
-    controller.buttons.share = buttons[8] == 1
-    controller.buttons.options = buttons[9] == 1
-    controller.buttons.ps = buttons[10] == 1
+    controller.buttons.x._update_state(buttons[0] == 1)
+    controller.buttons.circle._update_state(buttons[1] == 1)
+    controller.buttons.triangle._update_state(buttons[2] == 1)
+    controller.buttons.square._update_state(buttons[3] == 1)
+    controller.buttons.l1._update_state(buttons[4] == 1)
+    controller.buttons.r1._update_state(buttons[5] == 1)
+    controller.buttons.share._update_state(buttons[8] == 1)
+    controller.buttons.options._update_state(buttons[9] == 1)
+    controller.buttons.ps._update_state(buttons[10] == 1)
 
     # Stick press buttons
-    controller.left_joy.button = buttons[11] == 1
-    controller.right_joy.button = buttons[12] == 1
-
-    subscriber._subscription_msgs.controller = controller
+    controller.left_joy.button._update_state(buttons[11] == 1)
+    controller.right_joy.button._update_state(buttons[12] == 1)
 
 def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
     """Handle incoming occupancy grid (map) data and update the shared map state.

@@ -5,6 +5,7 @@ from std_msgs.msg import Float32
 from create3.models import Nodes
 from create3.models.remote import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
+from create3.models.common import Button
 
 if TYPE_CHECKING:
     from create3.schedular import TaskSchedular
@@ -12,16 +13,32 @@ if TYPE_CHECKING:
 def controller_task(scheduler: "TaskSchedular") -> None:
     """Handle remote controller input and translate it into robot actions.
 
-    Controls:
-      • R1 + left joystick   → arcade drive (forward/back + turn)
-      • Options button       → dock / undock (toggles based on current state)
-      • L1 + right joystick  → servo pan (vertical axis) + drive (horizontal axis)
+    Features:
+      • Rising-edge button callbacks (via the new Button class)
+      • R1 + left joystick   → arcade drive
+      • L1 + right joystick  → servo pan + turning
     """
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
     remote: RemoteNode = scheduler._get_device(Nodes.CREATE3_REMOTE)
     companion: CompanionNode | None = scheduler._get_device(Nodes.CREATE3_COMPANION)
 
     ctrl = remote.get_controller()
+    
+    # Check all face/shoulder/special buttons
+    for attr_name in vars(ctrl.buttons):
+        button = getattr(ctrl.buttons, attr_name)
+        if isinstance(button, Button):
+            button._check_and_trigger()
+            
+    # Check all D-pad buttons
+    for attr_name in vars(ctrl.dpad):
+        button = getattr(ctrl.dpad, attr_name)
+        if isinstance(button, Button):
+            button._check_and_trigger()
+
+    # Check stick press buttons
+    ctrl.left_joy.button._check_and_trigger()
+    ctrl.right_joy.button._check_and_trigger()
 
     # === Drive mode (R1 held) ===
     if ctrl.buttons.r1:
@@ -29,21 +46,8 @@ def controller_task(scheduler: "TaskSchedular") -> None:
         robot.send_twist(twist_msg)
         return
 
-    # === Docking / Undocking (Options button) ===
-    docking = robot.get_docking_values()
-
-    if ctrl.buttons.options and docking.is_docked:
-        scheduler.print("Undocking")
-        robot.dock()
-        scheduler.print("Undocking Completed")
-
-    elif ctrl.buttons.options and not docking.is_docked:
-        scheduler.print("Docking")
-        robot.undock()
-        scheduler.print("Docking Completed")
-
     # === Servo pan + drive mode (L1 held) ===
-    elif ctrl.buttons.l1 and companion is not None:
+    if ctrl.buttons.l1 and companion is not None:
         # Right stick vertical → servo angle (45° to 135° range)
         servo_msg = Float32()
         servo_msg.data = ((ctrl.right_joy.vertical + 1.0) / 2.0 * 90.0) + 45.0
