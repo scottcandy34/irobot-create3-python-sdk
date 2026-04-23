@@ -6,7 +6,6 @@
 """Common tools for working with the iRobot Create3, providing access to utility classes for working with positions and conversions between euler angles and quaternions."""
 
 from .pid import PID
-from .pid_tuner import PIDTuner
 from . import coords
 from . import algorithms
 from . import other

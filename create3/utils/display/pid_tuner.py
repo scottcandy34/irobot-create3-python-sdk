@@ -38,7 +38,7 @@ import tkinter as tk
 from tkinter import simpledialog
 from typing import Any
 
-from .pid import PID
+from create3.utils.common import PID
 
 class PIDTuner:
     """Live PID tuner GUI for the iRobot Create3.
