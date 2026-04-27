@@ -20,10 +20,7 @@ def generate_coords_task(scheduler: "TaskSchedular") -> None:
 
     lidar = companion._subscription_msgs.lidar
 
-    scheduler._outputs[Tasks.GENERATE_COORDS] = [
-        companion.tools.lidar.get_coords(lidar.ranges, index, robot.get_position())
-        for index in range(lidar.size())
-    ]
+    scheduler._outputs[Tasks.GENERATE_COORDS] = [companion.tools.lidar.get_coords(lidar, index, robot.get_position()) for index in range(lidar.size())]
 
 def wall_detection_task(scheduler: "TaskSchedular") -> None:
     """Run line-segment (wall) detection on the latest point cloud.
