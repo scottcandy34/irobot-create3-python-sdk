@@ -8,7 +8,8 @@ from threading import Thread
 from typing import Any
 
 from rclpy.timer import Timer
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import SingleThreadedExecutor, MultiThreadedExecutor
 
 from create3.utils import rclpy
 from create3.utils import Logger
@@ -23,7 +24,7 @@ class TaskSchedular(Logger):
     periodic tasks. Each task runs at a configurable frequency (default 20 Hz)
     using ROS timers. Results from tasks can be retrieved via `get_task_output`.
 
-    Runs its own ROS node in a background thread using a `SingleThreadedExecutor`.
+    Runs its own ROS node in a background thread using a `MultiThreadedExecutor`.
     """
 
     def __init__(self) -> None:
@@ -42,7 +43,7 @@ class TaskSchedular(Logger):
         self._tasks: dict[str, Timer] = {}
         self._outputs: dict[str, Any] = {}
 
-        self._executor = SingleThreadedExecutor()
+        self._executor = MultiThreadedExecutor()
         self._thread = Thread(target=self._spin, daemon=True)
         self._thread.start()
 
@@ -94,7 +95,7 @@ class TaskSchedular(Logger):
         if not self._find_task(task):
             callback = get_task_callback(task)
             if callback:
-                timer = self.node.create_timer(1.0 / frequency, lambda: callback(self))
+                timer = self.node.create_timer(1.0 / frequency, lambda: callback(self), MutuallyExclusiveCallbackGroup())
                 self._tasks[task] = timer
                 self.print_notice(f"Task Schedular added {task} task.")
             else:
