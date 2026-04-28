@@ -91,6 +91,13 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
     
     subscriber._subscription_msgs.map = Stamped(map_, Time.from_msg(grid.header.stamp))
     
+def corrected_position_callback(subscriber: "Subscriber"):
+    now = Time()
+    trans = subscriber._tf_buffer.lookup_transform('map', 'base_link', now)
+    
+    x = trans.transform.translation.x
+    y = trans.transform.translation.y
+
 def yolo_detections_callback(subscriber: "Subscriber", detection_array: DetectionArray) -> None:
     """Handle incoming YOLO detection array and convert detections into
     the internal BoundingBox format used by the rest of the system.

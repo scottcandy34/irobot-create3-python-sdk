@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
+from tf2_ros.buffer import Buffer
 from nav_msgs.msg import OccupancyGrid
+from tf2_ros.transform_listener import TransformListener
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from yolo_msgs.msg import DetectionArray
@@ -18,7 +20,8 @@ from create3.models.remote import Controller, Map, Yolo, Subscribe
 from .callbacks.msg import (
     joy_callback,
     map_callback,
-    yolo_detections_callback
+    yolo_detections_callback,
+    corrected_position_callback
 )
 
 qos_profile = QoSProfile(
@@ -60,6 +63,10 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         self._map = self.node.create_subscription(OccupancyGrid, 'map', lambda msg: map_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._yolo_detections = self.node.create_subscription(DetectionArray, '/yolo/detections', lambda msg: yolo_detections_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
 
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self.node)
+        self.node.create_timer(0.05, corrected_position_callback)
+        
         # Register all subscriptions with the debugger for uptime monitoring
         self.debug.subscriptions = [self._joy, self._map, self._yolo_detections]
 
