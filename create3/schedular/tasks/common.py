@@ -40,7 +40,7 @@ def history_keeper_task(scheduler: "TaskSchedular") -> None:
 
             # Only track data that is wrapped in Stamped
             if isinstance(data, Stamped):
-                history_key = f"{Tasks.HISTORY_KEEPER}_{node_name}_{attr_name}"
+                history_key = f"{Tasks.HISTORY_KEEPER}_{node_name}_{data.name}"
 
                 # Initialize history list if it doesn't exist
                 if history_key not in scheduler._outputs:
@@ -50,7 +50,7 @@ def history_keeper_task(scheduler: "TaskSchedular") -> None:
 
                 # Append the new stamped data
                 history.append(data)
-
+                
                 # Keep only the most recent MAX_HISTORY entries (rolling window)
                 if len(history) > MAX_HISTORY:
                     history[:] = history[-MAX_HISTORY:]

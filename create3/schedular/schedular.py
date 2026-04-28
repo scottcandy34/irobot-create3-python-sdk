@@ -129,9 +129,7 @@ class TaskSchedular(Logger):
 
     def get_task_output(self, task):
         """Return the latest output from a task (or None if not found)."""
-        if self._find_task(task):
-            return self._outputs.get(task)
-        return None
+        return self._outputs.get(task, None)
 
     def _blank_task(self) -> None:
         """Empty placeholder task (kept for API compatibility)."""

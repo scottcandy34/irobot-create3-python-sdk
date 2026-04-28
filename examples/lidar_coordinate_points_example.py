@@ -34,6 +34,8 @@ from create3 import RobotNode, CompanionNode
 from create3.schedular import TaskSchedular
 from create3.utils.display import PointCloudVisualizer
 
+from create3.models.common import Tasks
+
 def main() -> None:
     """Run the live LiDAR coordinate points visualizer example."""
 
@@ -47,6 +49,7 @@ def main() -> None:
     task_schedular.add_device(companion)
 
     # Start the coordinate generation task
+    task_schedular.add_task(Tasks.HISTORY_KEEPER)
     task_schedular.add_task(companion.tasks.GENERATE_COORDS)
 
     # Launch live point cloud visualizer

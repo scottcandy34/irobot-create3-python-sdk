@@ -75,7 +75,16 @@ def check_requirements(scheduler: "TaskSchedular", task: Any) -> bool:
             if scheduler._find_task(RobotTasks.IR_LIGHTRING):
                 scheduler.print_warning(f"{task} task cannot run together with {RobotTasks.IR_LIGHTRING}.")
                 return False
+            
+        case CompanionTasks.SIMPLE_WALL_FOLLOWER:
+            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
+                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.")
+                return False
 
+            if scheduler._find_task(RemoteTasks.CONTROLLER):
+                scheduler.print_warning(f"{task} task cannot run together with {RemoteTasks.CONTROLLER}.")
+                return False
+            
         # === Robot Tasks ===
         case RobotTasks.IR_LIGHTRING:
             if not scheduler._find_device(Nodes.CREATE3_ROBOT):
@@ -98,15 +107,6 @@ def check_requirements(scheduler: "TaskSchedular", task: Any) -> bool:
 
             if scheduler._find_task(CompanionTasks.SIMPLE_WALL_FOLLOWER):
                 scheduler.print_warning(f"{task} task cannot run together with {CompanionTasks.SIMPLE_WALL_FOLLOWER}.")
-                return False
-
-        case CompanionTasks.SIMPLE_WALL_FOLLOWER:
-            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
-                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.")
-                return False
-
-            if scheduler._find_task(RemoteTasks.CONTROLLER):
-                scheduler.print_warning(f"{task} task cannot run together with {RemoteTasks.CONTROLLER}.")
                 return False
 
         # Unknown task

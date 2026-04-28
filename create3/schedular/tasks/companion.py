@@ -3,39 +3,56 @@ from torch import TYPE_CHECKING
 from geometry_msgs.msg import Twist
     
 from create3.models import Nodes
-from create3.models.companion import Tasks
+from create3.models.common import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
+from create3.models.common import Stamped, Position
+from create3.models.companion import Lidar
 
 if TYPE_CHECKING:
     from create3.schedular import TaskSchedular
 
 def generate_coords_task(scheduler: "TaskSchedular") -> None:
-    """Generate world-frame (x, y) coordinates from the latest LiDAR scan.
+    """Generate a motion-compensated (deskewed) world-frame point cloud from the latest LiDAR scan.
 
-    Uses the companion node's LiDAR data and the robot's current pose
-    to transform every ray into a 2D point cloud in world coordinates.
+    This task:
+      • Retrieves the most recent LiDAR scan (as Stamped[Lidar])
+      • Uses the pose history from HISTORY_KEEPER to interpolate the robot's position
+        at the exact time each ray was measured
+      • Transforms all points into world coordinates with correct motion compensation
+
+    The resulting point cloud is stored under `companion.tasks.GENERATE_COORDS`
+    for use by WALL_DETECTION, COLUMN_DETECTION, visualizers, etc.
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
-    lidar = companion._subscription_msgs.lidar.data
+    
+    # Get latest stamped LiDAR data
+    lidar_stamped: Stamped[Lidar] = companion._subscription_msgs.lidar
 
+    # Get pose history for deskewing (from HISTORY_KEEPER task)
+    history_key = f"{Tasks.HISTORY_KEEPER}_{companion.get_name()}_{robot._subscription_msgs.position.name}"
+    pose_history: list[Stamped[Position]] = scheduler.get_task_output(history_key)
 
-    scheduler._outputs[Tasks.GENERATE_COORDS] = [companion.tools.lidar.get_coords(lidar, index, robot.get_position()) for index in range(lidar.size())]
+    # Perform motion-compensated deskewing
+    deskewed_points = companion.tools.lidar.deskew_lidar_scan(lidar_stamped=lidar_stamped, pose_history=pose_history)
 
+    # Store result for other tasks and visualizers
+    scheduler._outputs[companion.tasks.GENERATE_COORDS] = deskewed_points
+    
 def wall_detection_task(scheduler: "TaskSchedular") -> None:
     """Run line-segment (wall) detection on the latest point cloud.
 
     Requires the GENERATE_COORDS task to have run first.
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
-    coords: list[tuple[float, float]] | None = scheduler.get_task_output(Tasks.GENERATE_COORDS)
+    coords: list[tuple[float, float]] | None = scheduler.get_task_output(companion.tasks.GENERATE_COORDS)
     if coords is None:
         return
 
     # Filter out invalid (None) points before detection
     valid_points = [p for p in coords if p is not None]
 
-    scheduler._outputs[Tasks.WALL_DETECTION] = (companion.tools.perception.detectors.find_line_segments(valid_points))
+    scheduler._outputs[companion.tasks.WALL_DETECTION] = (companion.tools.perception.detectors.find_line_segments(valid_points))
 
 def column_detection_task(scheduler: "TaskSchedular") -> None:
     """Run circular arc (column/obstacle) detection on the latest point cloud.
@@ -43,14 +60,14 @@ def column_detection_task(scheduler: "TaskSchedular") -> None:
     Requires the GENERATE_COORDS task to have run first.
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
-    coords: list[tuple[float, float]] | None = scheduler.get_task_output(Tasks.GENERATE_COORDS)
+    coords: list[tuple[float, float]] | None = scheduler.get_task_output(companion.tasks.GENERATE_COORDS)
     if coords is None:
         return
 
     # Filter out invalid (None) points before detection
     valid_points = [p for p in coords if p is not None]
 
-    scheduler._outputs[Tasks.COLUMN_DETECTION] = (companion.tools.perception.detectors.find_circle_arcs(valid_points))
+    scheduler._outputs[companion.tasks.COLUMN_DETECTION] = (companion.tools.perception.detectors.find_circle_arcs(valid_points))
 
 def lidar_lightring_task(scheduler: "TaskSchedular") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""
