@@ -5,4 +5,4 @@
 
 from .nodes import RobotNode, CompanionNode, RemoteNode
 from . import utils
-from .schedular import TaskSchedular
+from .scheduler import TaskScheduler

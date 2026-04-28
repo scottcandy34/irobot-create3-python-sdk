@@ -5,8 +5,8 @@
 
 import time
 from threading import Thread
+from typing import Any
 import colorama
-from colorama import Fore, Style 
 
 from rclpy.node import Node
 from rclpy.client import Client
@@ -24,72 +24,88 @@ DEBUGGER_INTERVAL = 2 # in Hz
 
 colorama.init(autoreset=True)
 
-class NodeTesting():
-    """A class to test the availability of ROS interfaces on a given node."""
+class NodeTesting:
+    """Helper for testing availability of ROS 2 interfaces on a node.
 
-    def __init__(self, node: Node):
+    Used internally by `Debugger` to check whether topics have publishers,
+    services/actions have servers, etc.
+    """
+
+    def __init__(self, node: Node) -> None:
+        """Initialize the interface tester.
+
+        Parameters
+        ----------
+        node : Node
+            ROS node used to query publisher/subscriber info.
+        """
         self._node = node
 
     def subscription(self, interface: Subscription) -> bool:
-        """Check if a subscription topic is being published to by any node."""
+        """Return True if at least one publisher exists for this topic."""
         pub_info = self._node.get_publishers_info_by_topic(interface.topic_name)
-        if len(pub_info) == 0:
-            return False
-        return True
-    
+        return len(pub_info) > 0
+
     def publisher(self, interface: Publisher) -> bool:
-        """Check if a publisher topic is being subscribed to by any node."""
+        """Return True if at least one subscriber exists for this topic."""
         sub_info = self._node.get_subscriptions_info_by_topic(interface.topic_name)
-        if len(sub_info) == 0:
-            return False
-        return True
-    
+        return len(sub_info) > 0
+
     def action_client(self, interface: ActionClient) -> bool:
-        """Check if an action client has a server available."""
-        if not interface.server_is_ready():
-            return False
-        return True
-    
+        """Return True if the action server is ready/available."""
+        return interface.server_is_ready()
+
     def service_client(self, interface: Client) -> bool:
-        """Check if a service client has a server available."""
-        if not interface.service_is_ready():
-            return False
-        return True
+        """Return True if the service server is ready/available."""
+        return interface.service_is_ready()
 
 class Debugger(Logger):
-    """A class to watch the ROS interfaces and uptime of attached nodes, and print warnings or errors if they are not working as expected."""
+    """Background ROS interface watchdog and uptime monitor.
 
-    def __init__(self):
+    Monitors every attached `Threading` device for:
+      • Missing publishers/subscribers, action servers, or service servers
+      • Topics publishing faster than `UPTIME_FREQUENCY` Hz (possible infinite loop)
+
+    Runs in its own background thread and uses colored logging (inherited from `Logger`).
+    """
+
+    def __init__(self) -> None:
+        """Start the debugger node and its background watcher thread.
+
+        Uses the custom `rclpy` to safely initialize only once.
+        """
+        # Create our own debugger node (uses the custom rclpy)
         rclpy.init()
-        self.node: Node = rclpy.create_node(Nodes.ROS_DEBUGGER)
-        self.node._logger.name = "Debugger"
+        node = rclpy.create_node(Nodes.ROS_DEBUGGER)
+        node._logger.name = "Debugger"
 
-        self.node.get_logger().info(f'{self.node.get_name()} node is initiating... Watching Topics Sub/Pub, Services and Actions.')
+        # Initialize Logger parent with our node
+        super().__init__(node)
+
+        self.print(f"{node.get_name()} node is initiating... Watching Topics, Services and Actions.")
 
         self._devices: list[Threading] = []
         self._validated: dict[str, bool] = {}
-        self._logged: dict[str, list[int]] = {}
+        self._logged: dict[str, list[int]] = {}   # topic_name → list of recent timestamps (ns)
 
-        self._thread = Thread(target=self._watcher)
+        self._thread = Thread(target=self._watcher, daemon=True)
         self._thread.start()
 
-    def add_device(self, device: Threading):
-        """Add a device to the debugger to watch its ROS interfaces and uptime."""
+    def add_device(self, device: Threading) -> None:
+        """Start watching a device's ROS interfaces and uptime statistics."""
         self._devices.append(device)
-        self._validated.update(device.debug.isAlive())
+        self._validated.update(device.debug.is_alive())  # copy initial validation state
 
-    def remove_device(self, device: Threading):
-        """Remove a device from the debugger to stop watching its ROS interfaces and uptime."""
-        for index, obj in enumerate(self._devices):
+    def remove_device(self, device: Threading) -> None:
+        """Stop watching a device (removes it from the debugger)."""
+        for idx, obj in enumerate(self._devices):
             if obj.get_name() == device.get_name():
-                self._devices.pop(index)
+                self._devices.pop(idx)
                 break
 
-    def _check_interface(self, interface):
-        """Check if a given interface is available on the node, and print a warning or error if it is not."""
+    def _check_interface(self, interface: Any) -> None:
+        """Check one ROS interface and log healthy/error state changes."""
         test = NodeTesting(self.node)
-        name = ""
-        type_ = ""
 
         if isinstance(interface, Subscription):
             exist = test.subscription(interface)
@@ -112,62 +128,75 @@ class Debugger(Logger):
             type_ = "Service Server"
 
         else:
-            raise ValueError("ROS interface type not recognized.")
-        
-        if not exist and self._validated.get(name, True):
+            raise ValueError(f"ROS interface type not recognized: {type(interface)}")
+
+        # State change → log once
+        previously_valid = self._validated.get(name, True)
+
+        if not exist and previously_valid:
             self._validated[name] = False
-            self.print_error(f'{type_} \'{name}\' is not available.')
+            self.print_error(f"{type_} '{name}' is not available.")
 
-        elif exist and not self._validated.get(name, True):
+        elif exist and not previously_valid:
             self._validated[name] = True
-            self.print_healthy(f'{type_} \'{name}\' is now available.')
+            self.print_healthy(f"{type_} '{name}' is now available.")
 
-    def _watcher(self):
-        # Wait for first device to connect
+    def _watcher(self) -> None:
+        """Main background loop that monitors all attached devices."""
+        # Wait until at least one device is attached
         while not self._devices:
             time.sleep(0.1)
 
-        # Checks each device in list
         while self._devices:
-            # Check each attached device
             for device in self._devices:
-                # Check each subscription topic
-                for subscription in device.debug.subscriptions:
-                    self._check_interface(subscription)
+                # === Subscriptions (check publisher + frequency) ===
+                for sub in device.debug.subscriptions:
+                    self._check_interface(sub)
 
-                    topic_name = subscription.topic_name
-                    if topic_name in device.debug.uptime and device.debug.uptime[topic_name][1] >= UPTIME_FREQUENCY:
-                        if not topic_name in self._logged:
-                            self._logged[topic_name] = [self.node.get_clock().now().nanoseconds]
-                        else:
-                            if self._logged[topic_name][-1] - self._logged[topic_name][0] >= 1000000000:
-                                self.print_warning(f'Node receiving \'{topic_name}\' data at over {UPTIME_FREQUENCY} Hz. Check for infinite loops or excessive publishing. Possibly stopped receiving data.')
-                                self._logged[topic_name] = []
-                            self._logged[topic_name].append(self.node.get_clock().now().nanoseconds)
+                    topic = sub.topic_name
+                    if topic in device.debug.uptime:
+                        freq = device.debug.uptime[topic][1]  # current frequency (Hz)
+                        if freq >= UPTIME_FREQUENCY:
+                            self._log_high_frequency_warning(topic)
 
-                # Check each publisher topic
-                for publisher in device.debug.publishers:
-                    self._check_interface(publisher)
-
-                # Check each action client
+                # === Publishers, Actions, Services ===
+                for pub in device.debug.publishers:
+                    self._check_interface(pub)
                 for action in device.debug.actions:
                     self._check_interface(action)
-                
-                # Check each service client
                 for service in device.debug.services:
                     self._check_interface(service)
 
-            time.sleep(1 / DEBUGGER_INTERVAL)
+            time.sleep(1.0 / DEBUGGER_INTERVAL)
 
-    def stop(self, device: Threading):
-        """Stop the debugger from watching a given device, and shutdown the debugger if there are no more devices to watch."""
+    def _log_high_frequency_warning(self, topic_name: str) -> None:
+        """Log a warning once per second when a topic exceeds UPTIME_FREQUENCY Hz."""
+        now_ns = self.node.get_clock().now().nanoseconds
+
+        if topic_name not in self._logged:
+            self._logged[topic_name] = [now_ns]
+            return
+
+        timestamps = self._logged[topic_name]
+
+        # If more than 1 second has passed since the first logged timestamp
+        if timestamps and (now_ns - timestamps[0] >= 1_000_000_000):
+            self.print_warning(f"Node receiving '{topic_name}' data at over {UPTIME_FREQUENCY} Hz. Check for infinite loops or excessive publishing. Possibly stopped receiving data.")
+            self._logged[topic_name] = []  # reset for next second
+
+        self._logged[topic_name].append(now_ns)
+
+    def stop(self, device: Threading) -> None:
+        """Stop watching a device and shut down the debugger if no devices remain."""
         self.remove_device(device)
-        if len(self._devices) == 0:
+
+        if not self._devices:
+            # Wait for watcher thread to exit
             while self._thread.is_alive():
                 time.sleep(0.1)
             self._thread.join()
 
-            self.print_warning(f'{self.node.get_name()} node has shutdown.')
+            self.print_warning(f"{self.node.get_name()} node has shutdown.")
             self.node.destroy_node()
             rclpy.shutdown()
 
