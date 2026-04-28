@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from irobot_create_msgs.action import LedAnimation
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
-from create3.models.common import Position
+from create3.models.common import Position, Stamped
 from .objects import HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
 
 @dataclass
@@ -19,10 +19,10 @@ class Subscribe:
     """
 
     # Odometry & pose
-    position: Position = field(default_factory=Position)
+    position: Stamped[Position] = field(default_factory=lambda: Stamped(Position()))
 
     # IR proximity (7 sensors)
-    ir_values: list[int] = field(default_factory=lambda: [0] * 7)
+    ir_values: Stamped[list[int]] = field(default_factory=lambda: Stamped([0] * 7))
 
     # Hazard detection
     bumpers: HazardBumper = field(default_factory=HazardBumper)
@@ -33,7 +33,7 @@ class Subscribe:
 
     # Battery & IMU
     battery: int | float = 100
-    acceleration: Acceleration = field(default_factory=Acceleration)
+    acceleration: Stamped[Acceleration] = field(default_factory=lambda: Stamped(Acceleration()))
 
     # Docking sensors
     dockingValues: DockingValues = field(default_factory=DockingValues)

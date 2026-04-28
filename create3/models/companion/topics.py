@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from std_msgs.msg import Float32
 
 from .objects import Lidar, Ultrasonic
+from create3.models.common import Stamped
 
 @dataclass
 class Subscribe:
@@ -17,8 +18,8 @@ class Subscribe:
     """
 
     # LiDAR and ultrasonic sensor data
-    lidar: Lidar = field(default_factory=Lidar)
-    ultrasonic: Ultrasonic = field(default_factory=Ultrasonic)
+    lidar: Stamped[Lidar] = field(default_factory=lambda: Stamped(Lidar()))
+    ultrasonic: Stamped[Ultrasonic] = field(default_factory=lambda: Stamped(Ultrasonic()))
 
     # Current servo angle (degrees)
     servo_angle: float = 90.0

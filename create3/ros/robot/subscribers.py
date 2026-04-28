@@ -93,7 +93,7 @@ class Subscriber(Threading if TYPE_CHECKING else object):
 
     def get_ir_proximity(self) -> list[int]:
         """Return the most recent IR proximity sensor readings (7 integers)."""
-        return self._subscription_msgs.ir_values
+        return self._subscription_msgs.ir_values.data
 
     def get_position(self) -> Position:
         """Return the robot's current position and heading.
@@ -102,7 +102,7 @@ class Subscriber(Threading if TYPE_CHECKING else object):
             x, y     → centimeters
             angle    → degrees
         """
-        return self._subscription_msgs.position
+        return self._subscription_msgs.position.data
 
     def get_bumpers(self) -> HazardBumper:
         """Return the most recent bumper states as a `HazardBumper` object."""
@@ -122,7 +122,7 @@ class Subscriber(Threading if TYPE_CHECKING else object):
 
     def get_accelerometer(self) -> Acceleration:
         """Return the most recent linear acceleration values (x, y, z)."""
-        return self._subscription_msgs.acceleration
+        return self._subscription_msgs.acceleration.data
 
     def get_docking_values(self) -> DockingValues:
         """Return the most recent docking sensor values

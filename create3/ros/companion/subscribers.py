@@ -63,8 +63,8 @@ class Subscriber(Threading if TYPE_CHECKING else object):
 
     def get_scans(self) -> list[float]:
         """Return the most recent LiDAR scan ranges (in centimeters)."""
-        return self._subscription_msgs.lidar.ranges
+        return self._subscription_msgs.lidar.data.ranges
 
     def get_range(self) -> float:
         """Return the most recent ultrasonic range measurement (in centimeters)."""
-        return self._subscription_msgs.ultrasonic.range
+        return self._subscription_msgs.ultrasonic.data.range

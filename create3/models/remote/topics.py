@@ -6,6 +6,7 @@
 from dataclasses import dataclass, field
 
 from .objects import Controller, Map, Yolo
+from create3.models.common import Stamped
 
 @dataclass
 class Subscribe:
@@ -18,10 +19,10 @@ class Subscribe:
     controller: Controller = field(default_factory=Controller)
 
     # Occupancy grid map
-    map: Map = field(default_factory=Map)
+    map: Stamped[Map] = field(default_factory=lambda: Stamped(Map()))
 
     # YOLO object detections
-    yolo: Yolo = field(default_factory=Yolo)
+    yolo: Stamped[Yolo] = field(default_factory=lambda: Stamped(Yolo()))
 
 @dataclass
 class Publish:

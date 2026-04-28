@@ -3,9 +3,14 @@
 # Created by scottcandy34
 #
 
+from threading import Thread
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from threading import Thread
+from typing import Any, Generic, TypeVar
+
+from rclpy.time import Time
+
+T = TypeVar("T")
 
 @dataclass
 class QuaternionAngles:
@@ -110,3 +115,21 @@ class Button:
             callback()
         except Exception as e:  # noqa: BLE001
             print(f"Error in button callback: {e}")
+
+@dataclass
+class Stamped(Generic[T]):
+    """Generic timestamped wrapper for any data type.
+
+    Used throughout the SDK to attach a precise ROS timestamp to
+    sensor readings, messages, positions, detections, or any other value.
+    """
+
+    data: T
+    """The actual data payload (any type)."""
+
+    timestamp: Time = field(default_factory=lambda: Time.from_msg(Time().to_msg()))
+    """ROS clock timestamp when the data was captured or created."""
+
+    def __repr__(self) -> str:
+        """Clean, informative string representation."""
+        return f"Stamped(data={self.data!r}, timestamp={self.timestamp})"

@@ -73,8 +73,8 @@ class Subscriber(Threading if TYPE_CHECKING else object):
 
     def get_map(self) -> Map:
         """Return the most recent occupancy grid map data."""
-        return self._subscription_msgs.map
+        return self._subscription_msgs.map.data
 
     def get_yolo(self) -> Yolo:
         """Return the most recent YOLO object detections."""
-        return self._subscription_msgs.yolo
+        return self._subscription_msgs.yolo.data

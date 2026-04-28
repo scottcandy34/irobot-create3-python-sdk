@@ -1,1 +1,1 @@
-from .objects import Position, QuaternionAngles, EulerAngles, Direction, RansacConfig, Button
+from .objects import Position, QuaternionAngles, EulerAngles, Direction, RansacConfig, Button, Stamped

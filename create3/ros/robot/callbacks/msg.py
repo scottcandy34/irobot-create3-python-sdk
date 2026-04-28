@@ -11,8 +11,8 @@ from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
 
 from create3.utils import common as tools
-from create3.models.common import Position
-from create3.models.robot import HazardBumper, HazardCliff
+from create3.models.common import Position, Stamped
+from create3.models.robot import HazardBumper, HazardCliff, Acceleration
 
 if TYPE_CHECKING:
     from create3.ros.robot import Subscriber
@@ -33,14 +33,14 @@ def odom_callback(subscriber: "Subscriber", odom: Odometry) -> None:
     euler = tools.coords.convert_to_euler(orient.x, orient.y, orient.z, orient.w)
     position.angle = math.degrees(euler.yaw_z)
 
-    subscriber._subscription_msgs.position = position
+    subscriber._subscription_msgs.position = Stamped(position, odom.header.stamp)
 
 def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> None:
     """Handle IR intensity readings and store the 7 sensor values in the shared state."""
     subscriber.update_uptime(subscriber._ir_intensity.topic_name)
-
+    
     readings = ir.readings
-    subscriber._subscription_msgs.ir_values = [
+    ir_values = [
         readings[0].value,
         readings[1].value,
         readings[2].value,
@@ -49,6 +49,8 @@ def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> No
         readings[5].value,
         readings[6].value,
     ]
+    
+    subscriber._subscription_msgs.ir_values = Stamped(ir_values, ir.header.stamp)
 
 def hazard_detection_callback(subscriber: "Subscriber", hazards: HazardDetectionVector) -> None:
     """Parse hazard detections (bumpers and cliffs) and update the shared state objects."""
@@ -98,18 +100,20 @@ def battery_state_callback(subscriber: "Subscriber", battery: BatteryState) -> N
     subscriber._subscription_msgs.battery = battery.percentage * 100.0
 
     if subscriber._subscription_msgs.battery <= 10.0:
-        subscriber.print_warning(
-            f"Battery low: {subscriber._subscription_msgs.battery:.1f}% remaining."
-        )
+        subscriber.print_warning(f"Battery low: {subscriber._subscription_msgs.battery:.1f}% remaining.")
 
 def imu_callback(subscriber: "Subscriber", imu: Imu) -> None:
     """Extract linear acceleration from the IMU and store it in the shared state."""
     subscriber.update_uptime(subscriber._imu.topic_name)
+    
+    acceleration = Acceleration()
 
     accel = imu.linear_acceleration
-    subscriber._subscription_msgs.acceleration.x = accel.x
-    subscriber._subscription_msgs.acceleration.y = accel.y
-    subscriber._subscription_msgs.acceleration.z = accel.z
+    acceleration.x = accel.x
+    acceleration.y = accel.y
+    acceleration.z = accel.z
+    
+    subscriber._subscription_msgs.acceleration = Stamped(acceleration, imu.header.stamp)
 
 def dock_status_callback(subscriber: "Subscriber", status: DockStatus) -> None:
     """Update docking-related values (visible, docked)."""

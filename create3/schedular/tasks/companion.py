@@ -17,8 +17,8 @@ def generate_coords_task(scheduler: "TaskSchedular") -> None:
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    lidar = companion._subscription_msgs.lidar.data
 
-    lidar = companion._subscription_msgs.lidar
 
     scheduler._outputs[Tasks.GENERATE_COORDS] = [companion.tools.lidar.get_coords(lidar, index, robot.get_position()) for index in range(lidar.size())]
 
@@ -73,7 +73,7 @@ def simple_wall_follower(scheduler: "TaskSchedular") -> None:
     if not companion.get_scans():
         return
 
-    lidar = companion._subscription_msgs.lidar
+    lidar = companion._subscription_msgs.lidar.data
 
     twist_msg = companion.tools.wall_follow.pid_lidar_to_twist(lidar)
     robot.send_twist(twist_msg)

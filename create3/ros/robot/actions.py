@@ -170,7 +170,7 @@ class ActionClient(Threading if TYPE_CHECKING else object):
         """
         self.set_wheel_speeds(0, 0)  # stop any previous velocity commands
 
-        direction = find_direction((x, y), self._subscription_msgs.position)
+        direction = find_direction((x, y), self._subscription_msgs.position.data)
 
         # Heading correction (if requested)
         dif_w = math.radians(heading - direction.angle) if heading is not None else 0.0

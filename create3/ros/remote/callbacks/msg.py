@@ -10,10 +10,11 @@ from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from yolo_msgs.msg import DetectionArray
 
-from create3.models.common import Position, Button
+from create3.models.common import Position, Stamped
+from create3.models.remote import Map, Yolo
 from create3.utils import remote as tools
 from create3.utils.common.coords import convert_to_euler
-from create3.models.remote import Controller, BoundingBox
+from create3.models.remote import BoundingBox
 
 if TYPE_CHECKING:
     from create3.ros.remote import Subscriber
@@ -69,9 +70,11 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
     angle from the quaternion orientation.
     """
     subscriber.update_uptime(subscriber._map.topic_name)
+    
+    map_ = Map()
 
-    subscriber._subscription_msgs.map.resolution = grid.info.resolution
-    subscriber._subscription_msgs.map.data = tools.slam.occupancy_grid_to_2d(grid)
+    map_.resolution = grid.info.resolution
+    map_.grid = tools.slam.occupancy_grid_to_2d(grid)
 
     # Origin pose (converted to cm and degrees)
     origin_pos = grid.info.origin.position
@@ -80,23 +83,22 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
     position = Position()
     position.x = origin_pos.x * 100.0
     position.y = origin_pos.y * 100.0
-    euler = convert_to_euler(
-        origin_orient.x, origin_orient.y, origin_orient.z, origin_orient.w
-    )
+    euler = convert_to_euler(origin_orient.x, origin_orient.y, origin_orient.z, origin_orient.w)
     position.angle = math.degrees(euler.yaw_z)
 
-    subscriber._subscription_msgs.map.origin = position
-
-def yolo_detections_callback(subscriber: "Subscriber", yolo: DetectionArray) -> None:
+    map_.origin = position
+    
+    subscriber._subscription_msgs.map = Stamped(map_, grid.header.stamp)
+    
+def yolo_detections_callback(subscriber: "Subscriber", detection_array: DetectionArray) -> None:
     """Handle incoming YOLO detection array and convert detections into
     the internal BoundingBox format used by the rest of the system.
     """
     subscriber.update_uptime(subscriber._yolo_detections.topic_name)
 
-    # Clear previous detections
-    subscriber._subscription_msgs.yolo.bounding_boxes.clear()
+    yolo = Yolo()
 
-    for detection in yolo.detections:
+    for detection in detection_array.detections:
         bbox = BoundingBox(
             class_id=detection.class_id,
             class_name=detection.class_name,
@@ -108,4 +110,6 @@ def yolo_detections_callback(subscriber: "Subscriber", yolo: DetectionArray) -> 
             width=detection.bbox.size.x,
             height=detection.bbox.size.y,
         )
-        subscriber._subscription_msgs.yolo.bounding_boxes.append(bbox)
+        yolo.bounding_boxes.append(bbox)
+        
+    subscriber._subscription_msgs.yolo = Stamped(yolo, detection_array.header.stamp)

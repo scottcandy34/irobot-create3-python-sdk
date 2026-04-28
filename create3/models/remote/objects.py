@@ -56,7 +56,7 @@ class Map:
 
     resolution: float = 0.0
     origin: Position = field(default_factory=Position)
-    data: np.ndarray = field(default_factory=lambda: np.empty((0, 0)))
+    grid: np.ndarray = field(default_factory=lambda: np.empty((0, 0)))
 
 @dataclass
 class BoundingBox:
