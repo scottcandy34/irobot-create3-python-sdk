@@ -6,6 +6,7 @@
 import math
 from typing import TYPE_CHECKING
 
+from rclpy.time import Time
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, HazardDetection, InterfaceButtons, DockStatus, IrOpcode
@@ -33,7 +34,7 @@ def odom_callback(subscriber: "Subscriber", odom: Odometry) -> None:
     euler = tools.coords.convert_to_euler(orient.x, orient.y, orient.z, orient.w)
     position.angle = math.degrees(euler.yaw_z)
 
-    subscriber._subscription_msgs.position = Stamped(position, odom.header.stamp)
+    subscriber._subscription_msgs.position = Stamped(position, Time.from_msg(odom.header.stamp))
 
 def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> None:
     """Handle IR intensity readings and store the 7 sensor values in the shared state."""
@@ -50,7 +51,7 @@ def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> No
         readings[6].value,
     ]
     
-    subscriber._subscription_msgs.ir_values = Stamped(ir_values, ir.header.stamp)
+    subscriber._subscription_msgs.ir_values = Stamped(ir_values, Time.from_msg(ir.header.stamp))
 
 def hazard_detection_callback(subscriber: "Subscriber", hazards: HazardDetectionVector) -> None:
     """Parse hazard detections (bumpers and cliffs) and update the shared state objects."""
@@ -113,7 +114,7 @@ def imu_callback(subscriber: "Subscriber", imu: Imu) -> None:
     acceleration.y = accel.y
     acceleration.z = accel.z
     
-    subscriber._subscription_msgs.acceleration = Stamped(acceleration, imu.header.stamp)
+    subscriber._subscription_msgs.acceleration = Stamped(acceleration, Time.from_msg(imu.header.stamp))
 
 def dock_status_callback(subscriber: "Subscriber", status: DockStatus) -> None:
     """Update docking-related values (visible, docked)."""

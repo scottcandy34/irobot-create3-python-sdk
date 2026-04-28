@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from create3.models import Nodes
 from create3.models.robot import Tasks as RobotTasks
 from create3.models.remote import Tasks as RemoteTasks
+from create3.models.common import Tasks as CommonTasks
 from create3.models.companion import Tasks as CompanionTasks
 
 if TYPE_CHECKING:
@@ -18,9 +19,11 @@ from .tasks.companion import (
 )
 from .tasks.robot import ir_lightring_task
 from .tasks.remote import controller_task
+from .tasks.common import history_keeper_task
 
 # Task → callback function
 TASK_CALLBACKS = {
+    CommonTasks.HISTORY_KEEPER: history_keeper_task,
     CompanionTasks.GENERATE_COORDS: generate_coords_task,
     CompanionTasks.WALL_DETECTION: wall_detection_task,
     CompanionTasks.COLUMN_DETECTION: column_detection_task,
@@ -46,6 +49,9 @@ def check_requirements(scheduler: "TaskSchedular", task: Any) -> bool:
     Returns True only if the task can safely be added.
     """
     match task:
+        # === Common Tasks ===
+        case CommonTasks.HISTORY_KEEPER:
+            return True
         # === Companion Tasks ===
         case CompanionTasks.GENERATE_COORDS:
             if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):

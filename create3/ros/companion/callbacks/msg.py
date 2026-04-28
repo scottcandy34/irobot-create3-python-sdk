@@ -6,6 +6,7 @@
 import math
 from typing import TYPE_CHECKING
 
+from rclpy.time import Time
 from sensor_msgs.msg import LaserScan, Range
 
 from create3.models.common import Stamped
@@ -43,7 +44,7 @@ def scan_callback(subscriber: "Subscriber", scan: LaserScan) -> None:
 
     lidar.time_increment = scan.time_increment
     
-    subscriber._subscription_msgs.lidar = Stamped(lidar, scan.header.stamp)
+    subscriber._subscription_msgs.lidar = Stamped(lidar, Time.from_msg(scan.header.stamp))
 
 def range_callback(subscriber: "Subscriber", range_: Range) -> None:
     """Handle incoming ultrasonic Range data and update the shared ultrasonic state.
@@ -62,5 +63,5 @@ def range_callback(subscriber: "Subscriber", range_: Range) -> None:
     ultrasonic.min_range = range_.min_range * 100.0
     ultrasonic.range = range_.range * 100.0
     
-    subscriber._subscription_msgs.ultrasonic = Stamped(ultrasonic, range_.header.stamp)
+    subscriber._subscription_msgs.ultrasonic = Stamped(ultrasonic, Time.from_msg(range_.header.stamp))
     

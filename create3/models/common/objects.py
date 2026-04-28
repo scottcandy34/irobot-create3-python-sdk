@@ -129,6 +129,16 @@ class Stamped(Generic[T]):
 
     timestamp: Time = field(default_factory=lambda: Time.from_msg(Time().to_msg()))
     """ROS clock timestamp when the data was captured or created."""
+    
+    # Auto-generated friendly name from the wrapped object's class
+    name: str = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Automatically set a readable name based on the wrapped data's class."""
+        if hasattr(self.data, "__class__") and hasattr(self.data.__class__, "__name__"):
+            self.name = self.data.__class__.__name__
+        else:
+            self.name = type(self.data).__name__
 
     def __repr__(self) -> str:
         """Clean, informative string representation."""

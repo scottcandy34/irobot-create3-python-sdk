@@ -6,6 +6,7 @@
 import math
 from typing import TYPE_CHECKING
 
+from rclpy.time import Time
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from yolo_msgs.msg import DetectionArray
@@ -88,7 +89,7 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
 
     map_.origin = position
     
-    subscriber._subscription_msgs.map = Stamped(map_, grid.header.stamp)
+    subscriber._subscription_msgs.map = Stamped(map_, Time.from_msg(grid.header.stamp))
     
 def yolo_detections_callback(subscriber: "Subscriber", detection_array: DetectionArray) -> None:
     """Handle incoming YOLO detection array and convert detections into
@@ -112,4 +113,4 @@ def yolo_detections_callback(subscriber: "Subscriber", detection_array: Detectio
         )
         yolo.bounding_boxes.append(bbox)
         
-    subscriber._subscription_msgs.yolo = Stamped(yolo, detection_array.header.stamp)
+    subscriber._subscription_msgs.yolo = Stamped(yolo, Time.from_msg(detection_array.header.stamp))
