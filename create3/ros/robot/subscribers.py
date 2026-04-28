@@ -5,6 +5,7 @@
 
 from typing import TYPE_CHECKING
 
+from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -34,19 +35,36 @@ qos_profile = QoSProfile(
 )
 
 class Subscriber(Threading if TYPE_CHECKING else object):
-    """Handles ROS subscribers for robot data."""
+    """ROS subscriber manager for the iRobot Create3.
 
-    def __init__(self, node):
-        super().__init__(node) # trigger original code before it gets overwritten
+    Creates subscriptions to all core robot topics (odometry, IR intensity,
+    hazards, buttons, battery, IMU, dock status, IR opcode, etc.) and keeps
+    the most recent data in a shared `_subscription_msgs` container.
 
-        # Hidden global callback information
-        self._subscription_msgs = Subscribe()
-        """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
+    All callbacks run inside a `MutuallyExclusiveCallbackGroup` so they never
+    block each other. The class also registers itself with the debugger for
+    uptime and interface monitoring.
+    """
 
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
+    def __init__(self, node: Node) -> None:
+        """Initialize the subscriber and create all ROS topic subscriptions.
+
+        Parameters
+        ----------
+        node : Node
+            The ROS node that owns these subscriptions.
+        """
+        super().__init__(node)  # initialize Threading + Logger
+
+        # Shared container that holds the latest message data for every topic
+        self._subscription_msgs: Subscribe = Subscribe()
+
+        # Use a mutually exclusive callback group so callbacks never block each other
         subscriber_callback_group = MutuallyExclusiveCallbackGroup()
-    
-        # Create Subscription
+
+        # ------------------------------------------------------------------
+        # Create all subscriptions
+        # ------------------------------------------------------------------
         self._odom = self.node.create_subscription(Odometry, 'odom', lambda msg: odom_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', lambda msg: ir_intensity_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', lambda msg: hazard_detection_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
@@ -56,42 +74,57 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', lambda msg: dock_status_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', lambda msg: ir_opcode_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
 
-        # Add topics to debugger
-        self.debug.subscriptions = [self._odom, self._ir_intensity, self._hazard_detection, self._interface_buttons, self._battery_state, self._imu, self._dock_status, self._ir_opcode]
 
-    def get_ir_proximity(self):
-        """Get most recent IR proximity sensor values as a list of 7 integers."""
-        return self._subscription_msgs.ir_values
-        
+        # Register all subscriptions with the debugger for uptime monitoring
+        self.debug.subscriptions = [
+            self._odom,
+            self._ir_intensity,
+            self._hazard_detection,
+            self._interface_buttons,
+            self._battery_state,
+            self._imu,
+            self._dock_status,
+            self._ir_opcode,
+        ]
+
+    # ----------------------------------------------------------------------
+    # Public getters (convenience API for the rest of the codebase)
+    # ----------------------------------------------------------------------
+
+    def get_ir_proximity(self) -> list[int]:
+        """Return the most recent IR proximity sensor readings (7 integers)."""
+        return self._subscription_msgs.ir_values.data
+
     def get_position(self) -> Position:
-        """Get robot's position and heading.
-        
+        """Return the robot's current position and heading.
+
         Units:
-            x, y: cm
-            heading: deg
+            x, y     → centimeters
+            angle    → degrees
         """
-        return self._subscription_msgs.position # return position
-    
+        return self._subscription_msgs.position.data
+
     def get_bumpers(self) -> HazardBumper:
-        """Returns object of most recently seen bumper states."""
+        """Return the most recent bumper states as a `HazardBumper` object."""
         return self._subscription_msgs.bumpers
-    
+
     def get_cliff_sensors(self) -> HazardCliff:
-        """Returns object of most recently seen cliff sensor states."""
+        """Return the most recent cliff sensor states as a `HazardCliff` object."""
         return self._subscription_msgs.cliff
-    
+
     def get_touch_sensors(self) -> InterfaceButtons:
-        """Returns object of most recently seen touch sensor states."""
+        """Return the most recent physical button states."""
         return self._subscription_msgs.buttons
-    
+
     def get_battery_level(self) -> int | float:
-        """Get battery level as percentage."""
+        """Return the current battery level as a percentage (0–100)."""
         return self._subscription_msgs.battery
-    
+
     def get_accelerometer(self) -> Acceleration:
-        """Get accelerometer values as an object with x, y, and z properties."""
-        return self._subscription_msgs.acceleration
-    
+        """Return the most recent linear acceleration values (x, y, z)."""
+        return self._subscription_msgs.acceleration.data
+
     def get_docking_values(self) -> DockingValues:
-        """Get most recent docking values as an object with is_docked, dock_visible, sensor, greenBuoy, redBuoy, and forceField properties."""
+        """Return the most recent docking sensor values
+        (is_docked, dock_visible, sensor, redBuoy, greenBuoy, forceField)."""
         return self._subscription_msgs.dockingValues

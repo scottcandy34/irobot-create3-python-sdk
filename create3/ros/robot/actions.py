@@ -6,6 +6,7 @@
 import time, math
 from typing import TYPE_CHECKING
 
+from rclpy.node import Node
 from rclpy.publisher import Publisher
 from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient as CreateActionClient
@@ -16,393 +17,337 @@ from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistanc
 
 from create3.models.robot import Subscribe
 import create3.utils.robot as tools
-from create3.utils.common import convert_to_quaternion
-from create3.utils import Threading, TIMEOUT, DEFAULT_WAIT
+from create3.utils.common.coords import convert_to_quaternion, find_direction
+from create3.utils import Threading
+from create3.utils.common.other import TIMEOUT, DEFAULT_WAIT
 
 from .callbacks.goal import (
     goal_response_callback,
 )
 
 class ActionClient(Threading if TYPE_CHECKING else object):
-    """Setup ROS action clients, and handle goals."""
+    """ROS action client manager for the iRobot Create3.
+
+    Provides high-level control over:
+      • LED animations (spin, blink)
+      • Audio sequences
+      • Navigation, driving, turning, docking/undocking
+
+    All action clients use a mutually exclusive callback group so they never
+    interfere with subscriptions or other callbacks. The class also registers
+    itself with the debugger for interface monitoring.
+    """
 
     _velocities: Publisher
     _subscription_msgs: Subscribe
 
-    def __init__(self, node):
-        super().__init__(node) # trigger original code before it gets overwritten
+    def __init__(self, node: Node) -> None:
+        """Initialize all action clients and wait for the servers to become available.
+
+        Parameters
+        ----------
+        node : Node
+            The ROS node that owns these action clients.
+        """
+        super().__init__(node)  # initialize Threading + Logger
+
         self._use_goal = True
 
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
+        # Use a mutually exclusive callback group so action calls never block
+        # other callbacks (subscriptions, timers, etc.)
         action_callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Create Action Clients
-        self._led_animate = CreateActionClient(self.node, LedAnimation, 'led_animation', callback_group=action_callback_group)
-        self._led_animate.wait_for_server(TIMEOUT)
-        self._audio_sequence = CreateActionClient(self.node, AudioNoteSequence, 'audio_note_sequence', callback_group=action_callback_group)
-        self._audio_sequence.wait_for_server(TIMEOUT)
-        self._navigate = CreateActionClient(self.node, NavigateToPosition, 'navigate_to_position', callback_group=action_callback_group)
-        self._navigate.wait_for_server(TIMEOUT)
-        self._drive_arc = CreateActionClient(self.node, DriveArc, 'drive_arc', callback_group=action_callback_group)
-        self._drive_arc.wait_for_server(TIMEOUT)
-        self._drive_distance = CreateActionClient(self.node, DriveDistance, 'drive_distance', callback_group=action_callback_group)
-        self._drive_distance.wait_for_server(TIMEOUT)
-        self._rotate_angle = CreateActionClient(self.node, RotateAngle, 'rotate_angle', callback_group=action_callback_group)
-        self._rotate_angle.wait_for_server(TIMEOUT)
-        self._dock = CreateActionClient(self.node, Dock, 'dock', callback_group=action_callback_group)
-        self._dock.wait_for_server(TIMEOUT)
-        self._undock = CreateActionClient(self.node, Undock, 'undock', callback_group=action_callback_group)
-        self._undock.wait_for_server(TIMEOUT)
+        # Create action clients
+        self._led_animate = CreateActionClient(self.node, LedAnimation, "led_animation", callback_group=action_callback_group)
+        self._audio_sequence = CreateActionClient(self.node, AudioNoteSequence, "audio_note_sequence", callback_group=action_callback_group)
+        self._navigate = CreateActionClient(self.node, NavigateToPosition, "navigate_to_position", callback_group=action_callback_group)
+        self._drive_arc = CreateActionClient(self.node, DriveArc, "drive_arc", callback_group=action_callback_group)
+        self._drive_distance = CreateActionClient(self.node, DriveDistance, "drive_distance", callback_group=action_callback_group)
+        self._rotate_angle = CreateActionClient(self.node, RotateAngle, "rotate_angle", callback_group=action_callback_group)
+        self._dock = CreateActionClient(self.node, Dock, "dock", callback_group=action_callback_group)
+        self._undock = CreateActionClient(self.node, Undock, "undock", callback_group=action_callback_group)
 
-        # Add actions to debugger
-        self.debug.actions = [self._led_animate, self._audio_sequence, self._navigate, self._drive_arc, self._drive_distance, self._rotate_angle, self._dock, self._undock]
+        # Wait for all action servers
+        self._led_animate.wait_for_server(timeout_sec=TIMEOUT)
+        self._audio_sequence.wait_for_server(timeout_sec=TIMEOUT)
+        self._navigate.wait_for_server(timeout_sec=TIMEOUT)
+        self._drive_arc.wait_for_server(timeout_sec=TIMEOUT)
+        self._drive_distance.wait_for_server(timeout_sec=TIMEOUT)
+        self._rotate_angle.wait_for_server(timeout_sec=TIMEOUT)
+        self._dock.wait_for_server(timeout_sec=TIMEOUT)
+        self._undock.wait_for_server(timeout_sec=TIMEOUT)
 
-    def set_lights_spin_rgb(self, r: int, g: int, b: int):
-        """Set robot's LED to spin with desired color red, green, blue."""
-        
-        # Set individual LED color
-        led1 = LedColor(red=r, green=g, blue=b)
-        led2 = LedColor(red=r, green=g, blue=b)
-        led3 = LedColor(red=r, green=g, blue=b)
-        led4 = LedColor()
-        led5 = LedColor()
-        led6 = LedColor()
-        
-        # Create animation goal message
+        # Register with debugger for interface monitoring
+        self.debug.actions = [
+            self._led_animate,
+            self._audio_sequence,
+            self._navigate,
+            self._drive_arc,
+            self._drive_distance,
+            self._rotate_angle,
+            self._dock,
+            self._undock,
+        ]
+
+    # =====================================================================
+    # LED Animations
+    # =====================================================================
+
+    def set_lights_spin_rgb(self, r: int, g: int, b: int) -> None:
+        """Start a spinning LED animation with the given RGB color.
+
+        The animation runs for up to 500 seconds (or until cancelled).
+        """
+        led = LedColor(red=r, green=g, blue=b)
         led_msg = LedAnimation.Goal()
         led_msg.animation_type = LedAnimation.Goal.SPIN_LIGHTS
         led_msg.lightring.override_system = True
-        led_msg.lightring.leds = [led1, led2, led3, led4, led5, led6]
-        led_msg.max_runtime = Duration(sec = 500, nanosec = 0) # how long animation lasts
-        
+        led_msg.lightring.leds = [led, led, led, LedColor(), LedColor(), LedColor()]
+        led_msg.max_runtime = Duration(sec=500, nanosec=0)
+
         future = self._led_animate.send_goal_async(led_msg)
         future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-        
-    def set_lights_blink_rgb(self, r: int, g: int, b: int):
-        """Set robot's LED to blink with desired color red, gree, blue."""
-        
-        # Set individual LED color
-        led1 = LedColor(red=r, green=g, blue=b)
-        led2 = LedColor(red=r, green=g, blue=b)
-        led3 = LedColor(red=r, green=g, blue=b)
-        led4 = LedColor(red=r, green=g, blue=b)
-        led5 = LedColor(red=r, green=g, blue=b)
-        led6 = LedColor(red=r, green=g, blue=b)
-        
-        # Create animation goal message
+
+    def set_lights_blink_rgb(self, r: int, g: int, b: int) -> None:
+        """Start a blinking LED animation with the given RGB color.
+
+        The animation runs for up to 500 seconds (or until cancelled).
+        """
+        led = LedColor(red=r, green=g, blue=b)
         led_msg = LedAnimation.Goal()
         led_msg.animation_type = LedAnimation.Goal.BLINK_LIGHTS
         led_msg.lightring.override_system = True
-        led_msg.lightring.leds = [led1, led2, led3, led4, led5, led6]
-        # led_msg.max_runtime.sec = 500 # how long animation lasts
-        led_msg.max_runtime = Duration(sec = 500, nanosec = 0)
-        
+        led_msg.lightring.leds = [led] * 6
+        led_msg.max_runtime = Duration(sec=500, nanosec=0)
+
         future = self._led_animate.send_goal_async(led_msg)
         future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-        
-    def play_note(self, frequency: float | int, duration: float | int):
-        """PLay note with frequency in hertz for duration in seconds."""
-        
-        # Set individual Note
+
+    # =====================================================================
+    # Audio
+    # =====================================================================
+
+    def play_note(self, frequency: float | int, duration: float | int) -> None:
+        """Play a single tone at the given frequency (Hz) for the given duration (seconds)."""
         sec = int(duration)
-        nanosec = round((duration - sec) * 1000000000)
+        nanosec = round((duration - sec) * 1_000_000_000)
+
         note = AudioNote(frequency=frequency, max_runtime=Duration(sec=sec, nanosec=nanosec))
-        
-        # Create audio message
-        audio_msg = AudioNoteVector()
-        audio_msg.append = False
-        audio_msg.notes = [note]
-        
+
+        audio_msg = AudioNoteSequence.Goal()
+        audio_msg.note_sequence.append = False
+        audio_msg.note_sequence.notes = [note]
+
         future = self._audio_sequence.send_goal_async(audio_msg)
         future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-        
-    def dock(self):
-        """Request a docking action"""
-        
-        # Create Dock Goal message
-        dockingMsg = Dock.Goal()
-        
-        # Send Dock Goal message
-        self._dock.send_goal(dockingMsg)
-        
-    def undock(self):
-        """Request a undocking action"""
-        
-        # Create Undock Goal message
-        undockingMsg = Undock.Goal()
-        
-        # Send Undock Goal message
-        self._undock.send_goal(undockingMsg)
-        
-    def navigate_to(self, x: float | int, y: float | int, heading: float | int = None, speed: float | int = 20, use_goal: bool = True):
-        """ If heading is None, then it will be ignored, and the robot will arrive to its destination
-        pointing towards the direction of the line between the destination and the origin points.
-        
-        heading is -180 to 180
-        
+
+    # =====================================================================
+    # Docking
+    # =====================================================================
+
+    def dock(self) -> None:
+        """Request the robot to dock with the dock station."""
+        self._dock.send_goal(Dock.Goal())
+
+    def undock(self) -> None:
+        """Request the robot to undock from the dock station."""
+        self._undock.send_goal(Undock.Goal())
+
+    # =====================================================================
+    # High-level navigation & movement
+    # =====================================================================
+
+    def navigate_to(self, x: float | int, y: float | int, heading: float | int | None = None, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Navigate to a world coordinate (x, y) in centimeters.
+
+        If `heading` is provided, the robot will face that direction (degrees)
+        after arriving. Otherwise it will point along the line of travel.
+
         Units:
-            x, y: cm
-            heading: deg
-            speed: cm/s
-            use_goal: bool
+            x, y     → cm
+            heading  → degrees (-180 to 180)
+            speed    → cm/s
         """
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        # Calculate differences between current position and new position
-        dif_x = (x - self._subscription_msgs.position.x) / 100 # Difference in X coords and convert to (m) | x(cm) - current_x(cm) / 100
-        dif_y = (y - self._subscription_msgs.position.y) / 100 # Difference in Y coords and convert to (m) | y(cm) - current_y(cm) / 100
-        dist = math.sqrt(dif_x**2 + dif_y**2) # Get distance to move to new coords (Pythagorean Theorem) | sqrt( difference_x(m)^2 + difference_y(m)^2 ) = distance(m)
-        
-        angle = math.atan2(dif_y, dif_x) - math.radians(self._subscription_msgs.position.angle) # Get angle (in radians) to Turn to for new coords | atan2( difference_y(m), difference_x(m) ) - current_angle(rad) = angle_facing_move(rad)
-        dif_w = math.radians(heading - angle) if heading else 0 # Difference in W orientation (Heading) | heading(rad) - angle_facing_move(rad) = heading_angle_left(rad)
-        
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        speed = speed / 100 # convert to meters
-        angularSpeed = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-        
+        self.set_wheel_speeds(0, 0)  # stop any previous velocity commands
+
+        direction = find_direction((x, y), self._subscription_msgs.position.data)
+
+        # Heading correction (if requested)
+        dif_w = math.radians(heading - direction.angle) if heading is not None else 0.0
+
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2.0
+        angular_speed = speed / radius
+
         if use_goal and self._use_goal:
-            # Create Navigation Goal message
             nav_msg = NavigateToPosition.Goal()
-            nav_msg.goal_pose.pose.position.x = x / 100 # Convert to meters
-            nav_msg.goal_pose.pose.position.y = y / 100 # Convert to meters
-            nav_msg.max_translation_speed = speed
-            nav_msg.max_rotation_speed = angularSpeed
-            
-            # Configure Heading part of message
+            nav_msg.goal_pose.pose.position.x = x / 100.0
+            nav_msg.goal_pose.pose.position.y = y / 100.0
+            nav_msg.max_translation_speed = speed / 100.0
+            nav_msg.max_rotation_speed = angular_speed
+
             if heading is not None:
-                nav_msg.achieve_goal_heading = True # Tell robot to Turn to heading value
-                orientation = convert_to_quaternion(0, 0, math.radians(heading)) # Convert heading to radians and convert from Euler angles to Quaternion rotations
-                nav_msg.goal_pose.pose.orientation.z = orientation[2] # Set z value from Quaternion rotation
-                nav_msg.goal_pose.pose.orientation.w = orientation[3] # Set w value from Quaternion rotation
+                nav_msg.achieve_goal_heading = True
+                orientation = convert_to_quaternion(0.0, 0.0, math.radians(heading))
+                nav_msg.goal_pose.pose.orientation.z = orientation.z
+                nav_msg.goal_pose.pose.orientation.w = orientation.w
             else:
-                nav_msg.achieve_goal_heading = False # Tell robot to ignore heading value
-            
-            # Send Navigate Goal message
+                nav_msg.achieve_goal_heading = False
+
             future = self._navigate.send_goal_async(nav_msg)
             future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Calculate Time to complete goal
-            # Turn and face the new coordinate point  |  Move distance to new coordinate point  |  Turn to new heading
-            # angle(rad) / angular_velocity(rad/s)    +  distance(m) / linear_velocity(m/s)     +  angle(rad) / angular_velocity(rad/s)
-            t = abs(angle / angularSpeed) + abs(dist / speed) + abs(dif_w / angularSpeed)
-            time.sleep(DEFAULT_WAIT + t) # wait for goal to complete
-        
+
+            # Estimated time for the whole maneuver
+            t = (abs(direction.angle / angular_speed) + abs(direction.distance / speed) + abs(dif_w / angular_speed))
+            time.sleep(DEFAULT_WAIT + t)
+
         else:
-            # First action turn to face new coords
-            direction = angle / abs(angle)
-            if direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
-            elif direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
-            
-            # Second action move to new coords
-            if dist > 0:
-                self.move(dist * 100, speed * 100, use_goal=False)
-                
-            # Third and final action turn to new heading from current heading.        
-            direction = dif_w / abs(dif_w) if heading else 0
-            if heading and direction == -1:
-                self.turn_right(math.degrees(angle), speed * 100, use_goal=False)
-            elif heading and direction == 1:
-                self.turn_left(math.degrees(angle), speed * 100, use_goal=False)
-        
-    def turn_left(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
-        """Rotate left for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        angle = abs(math.radians(angle)) # must be a positive to turn left and convert to radians
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-        # Calculate time
-        t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
-        
+            # Manual fallback (turn → drive → final heading)
+            turn_dir = direction.angle / abs(direction.angle) if direction.angle != 0 else 0
+            if turn_dir == -1:
+                self.turn_right(math.degrees(direction.angle), speed, use_goal=False)
+            elif turn_dir == 1:
+                self.turn_left(math.degrees(direction.angle), speed, use_goal=False)
+
+            if direction.distance > 0:
+                self.move(direction.distance, speed, use_goal=False)
+
+            if heading is not None:
+                turn_dir = dif_w / abs(dif_w)
+                if turn_dir == -1:
+                    self.turn_right(math.degrees(dif_w), speed, use_goal=False)
+                elif turn_dir == 1:
+                    self.turn_left(math.degrees(dif_w), speed, use_goal=False)
+
+    # =====================================================================
+    # Primitive movement commands
+    # =====================================================================
+
+    def turn_left(self, angle: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Rotate left by `angle` degrees at the given speed (cm/s)."""
+        self.set_wheel_speeds(0, 0)
+
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2.0
+        twist_msg = tools.velocity.get_twist(abs(speed), radius)
+        t = tools.velocity.get_motion_time(twist_msg, angle_deg=abs(angle))
+
         if use_goal and self._use_goal:
-            # Create Rotate Goal message
             rotate_msg = RotateAngle.Goal()
-            rotate_msg.angle = angle
-            rotate_msg.max_rotation_speed = angularSpeed
-            
-            # Send Rotate Goal message
+            rotate_msg.angle = abs(math.radians(angle))
+            rotate_msg.max_rotation_speed = twist_msg.angular.z
+
             future = self._rotate_angle.send_goal_async(rotate_msg)
             future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Calculate time and wait
-            time.sleep(DEFAULT_WAIT + t)
-        
-        else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = angularSpeed * angle / abs(angle)
-            
-            # Send twist with time
-            self._run_twist(twist_msg, t)
-        
-    def turn_right(self, angle: float | int, speed: float | int = 20, use_goal: bool = True):
-        """Rotate right for specific angle in degrees. Speed in cm/s. use_goal to enable or disable goals."""
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        angle = -abs(math.radians(angle)) # must be a negative to turn right and convert to radians
-        radius = tools.constraints.WHEEL_DISTANCE_APART / 100 / 2 # convert to meters and divide by 2 to get radius
-        angularSpeed = (speed / 100) / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-        # Calculate time
-        t = abs(angle / angularSpeed) # time = angle(rad) / angular_velocity(rad/s)
-        
-        if use_goal and self._use_goal:
-            # Create Rotate Goal message
-            rotate_msg = RotateAngle.Goal()
-            rotate_msg.angle = angle
-            rotate_msg.max_rotation_speed = angularSpeed
-            
-            # Send Rotate Goal message and wait
-            future = self._rotate_angle.send_goal_async(rotate_msg)
-            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Calculate time and wait
-            time.sleep(DEFAULT_WAIT + t)
-        
-        else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = angularSpeed * angle / abs(angle)
-            
-            # Send twist with time
-            self._run_twist(twist_msg, t)
-    
-    def move(self, distance: float | int, speed: float | int = 20, use_goal: bool = True):
-        """Drive distance in centimeters. Speed in cm/s. use_goal to enable or disable goals."""
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        distance = distance / 100 # convert to meters
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(distance / speed) # time = distance(m) / linear_velocity(m/s)
-        
-        if use_goal and self._use_goal:
-            # Create Drive Distance Goal message
-            move_msg = DriveDistance.Goal()
-            move_msg.distance = distance
-            move_msg.max_translation_speed = speed
-            
-            # Send Drive Distance Goal message and wait
-            future = self._drive_distance.send_goal_async(move_msg)
-            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Calculate time and wait
             time.sleep(DEFAULT_WAIT + t)
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.linear.x = speed # Just set linear_velocity(m/s)
-            
-            # Send twist with time
             self._run_twist(twist_msg, t)
 
-    def arc_left(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True):
-        """Drive arc 'left' defined by angle in degrees and radius in cm.
-        
-        direction is 1 for forward and -1 for backwards
-        
-        Speed in cm/s. use_goal to enable or disable goals.
-        """
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        # Checks if direction input is valid
-        if direction != 1 and direction != -1:
-            raise Exception("Direction must be 1 or -1")
-        
-        angle = abs(math.radians(angle)) * direction # must be a positive to turn left and convert to radians
-        radius = abs(radius / 100) # convert to meters and must be positive
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
-        
-        
+    def turn_right(self, angle: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Rotate right by `angle` degrees at the given speed (cm/s)."""
+        self.set_wheel_speeds(0, 0)
+
+        radius = tools.constraints.WHEEL_DISTANCE_APART / 2.0
+        twist_msg = tools.velocity.get_twist(-abs(speed), radius)
+        t = tools.velocity.get_motion_time(twist_msg, angle_deg=abs(angle))
+
         if use_goal and self._use_goal:
-            # Create Drive Arc Goal message
+            rotate_msg = RotateAngle.Goal()
+            rotate_msg.angle = -abs(math.radians(angle))
+            rotate_msg.max_rotation_speed = twist_msg.angular.z
+
+            future = self._rotate_angle.send_goal_async(rotate_msg)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
+            time.sleep(DEFAULT_WAIT + t)
+        else:
+            self._run_twist(twist_msg, t)
+
+    def move(self, distance: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Drive straight for `distance` cm at the given speed (cm/s)."""
+        self.set_wheel_speeds(0, 0)
+
+        twist_msg = tools.velocity.get_twist(speed, 0.0)
+        t = tools.velocity.get_motion_time(twist_msg, distance_cm=abs(distance))
+
+        if use_goal and self._use_goal:
+            move_msg = DriveDistance.Goal()
+            move_msg.distance = abs(distance) / 100.0
+            move_msg.max_translation_speed = speed / 100.0
+
+            future = self._drive_distance.send_goal_async(move_msg)
+            future.add_done_callback(lambda msg: goal_response_callback(self, msg))
+            time.sleep(DEFAULT_WAIT + t)
+        else:
+            self._run_twist(twist_msg, t)
+
+    def arc_left(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Drive a left arc of `angle` degrees with given radius (cm).
+
+        `direction` = 1 (forward) or -1 (backward).
+        """
+        self.set_wheel_speeds(0, 0)
+
+        if direction not in (1, -1):
+            raise ValueError("Direction must be 1 (forward) or -1 (backward)")
+
+        twist_msg = tools.velocity.get_twist(abs(speed) * direction, abs(radius))
+        t = tools.velocity.get_motion_time(twist_msg, angle_deg=abs(angle))
+
+        if use_goal and self._use_goal:
             arc_msg = DriveArc.Goal()
-            arc_msg.angle = angle # must be a positive to turn left and convert to radians
-            arc_msg.radius = radius # convert to meters and must be positive
-            arc_msg.max_translation_speed = speed
-            arc_msg.translate_direction = direction # sets direction to move
-            
-            # Send Drive Arc Goal message and wait
+            arc_msg.angle = abs(math.radians(angle))
+            arc_msg.radius = abs(radius) / 100.0
+            arc_msg.max_translation_speed = abs(speed)
+            arc_msg.translate_direction = direction
+
             future = self._drive_arc.send_goal_async(arc_msg)
             future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Wait for goal to finish with calculated time
             time.sleep(DEFAULT_WAIT + t)
-        
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-            twist_msg.linear.x = speed * direction
-            
-            # Send twist with time
             self._run_twist(twist_msg, t)
-        
-    def arc_right(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True):
-        """Drive arc 'right' defined by angle in degrees and radius in cm.
-        
-        direction is 1 for forward and -1 for backwards
-        
-        Speed in cm/s. use_goal to enable or disable goals.
+
+    def arc_right(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Drive a right arc of `angle` degrees with given radius (cm).
+
+        `direction` = 1 (forward) or -1 (backward).
         """
-        
-        self.set_wheel_speeds(0,0) # Clear set wheel speeds
-        
-        if direction != 1 and direction != -1:
-            raise Exception("Direction must be 1 or -1")
-        
-        angle = -abs(math.radians(angle)) * direction # must be a negative to turn right and convert to radians
-        radius = abs(radius / 100) # convert to meters and must be negative
-        speed = speed / 100 # convert to meters
-        # Calculate time
-        t = abs(angle * radius / speed) # time = angle(rad) * radius(m) / linear_velocity(m/s)
-        
+        self.set_wheel_speeds(0, 0)
+
+        if direction not in (1, -1):
+            raise ValueError("Direction must be 1 (forward) or -1 (backward)")
+
+        twist_msg = tools.velocity.get_twist(abs(speed) * direction, -abs(radius))
+        t = tools.velocity.get_motion_time(twist_msg, angle_deg=abs(angle))
+
         if use_goal and self._use_goal:
-            # Create Drive Arc Goal message
             arc_msg = DriveArc.Goal()
-            arc_msg.angle = angle
-            arc_msg.radius = radius
-            arc_msg.max_translation_speed = speed
-            arc_msg.translate_direction = direction # sets direction to move
-            
-            # Send Drive Arc Goal message and wait
+            arc_msg.angle = -abs(math.radians(angle))
+            arc_msg.radius = abs(radius) / 100.0
+            arc_msg.max_translation_speed = abs(speed)
+            arc_msg.translate_direction = direction
+
             future = self._drive_arc.send_goal_async(arc_msg)
             future.add_done_callback(lambda msg: goal_response_callback(self, msg))
-            
-            # Wait for goal to finish with calculated time
             time.sleep(DEFAULT_WAIT + t)
-        
         else:
-            # Create Twist message
-            twist_msg = Twist()
-            twist_msg.angular.z = -speed / radius # speed(m/s) / radius(m) = angular_velocity(rad/s)
-            twist_msg.linear.x = speed * direction
-            
-            # Send twist with time
             self._run_twist(twist_msg, t)
-        
-    def _run_twist(self, twist_msg: Twist, waitTime: float):
-        """Runs twist until time is completed. Time is in seconds."""
-        loop = math.floor(waitTime / 0.5) # Divides waitTime by 0.5s since thats how long a twist command runs for. Returns only whole numbers rounded down
-        remainder = waitTime - (loop * 0.5) # Finds the remainder waitTime that was less than 0.5s
-        
-        # Publish twist every 0.5s
-        for i in range(loop):
+
+    # =====================================================================
+    # Internal helper
+    # =====================================================================
+
+    def _run_twist(self, twist_msg: Twist, wait_time: float) -> None:
+        """Publish a twist command repeatedly for `wait_time` seconds.
+
+        Used when `use_goal=False` for manual timed movement.
+        """
+        loop = math.floor(wait_time / 0.5)
+        remainder = wait_time - (loop * 0.5)
+
+        for _ in range(loop):
             self._velocities.publish(twist_msg)
-            time.sleep(0.499) # This is just less than 0.5s so it can account for the time it takes in the loop and then publish again.
-        
-        # Send final twist message
+            time.sleep(0.499)
+
         self._velocities.publish(twist_msg)
-        time.sleep(remainder) # Waits for the remainder of the time 
-        self._velocities.publish(Twist()) # Sends empty twist to stop the robot at exactly the correct timing.
-        
-        # Final wait to not get interrupted by possible other commands
-        time.sleep(0.5)
+        time.sleep(remainder)
+        self._velocities.publish(Twist())  # stop
+
+        time.sleep(0.5)  # final safety buffer

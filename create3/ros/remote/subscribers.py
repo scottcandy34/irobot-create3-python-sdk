@@ -5,6 +5,7 @@
 
 from typing import TYPE_CHECKING
 
+from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -28,34 +29,52 @@ qos_profile = QoSProfile(
 )
 
 class Subscriber(Threading if TYPE_CHECKING else object):
-    """Handles ROS subscribers for robot data."""
+    """ROS subscriber manager for companion/remote topics (joystick, map, YOLO).
 
-    def __init__(self, node):
-        super().__init__(node) # trigger original code before it gets overwritten
+    This class handles higher-level perception and control input topics.
+    All callbacks run in a mutually exclusive callback group so they never
+    interfere with each other or with other nodes.
 
-        # Hidden global callback information
-        self._subscription_msgs = Subscribe
-        """Contains the most recent messages received for each topic. Updated when a callback is triggered."""
+    The class also registers itself with the debugger for uptime and
+    interface monitoring.
+    """
 
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
+    def __init__(self, node: Node) -> None:
+        """Initialize subscriptions for joystick input, occupancy grid, and YOLO detections.
+
+        Parameters
+        ----------
+        node : Node
+            The ROS node that owns these subscriptions.
+        """
+        super().__init__(node)  # initialize Threading + Logger
+
+        # Shared container that holds the latest message data for every topic
+        self._subscription_msgs: Subscribe = Subscribe()
+
+        # Use a mutually exclusive callback group so callbacks never block each other
         subscriber_callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Create Subscription
+        # Create subscriptions
         self._joy = self.node.create_subscription(Joy, 'joy', lambda msg: joy_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._map = self.node.create_subscription(OccupancyGrid, 'map', lambda msg: map_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
         self._yolo_detections = self.node.create_subscription(DetectionArray, '/yolo/detections', lambda msg: yolo_detections_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
 
-        # Add topics to debugger
+        # Register all subscriptions with the debugger for uptime monitoring
         self.debug.subscriptions = [self._joy, self._map, self._yolo_detections]
 
+    # ----------------------------------------------------------------------
+    # Public getters (convenience API for the rest of the codebase)
+    # ----------------------------------------------------------------------
+
     def get_controller(self) -> Controller:
-        """Returns the controller input."""
+        """Return the most recent controller (joystick) input data."""
         return self._subscription_msgs.controller
-    
+
     def get_map(self) -> Map:
-        """Returns the latest map message."""
-        return self._subscription_msgs.map
+        """Return the most recent occupancy grid map data."""
+        return self._subscription_msgs.map.data
 
     def get_yolo(self) -> Yolo:
-        """Returns the latest YOLO detections."""
-        return self._subscription_msgs.yolo
+        """Return the most recent YOLO object detections."""
+        return self._subscription_msgs.yolo.data
