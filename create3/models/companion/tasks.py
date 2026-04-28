@@ -22,3 +22,6 @@ class Tasks(StrEnum):
 
     SIMPLE_WALL_FOLLOWER = auto()
     """Reactive wall-following behavior using LiDAR and PID control."""
+
+    GENERATE_POINT_CLOUD = auto()
+    """Generate a clean point cloud from the output of GENERATE_COORDS."""

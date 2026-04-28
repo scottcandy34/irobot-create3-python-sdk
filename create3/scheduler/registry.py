@@ -16,6 +16,7 @@ from .tasks.companion import (
     column_detection_task,
     lidar_lightring_task,
     simple_wall_follower,
+    generate_point_cloud_task,
 )
 from .tasks.robot import ir_lightring_task
 from .tasks.remote import controller_task
@@ -29,6 +30,7 @@ TASK_CALLBACKS = {
     CompanionTasks.COLUMN_DETECTION: column_detection_task,
     CompanionTasks.LIDAR_LIGHTRING: lidar_lightring_task,
     CompanionTasks.SIMPLE_WALL_FOLLOWER: simple_wall_follower,
+    CompanionTasks.GENERATE_POINT_CLOUD: generate_point_cloud_task,
     RobotTasks.IR_LIGHTRING: ir_lightring_task,
     RemoteTasks.CONTROLLER: controller_task,
 }
@@ -85,6 +87,11 @@ def check_requirements(scheduler: "TaskScheduler", task: Any) -> bool:
                 scheduler.print_warning(f"{task} task cannot run together with {RemoteTasks.CONTROLLER}.")
                 return False
             
+        case CompanionTasks.GENERATE_POINT_CLOUD:
+            if not scheduler._find_device(Nodes.CREATE3_COMPANION):
+                scheduler.print_warning(f"{task} task requires {Nodes.CREATE3_COMPANION} nodes.")
+                return False
+
         # === Robot Tasks ===
         case RobotTasks.IR_LIGHTRING:
             if not scheduler._find_device(Nodes.CREATE3_ROBOT):
