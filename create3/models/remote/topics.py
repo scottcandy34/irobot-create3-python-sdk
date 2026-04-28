@@ -6,10 +6,10 @@
 from dataclasses import dataclass, field
 
 from .objects import Controller, Map, Yolo
-from create3.models.common import Stamped
+from create3.models.common import Stamped, TopicContainer
 
 @dataclass
-class Subscribe:
+class Subscribe(TopicContainer):
     """Container holding the most recent data from all remote subscriptions.
 
     Updated automatically by the callbacks in the remote node's `Subscriber` class.
@@ -25,7 +25,7 @@ class Subscribe:
     yolo: Stamped[Yolo] = field(default_factory=lambda: Stamped(Yolo()))
 
 @dataclass
-class Publish:
+class Publish(TopicContainer):
     """Container holding the current state of all remote publishers.
 
     Used by the background publish handlers to decide when to send commands.

@@ -8,11 +8,11 @@ from dataclasses import dataclass, field
 from irobot_create_msgs.action import LedAnimation
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
-from create3.models.common import Position, Stamped
+from create3.models.common import Position, Stamped, TopicContainer
 from .objects import HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
 
 @dataclass
-class Subscribe:
+class Subscribe(TopicContainer):
     """Container holding the most recent data from all robot subscriptions.
 
     Updated automatically by the callbacks in the robot's `Subscriber` class.
@@ -39,7 +39,7 @@ class Subscribe:
     dockingValues: DockingValues = field(default_factory=DockingValues)
 
 @dataclass
-class Publish:
+class Publish(TopicContainer):
     """Container holding the current and previous messages for all robot publishers.
 
     Used by the background publish handlers to decide when to send new commands.

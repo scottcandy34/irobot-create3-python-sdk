@@ -44,9 +44,9 @@ def history_keeper_task(scheduler: "TaskSchedular") -> None:
 
                 # Initialize history list if it doesn't exist
                 if history_key not in scheduler._outputs:
-                    scheduler._outputs[history_key] = []
+                    scheduler.set_task_output(history_key, [])
 
-                history: list[Stamped] = scheduler._outputs[history_key]
+                history: list[Stamped] = scheduler.get_task_output(history_key)
 
                 # Append the new stamped data
                 history.append(data)

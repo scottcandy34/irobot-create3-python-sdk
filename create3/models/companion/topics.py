@@ -8,10 +8,10 @@ from dataclasses import dataclass, field
 from std_msgs.msg import Float32
 
 from .objects import Lidar, Ultrasonic
-from create3.models.common import Stamped
+from create3.models.common import Stamped, TopicContainer
 
 @dataclass
-class Subscribe:
+class Subscribe(TopicContainer):
     """Container holding the most recent data from all companion subscriptions.
 
     Updated automatically by the callbacks in the companion node's `Subscriber` class.
@@ -25,7 +25,7 @@ class Subscribe:
     servo_angle: float = 90.0
 
 @dataclass
-class Publish:
+class Publish(TopicContainer):
     """Container holding the current state of all companion publishers.
 
     Used by the background publish handlers to decide when to send commands.

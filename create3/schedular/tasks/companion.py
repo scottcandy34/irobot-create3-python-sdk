@@ -37,7 +37,7 @@ def generate_coords_task(scheduler: "TaskSchedular") -> None:
     deskewed_points = companion.tools.lidar.deskew_lidar_scan(lidar_stamped=lidar_stamped, pose_history=pose_history)
 
     # Store result for other tasks and visualizers
-    scheduler._outputs[companion.tasks.GENERATE_COORDS] = deskewed_points
+    scheduler.set_task_output(companion.tasks.GENERATE_COORDS, deskewed_points)
     
 def wall_detection_task(scheduler: "TaskSchedular") -> None:
     """Run line-segment (wall) detection on the latest point cloud.
@@ -52,7 +52,7 @@ def wall_detection_task(scheduler: "TaskSchedular") -> None:
     # Filter out invalid (None) points before detection
     valid_points = [p for p in coords if p is not None]
 
-    scheduler._outputs[companion.tasks.WALL_DETECTION] = (companion.tools.perception.detectors.find_line_segments(valid_points))
+    scheduler.set_task_output(companion.tasks.WALL_DETECTION, companion.tools.perception.detectors.find_line_segments(valid_points))
 
 def column_detection_task(scheduler: "TaskSchedular") -> None:
     """Run circular arc (column/obstacle) detection on the latest point cloud.
@@ -67,7 +67,7 @@ def column_detection_task(scheduler: "TaskSchedular") -> None:
     # Filter out invalid (None) points before detection
     valid_points = [p for p in coords if p is not None]
 
-    scheduler._outputs[companion.tasks.COLUMN_DETECTION] = (companion.tools.perception.detectors.find_circle_arcs(valid_points))
+    scheduler.set_task_output(companion.tasks.COLUMN_DETECTION, companion.tools.perception.detectors.find_circle_arcs(valid_points))
 
 def lidar_lightring_task(scheduler: "TaskSchedular") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""

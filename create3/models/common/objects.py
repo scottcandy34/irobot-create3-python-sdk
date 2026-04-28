@@ -3,7 +3,7 @@
 # Created by scottcandy34
 #
 
-from threading import Thread
+from threading import Thread, RLock
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Generic, TypeVar
@@ -143,3 +143,27 @@ class Stamped(Generic[T]):
     def __repr__(self) -> str:
         """Clean, informative string representation."""
         return f"Stamped(data={self.data!r}, timestamp={self.timestamp})"
+    
+@dataclass
+class TopicContainer:
+    """Base class for all Subscribe / Publish containers.
+
+    Provides thread-safe access to all attributes using an internal RLock.
+    All specific Subscribe/Publish classes should inherit from this.
+    """
+
+    _lock: RLock = field(default_factory=RLock, init=False, repr=False)
+
+    def __getattr__(self, name: str) -> Any:
+        """Thread-safe attribute read."""
+        with self._lock:
+            return object.__getattribute__(self, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Thread-safe attribute write."""
+        if name == "_lock":
+            # Allow setting the lock itself during initialization
+            super().__setattr__(name, value)
+        else:
+            with self._lock:
+                super().__setattr__(name, value)

@@ -4,7 +4,7 @@
 #
 
 import time
-from threading import Thread
+from threading import Thread, RLock
 from typing import Any
 
 from rclpy.timer import Timer
@@ -39,6 +39,7 @@ class TaskSchedular(Logger):
 
         self.print(f"{node.get_name()} node is initiating... Waiting for tasks.")
 
+        self._lock = RLock()
         self._devices: dict[str, Threading] = {}
         self._tasks: dict[str, Timer] = {}
         self._outputs: dict[str, Any] = {}
@@ -129,7 +130,13 @@ class TaskSchedular(Logger):
 
     def get_task_output(self, task):
         """Return the latest output from a task (or None if not found)."""
-        return self._outputs.get(task, None)
+        with self._lock:
+            return self._outputs.get(task)
+
+    def set_task_output(self, task: Any, value: Any) -> None:
+        """Thread-safe write to outputs."""
+        with self._lock:
+            self._outputs[task] = value
 
     def _blank_task(self) -> None:
         """Empty placeholder task (kept for API compatibility)."""
