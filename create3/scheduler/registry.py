@@ -7,7 +7,7 @@ from create3.models.common import Tasks as CommonTasks
 from create3.models.companion import Tasks as CompanionTasks
 
 if TYPE_CHECKING:
-    from .schedular import TaskSchedular
+    from .scheduler import TaskScheduler
 
 # Import all task functions
 from .tasks.companion import (
@@ -40,7 +40,7 @@ def get_task_callback(task: Any) -> Callable | None:
     """
     return TASK_CALLBACKS.get(task)
 
-def check_requirements(scheduler: "TaskSchedular", task: Any) -> bool:
+def check_requirements(scheduler: "TaskScheduler", task: Any) -> bool:
     """Validate that all prerequisites for a task are satisfied before adding it.
 
     Checks for required devices and mutually exclusive tasks.

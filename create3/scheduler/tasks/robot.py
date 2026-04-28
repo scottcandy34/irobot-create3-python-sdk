@@ -5,9 +5,9 @@ from create3.models.robot import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
 
 if TYPE_CHECKING:
-    from create3.schedular import TaskSchedular
+    from create3.scheduler import TaskScheduler
 
-def ir_lightring_task(scheduler: "TaskSchedular") -> None:
+def ir_lightring_task(scheduler: "TaskScheduler") -> None:
     """Update the robot's lightring LEDs based on the strongest IR proximity signal.
 
     Uses the IR sensors on the robot to create a directional "spotlight"

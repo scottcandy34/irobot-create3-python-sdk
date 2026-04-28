@@ -1,5 +1,5 @@
 #
-# Task Schedular for iRobot Create3 - Jazzy
+# Task Scheduler for iRobot Create3 - Jazzy
 # Created by scottcandy34
 #
 
@@ -17,7 +17,7 @@ from create3.models import Nodes
 from create3.utils import Threading
 from .registry import get_task_callback, check_requirements
 
-class TaskSchedular(Logger):
+class TaskScheduler(Logger):
     """Background task scheduler for the iRobot Create3.
 
     Provides a central place to register devices (`Threading` objects) and
@@ -28,11 +28,11 @@ class TaskSchedular(Logger):
     """
 
     def __init__(self) -> None:
-        """Create the TaskSchedular node and start its background executor thread."""
+        """Create the TaskScheduler node and start its background executor thread."""
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
         node = rclpy.create_node(Nodes.TASK_SCHEDULAR)
-        node._logger.name = "Schedular"
+        node._logger.name = "Scheduler"
 
         # Initialize Logger parent
         super().__init__(node)

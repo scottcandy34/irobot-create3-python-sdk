@@ -36,7 +36,7 @@ elif (script_dir.parent / "create3").exists():
 
 from create3.utils.display import PIDTuner
 from create3 import RobotNode, CompanionNode
-from create3.schedular import TaskSchedular
+from create3.scheduler import TaskScheduler
 
 def main() -> None:
     """Run the PID tuner example with simple wall following."""
@@ -46,18 +46,18 @@ def main() -> None:
     companion = CompanionNode()
 
     # Create task scheduler and register devices
-    task_schedular = TaskSchedular()
-    task_schedular.add_device(robot)
-    task_schedular.add_device(companion)
+    task_scheduler = TaskScheduler()
+    task_scheduler.add_device(robot)
+    task_scheduler.add_device(companion)
 
     # Start the wall follower task
-    task_schedular.add_task(companion.tasks.SIMPLE_WALL_FOLLOWER)
+    task_scheduler.add_task(companion.tasks.SIMPLE_WALL_FOLLOWER)
 
     # Launch live PID tuner (tunes the angular PID used by wall following)
     PIDTuner(companion.tools.wall_follow.pid_angular)
 
     # Clean shutdown
-    task_schedular.shutdown()
+    task_scheduler.shutdown()
     robot.shutdown()
     companion.shutdown()
 

@@ -6,9 +6,9 @@ from create3.models.common import Stamped, Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
 
 if TYPE_CHECKING:
-    from create3.schedular import TaskSchedular
+    from create3.scheduler import TaskScheduler
 
-def history_keeper_task(scheduler: "TaskSchedular") -> None:
+def history_keeper_task(scheduler: "TaskScheduler") -> None:
     """Maintain a rolling history of the last 20 Stamped messages from all registered nodes.
 
     This task automatically tracks timestamped data (sensor readings, positions,

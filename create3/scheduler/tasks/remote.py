@@ -8,9 +8,9 @@ from create3 import RobotNode, CompanionNode, RemoteNode
 from create3.models.common import Button
 
 if TYPE_CHECKING:
-    from create3.schedular import TaskSchedular
+    from create3.scheduler import TaskScheduler
 
-def controller_task(scheduler: "TaskSchedular") -> None:
+def controller_task(scheduler: "TaskScheduler") -> None:
     """Handle remote controller input and translate it into robot actions.
 
     Features:

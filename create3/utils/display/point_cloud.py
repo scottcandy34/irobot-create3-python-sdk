@@ -36,7 +36,7 @@ class PointCloudVisualizer:
         ----------
         get_point_cloud : callable
             Function that returns the latest point cloud (list of (x, y) tuples).
-            Example: `lambda: task_schedular.get_task_output(Tasks.GENERATE_COORDS)`
+            Example: `lambda: task_scheduler.get_task_output(Tasks.GENERATE_COORDS)`
         robot : RobotNode
             Robot node providing current position and heading.
         """

@@ -31,9 +31,8 @@ elif (script_dir.parent / "create3").exists():
 # =============================================================================
 
 from create3 import RobotNode, CompanionNode
-from create3.schedular import TaskSchedular
+from create3.scheduler import TaskScheduler
 from create3.utils.display import PointCloudVisualizer
-
 from create3.models.common import Tasks
 
 def main() -> None:
@@ -44,19 +43,19 @@ def main() -> None:
     companion = CompanionNode()
 
     # Create task scheduler and register devices
-    task_schedular = TaskSchedular()
-    task_schedular.add_device(robot)
-    task_schedular.add_device(companion)
+    task_scheduler = TaskScheduler()
+    task_scheduler.add_device(robot)
+    task_scheduler.add_device(companion)
 
     # Start the coordinate generation task
-    task_schedular.add_task(Tasks.HISTORY_KEEPER)
-    task_schedular.add_task(companion.tasks.GENERATE_COORDS)
+    task_scheduler.add_task(Tasks.HISTORY_KEEPER)
+    task_scheduler.add_task(companion.tasks.GENERATE_COORDS)
 
     # Launch live point cloud visualizer
-    PointCloudVisualizer(get_point_cloud=lambda: task_schedular.get_task_output(companion.tasks.GENERATE_COORDS), robot=robot)
+    PointCloudVisualizer(get_point_cloud=lambda: task_scheduler.get_task_output(companion.tasks.GENERATE_COORDS), robot=robot)
 
     # Clean shutdown (reached when visualizer window is closed)
-    task_schedular.shutdown()
+    task_scheduler.shutdown()
     robot.shutdown()
     companion.shutdown()
 

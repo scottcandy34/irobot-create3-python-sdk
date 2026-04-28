@@ -9,9 +9,9 @@ from create3.models.common import Stamped, Position
 from create3.models.companion import Lidar
 
 if TYPE_CHECKING:
-    from create3.schedular import TaskSchedular
+    from create3.scheduler import TaskScheduler
 
-def generate_coords_task(scheduler: "TaskSchedular") -> None:
+def generate_coords_task(scheduler: "TaskScheduler") -> None:
     """Generate a motion-compensated (deskewed) world-frame point cloud from the latest LiDAR scan.
 
     This task:
@@ -39,7 +39,7 @@ def generate_coords_task(scheduler: "TaskSchedular") -> None:
     # Store result for other tasks and visualizers
     scheduler.set_task_output(companion.tasks.GENERATE_COORDS, deskewed_points)
     
-def wall_detection_task(scheduler: "TaskSchedular") -> None:
+def wall_detection_task(scheduler: "TaskScheduler") -> None:
     """Run line-segment (wall) detection on the latest point cloud.
 
     Requires the GENERATE_COORDS task to have run first.
@@ -54,7 +54,7 @@ def wall_detection_task(scheduler: "TaskSchedular") -> None:
 
     scheduler.set_task_output(companion.tasks.WALL_DETECTION, companion.tools.perception.detectors.find_line_segments(valid_points))
 
-def column_detection_task(scheduler: "TaskSchedular") -> None:
+def column_detection_task(scheduler: "TaskScheduler") -> None:
     """Run circular arc (column/obstacle) detection on the latest point cloud.
 
     Requires the GENERATE_COORDS task to have run first.
@@ -69,7 +69,7 @@ def column_detection_task(scheduler: "TaskSchedular") -> None:
 
     scheduler.set_task_output(companion.tasks.COLUMN_DETECTION, companion.tools.perception.detectors.find_circle_arcs(valid_points))
 
-def lidar_lightring_task(scheduler: "TaskSchedular") -> None:
+def lidar_lightring_task(scheduler: "TaskScheduler") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
@@ -79,7 +79,7 @@ def lidar_lightring_task(scheduler: "TaskSchedular") -> None:
 
     robot.set_lights(companion.tools.lidar.get_motion_lightring(companion.get_scans()))
 
-def simple_wall_follower(scheduler: "TaskSchedular") -> None:
+def simple_wall_follower(scheduler: "TaskScheduler") -> None:
     """Simple reactive wall-follower using LiDAR and PID control.
 
     Sends velocity commands directly to the robot.
