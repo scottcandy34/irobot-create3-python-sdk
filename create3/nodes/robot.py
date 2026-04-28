@@ -10,33 +10,60 @@ from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
 
 class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
-    """Setup Robot node with multithreading, subscribers, publishers, services and actions."""
+    """Main robot node for the iRobot Create3.
 
-    def __init__(self, enable_debugger = True, use_goal = True):
-        # Initialize ROS2 node
+    Combines everything needed to control the physical robot:
+      • ActionClient     (navigation, docking, driving, turning, LED animations, audio)
+      • ServiceClient    (reset pose, etc.)
+      • Publisher        (wheel speeds, lightring, audio)
+      • Subscriber       (odometry, IR, hazards, battery, IMU, docking, etc.)
+      • Threading        (background ROS spinning + logging)
+
+    This is the central node that directly interfaces with the Create3 robot.
+    """
+
+    def __init__(self, enable_debugger: bool = True, use_goal: bool = True) -> None:
+        """Create and start the main robot node.
+
+        Parameters
+        ----------
+        enable_debugger : bool
+            Whether to register this node with the global debugger.
+        use_goal : bool
+            Whether to use high-level action goals (True) or low-level
+            timed twist commands (False) for movement.
+        """
+        # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_ROBOT)
+        node._logger.name = "Create3"
 
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Create3"
+        # Initialize the multiple-inheritance chain in the correct MRO order
+        super().__init__(node)  # ActionClient → ServiceClient → Publisher → Subscriber → Threading
+
         self._use_goal = use_goal
 
         self.tools = tools
-        """Expose tools for working with the robot's sensors and controls."""
-        self.tasks = Tasks
-        """Expose available tasks that can be added to the TaskSchedular."""
+        """Tools and utilities for working with the robot's sensors and controls."""
 
-        # Start the Threading/Spinning
+        self.tasks = Tasks
+        """Available tasks that can be added to the TaskSchedular."""
+
+        # Start background ROS spinning
         self.start()
-        
-        # Add node to Debugger
+
+        # Register with global debugger (optional)
         if enable_debugger:
             global_debugger.add_device(self)
 
-        # Reset the robot position to 0, 0, 0
+        # Reset the robot's position and heading to (0, 0, 0°) on startup
         self.reset_navigation()
 
-    def shutdown(self):
-        global_debugger.stop(self) # stops debugger watching node
-        super().shutdown() # trigger original code before it gets overwritten
+    def shutdown(self) -> None:
+        """Gracefully shut down the robot node.
+
+        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        """
+        global_debugger.stop(self)          # stop debugger monitoring
+        super().shutdown()                  # calls Threading.shutdown() + all parent cleanup
         rclpy.shutdown()

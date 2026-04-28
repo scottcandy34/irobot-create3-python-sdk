@@ -5,6 +5,7 @@
 
 from typing import TYPE_CHECKING
 
+from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JoyFeedbackArray
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -22,27 +23,45 @@ qos_profile = QoSProfile(
 )
 
 class Publisher(Threading if TYPE_CHECKING else object):
-    """Handles ROS publishers for robot data."""
+    """ROS publisher for controller feedback (rumble/vibration).
 
-    def __init__(self, node):
-        super().__init__(node) # trigger original code before it gets overwritten
+    This lightweight Publisher is used by the remote/companion node to
+    send rumble commands to the controller via the `/joy/set_feedback` topic.
 
-        # Hidden global publish information
-        self._publisher_msgs = Publish
-        """Contains the most recent messages to be published for each topic. Updated when a set function is called."""
+    The background timer (0.05 s) calls the rumble handler, which manages
+    the actual pulsing logic.
+    """
 
-        # Creates a exclusive callback group so not to interrupt the other callbacks.
+    def __init__(self, node: Node) -> None:
+        """Initialize the rumble feedback publisher and its background timer.
+
+        Parameters
+        ----------
+        node : Node
+            The ROS node that owns this publisher.
+        """
+        super().__init__(node)  # initialize Threading + Logger
+
+        # Shared container that holds the latest messages to be published
+        self._publisher_msgs: Publish = Publish()
+
+        # Use a mutually exclusive callback group
         publisher_callback_group = MutuallyExclusiveCallbackGroup()
         publish_handler_callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Create Publishers
-        self._joy_feedback = self.node.create_publisher(JoyFeedbackArray, 'joy/set_feedback', qos_profile, callback_group=publisher_callback_group)
+        # Create the joy feedback publisher
+        self._joy_feedback = self.node.create_publisher(JoyFeedbackArray, "joy/set_feedback", qos_profile, callback_group=publisher_callback_group)
 
+        # Background timer that drives the rumble pulse logic
         self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=publish_handler_callback_group)
 
-        # Add topics to debugger
+        # Register with debugger for interface monitoring
         self.debug.publishers = [self._joy_feedback]
 
-    def controller_rumble(self):
-        """Rumbles the controller if supported."""
+    def controller_rumble(self) -> None:
+        """Trigger a short rumble pulse on the connected controller.
+
+        The actual rumble (0.5-second vibration) is handled by the
+        background `publish_handler` (rumble version).
+        """
         self._publisher_msgs.rumble_enable = True

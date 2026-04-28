@@ -6,39 +6,48 @@
 import rclpy as _rclpy
 from rclpy.node import Node
 
-# This is only to force rclpy to be initialized once. THIS IS NOT STANDARD PRACTICE FOR ROS
 class rclpy:
+    """Singleton-style wrapper around rclpy to guarantee initialization and shutdown happen only once.
+
+    This is a **non-standard** pattern created specifically for compatibility with
+    the iRobot Create3 SDK. It prevents multiple calls to `rclpy.init()` (which
+    would otherwise raise an error) when the SDK is imported/used in different
+    contexts or across multiple modules.
+
+    It uses a simple reference-counting mechanism:
+      • `init()` is called only on the very first request.
+      • `shutdown()` is called only when the last user/context releases it.
     """
-    Overrides for rclpy to ensure that it is only initialized once, and to provide a create_node function 
-    that can be used to create a ROS node. This is not standard practice for ROS, but it is necessary to ensure 
-    that the iRobot Create3 SDK can be used in a way that is consistent with the rest of the SDK, and to prevent 
-    issues with multiple initializations of rclpy when using the SDK in different contexts.
-    """
-    _hasStarted = False
-    _startedCount = 0
+
+    _has_started: bool = False
+    _started_count: int = 0
 
     @classmethod
-    def init(cls):
-        """Initialize rclpy if it hasn't been initialized yet."""
-        cls._startedCount +=1
-        if not cls._hasStarted:
+    def init(cls) -> None:
+        """Initialize rclpy only if it has not already been initialized."""
+        cls._started_count += 1
+        if not cls._has_started:
             _rclpy.init()
-            cls._hasStarted = True
+            cls._has_started = True
 
     @classmethod
-    def shutdown(cls):
-        """Shutdown rclpy if it has been initialized and there are no more nodes using it."""
-        cls._startedCount -=1
-        if cls._hasStarted and cls._startedCount == 0:
+    def shutdown(cls) -> None:
+        """Shutdown rclpy only when the last active context calls it.
+
+        The count is clamped to zero to guard against accidental negative values.
+        """
+        cls._started_count -= 1
+        if cls._has_started and cls._started_count <= 0:
             _rclpy.shutdown()
-            cls._hasStarted = False
-    
+            cls._has_started = False
+            cls._started_count = 0  # prevent negative count
+
     @classmethod
     def create_node(cls, node_name: str) -> Node:
-        """Create a ROS node with the given name."""
+        """Create and return a new ROS 2 node (delegates to the real rclpy)."""
         return _rclpy.create_node(node_name)
-    
+
     @classmethod
     def count_nodes(cls) -> int:
-        """Return the number of nodes that have been created."""
-        return cls._startedCount
+        """Return the current number of active node contexts tracked by this wrapper."""
+        return cls._started_count
