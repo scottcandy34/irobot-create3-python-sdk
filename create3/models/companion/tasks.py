@@ -6,11 +6,19 @@
 from enum import StrEnum, auto
 
 class Tasks(StrEnum):
+    """Tasks that run on the companion computer node."""
+
     GENERATE_COORDS = auto()
-    """Generate coordinates for detected walls and columns."""
+    """Convert latest LiDAR scan into a world-frame point cloud (x, y coordinates)."""
+
     WALL_DETECTION = auto()
-    """Detect walls using Lidar data."""
+    """Detect straight wall segments using RANSAC on the point cloud."""
+
     COLUMN_DETECTION = auto()
-    """Detect columns using Lidar data."""
+    """Detect circular columns/obstacles using RANSAC on the point cloud."""
+
     LIDAR_LIGHTRING = auto()
-    """Use Lidar data to create a light ring pattern on the robot's lights."""
+    """Use LiDAR data to create a directional lightring pattern on the robot's LEDs."""
+
+    SIMPLE_WALL_FOLLOWER = auto()
+    """Reactive wall-following behavior using LiDAR and PID control."""

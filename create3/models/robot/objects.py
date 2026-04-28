@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class HazardBumper:
-    """Stores robot bumper values."""
+    """Stores the current state of all bumper sensors on the robot."""
+
     right: bool = False
     front_right: bool = False
     front_center: bool = False
@@ -16,32 +17,36 @@ class HazardBumper:
 
 @dataclass
 class HazardCliff:
-    """Stores robot cliff sensor values."""
+    """Stores the current state of all cliff sensors on the robot."""
+
     side_right: bool = False
     front_right: bool = False
     front_left: bool = False
     side_left: bool = False
-    
+
 @dataclass
 class Acceleration:
-    """Stores robot acceleration values."""
+    """Stores the latest linear acceleration readings from the IMU."""
+
     x: int | float = 0.0
     y: int | float = 0.0
     z: int | float = 0.0
-    
+
 @dataclass
 class DockingValues:
-    """Stores robot docking values."""
-    is_docked = False
-    dock_visible = False
+    """Stores the latest docking-related sensor values."""
+
+    is_docked: bool = False
+    dock_visible: bool = False
     sensor: int = 0
-    greenBuoy = False
-    redBuoy = False
-    forceField = False
-    
+    greenBuoy: bool = False
+    redBuoy: bool = False
+    forceField: bool = False
+
 @dataclass
 class RobotButtons:
-    """Stores robot button pressed values."""
-    button_1 = False
-    button_power = False
-    button_2 = False
+    """Stores the current state of the physical buttons on the robot."""
+
+    button_1: bool = False
+    button_power: bool = False
+    button_2: bool = False

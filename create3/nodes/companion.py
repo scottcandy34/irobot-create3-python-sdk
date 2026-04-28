@@ -10,31 +10,55 @@ from create3.utils import rclpy, Threading, global_interrupt, global_debugger
 from create3.ros.companion import Publisher, Subscriber
 
 class CompanionNode(Publisher, Subscriber, Threading):
-    """Setup Companion node with multithreading, subscribers, publishers."""
+    """Main companion node for the iRobot Create3.
 
-    def __init__(self, enable_debugger = True):
-        # Initialize ROS2 node
+    Combines:
+      • Publisher (servo control)
+      • Subscriber (LiDAR + ultrasonic)
+      • Threading (background ROS spinning + logging)
+
+    This is the central node that runs on the companion computer (Raspberry Pi).
+    It automatically starts spinning, registers itself with the global debugger,
+    and exposes `tools` and `tasks` for easy access from other parts of the SDK.
+    """
+
+    def __init__(self, enable_debugger: bool = True) -> None:
+        """Create and start the companion node.
+
+        Parameters
+        ----------
+        enable_debugger : bool
+            Whether to register this node with the global debugger.
+        """
+        # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_COMPANION)
+        node._logger.name = "Raspberry"
 
         global_interrupt.add_device(self)
 
-        super().__init__(node) # trigger original code before it gets overwritten
-        self.node._logger.name = "Raspberry"
+        # Initialize the multiple-inheritance chain:
+        # Publisher → Subscriber → Threading
+        super().__init__(node)
 
         self.tools = tools
-        """Expose tools for working with the lidar sensor on the iRobot Create3."""
-        self.tasks = Tasks
-        """Expose available tasks that can be added to the TaskSchedular."""
+        """Tools and utilities for working with LiDAR, perception, etc."""
 
-        # Start the Threading/Spinning
+        self.tasks = Tasks
+        """Available tasks that can be added to the TaskSchedular."""
+
+        # Start background ROS spinning
         self.start()
 
-        # Add node to Debugger
+        # Register with global debugger (optional)
         if enable_debugger:
             global_debugger.add_device(self)
 
-    def shutdown(self):
-        global_debugger.stop(self) # stops debugger watching node
-        super().shutdown() # trigger original code before it gets overwritten
+    def shutdown(self) -> None:
+        """Gracefully shut down the companion node.
+
+        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        """
+        global_debugger.stop(self)          # stop debugger monitoring
+        super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup
         rclpy.shutdown()

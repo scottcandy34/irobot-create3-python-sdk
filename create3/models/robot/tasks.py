@@ -6,5 +6,7 @@
 from enum import StrEnum, auto
 
 class Tasks(StrEnum):
+    """Tasks that run on the main robot node."""
+
     IR_LIGHTRING = auto()
-    """Use Lidar data to create a light ring pattern on the robot's lights."""
+    """Use IR proximity sensors to create a directional lightring pattern on the robot's LEDs."""
