@@ -6,5 +6,7 @@
 from enum import StrEnum, auto
 
 class Tasks(StrEnum):
+    """Tasks that run on the remote control node."""
+
     CONTROLLER = auto()
-    """Use the remote as a controller for the robot."""
+    """Read joystick input from the remote and translate it into robot movement and actions."""

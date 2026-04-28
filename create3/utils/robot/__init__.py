@@ -5,4 +5,4 @@
 
 """Tools for working with the iRobot Create3, providing access to utility classes for working with the lightring, IR sensors, and robot constraints."""
 
-from . import constraints, ir, lightring
+from . import constraints, ir, lightring, velocity
