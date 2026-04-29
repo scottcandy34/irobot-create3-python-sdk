@@ -13,7 +13,7 @@ from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, Haz
 
 from create3.utils import common as tools
 from create3.models.common import Position, Stamped
-from create3.models.robot import HazardBumper, HazardCliff, Acceleration
+from create3.models.robot import Acceleration
 
 if TYPE_CHECKING:
     from create3.ros.robot import Subscriber
@@ -53,46 +53,75 @@ def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> No
     
     subscriber._subscription_msgs.ir_values = Stamped(ir_values, Time.from_msg(ir.header.stamp))
 
-def hazard_detection_callback(subscriber: "Subscriber", hazards: HazardDetectionVector) -> None:
+def hazard_detection_callback(subscriber: "Subscriber", vector: HazardDetectionVector) -> None:
     """Parse hazard detections (bumpers and cliffs) and update the shared state objects."""
     subscriber.update_uptime(subscriber._hazard_detection.topic_name)
 
-    subscriber._subscription_msgs.bumpers = HazardBumper()
-    subscriber._subscription_msgs.cliff = HazardCliff()
+    # Shared model objects
+    bumpers = subscriber._subscription_msgs.bumpers
+    cliffs = subscriber._subscription_msgs.cliff
 
-    hazards: list[HazardDetection] = hazards.detections
-    for hazard in hazards:
-        if hazard.type == 1:  # bumper
-            match hazard.header.frame_id:
-                case "bump_right":
-                    subscriber._subscription_msgs.bumpers.right = True
-                case "bump_left":
-                    subscriber._subscription_msgs.bumpers.left = True
-                case "bump_front_right":
-                    subscriber._subscription_msgs.bumpers.front_right = True
-                case "bump_front_left":
-                    subscriber._subscription_msgs.bumpers.front_left = True
-                case "bump_front_center":
-                    subscriber._subscription_msgs.bumpers.front_center = True
+    # 1. Start with clean "all false" local state
+    bumper_states = {
+        'right':        False,
+        'front_right':  False,
+        'front_center': False,
+        'front_left':   False,
+        'left':         False,
+    }
+    cliff_states = {
+        'side_right':  False,
+        'front_right': False,
+        'front_left':  False,
+        'side_left':   False,
+    }
 
-        elif hazard.type == 2:  # cliff
-            match hazard.header.frame_id:
-                case "cliff_front_left":
-                    subscriber._subscription_msgs.cliff.front_left = True
-                case "cliff_front_right":
-                    subscriber._subscription_msgs.cliff.front_right = True
-                case "cliff_side_left":
-                    subscriber._subscription_msgs.cliff.side_left = True
-                case "cliff_side_right":
-                    subscriber._subscription_msgs.cliff.side_right = True
+    # 2. Set True for every currently active hazard
+    detection: HazardDetection
+    for detection in vector.detections:
+        frame_id = detection.header.frame_id.lower()
+
+        # Bumper hazards
+        if "bump_front_left" in frame_id:
+            bumper_states['front_left'] = True
+        elif "bump_front_center" in frame_id:
+            bumper_states['front_center'] = True
+        elif "bump_front_right" in frame_id:
+            bumper_states['front_right'] = True
+        elif "bump_left" in frame_id:
+            bumper_states['left'] = True
+        elif "bump_right" in frame_id:
+            bumper_states['right'] = True
+
+        # Cliff hazards
+        elif "cliff_front_left" in frame_id:
+            cliff_states['front_left'] = True
+        elif "cliff_front_right" in frame_id:
+            cliff_states['front_right'] = True
+        elif "cliff_side_left" in frame_id:
+            cliff_states['side_left'] = True
+        elif "cliff_side_right" in frame_id:
+            cliff_states['side_right'] = True
+
+    # 3. Apply the complete final state to every Button (one clean pass)
+    bumpers.right._update_state(bumper_states['right'])
+    bumpers.front_right._update_state(bumper_states['front_right'])
+    bumpers.front_center._update_state(bumper_states['front_center'])
+    bumpers.front_left._update_state(bumper_states['front_left'])
+    bumpers.left._update_state(bumper_states['left'])
+
+    cliffs.side_right._update_state(cliff_states['side_right'])
+    cliffs.front_right._update_state(cliff_states['front_right'])
+    cliffs.front_left._update_state(cliff_states['front_left'])
+    cliffs.side_left._update_state(cliff_states['side_left'])
 
 def interface_buttons_callback(subscriber: "Subscriber", buttons: InterfaceButtons) -> None:
     """Update the state of the physical buttons on the robot."""
     subscriber.update_uptime(subscriber._interface_buttons.topic_name)
 
-    subscriber._subscription_msgs.buttons.button_1 = buttons.button_1.is_pressed
-    subscriber._subscription_msgs.buttons.button_power = buttons.button_power.is_pressed
-    subscriber._subscription_msgs.buttons.button_2 = buttons.button_2.is_pressed
+    subscriber._subscription_msgs.buttons.button_1._update_state(buttons.button_1.is_pressed)
+    subscriber._subscription_msgs.buttons.button_power._update_state(buttons.button_power.is_pressed)
+    subscriber._subscription_msgs.buttons.button_2._update_state(buttons.button_2.is_pressed)
 
 def battery_state_callback(subscriber: "Subscriber", battery: BatteryState) -> None:
     """Update battery percentage (converted to 0–100 scale) and issue a warning when low."""
@@ -120,8 +149,8 @@ def dock_status_callback(subscriber: "Subscriber", status: DockStatus) -> None:
     """Update docking-related values (visible, docked)."""
     subscriber.update_uptime(subscriber._dock_status.topic_name)
 
-    subscriber._subscription_msgs.dockingValues.dock_visible = status.dock_visible
-    subscriber._subscription_msgs.dockingValues.is_docked = status.is_docked
+    subscriber._subscription_msgs.dockingValues.dock_visible._update_state(status.dock_visible)
+    subscriber._subscription_msgs.dockingValues.is_docked._update_state(status.is_docked)
 
 def ir_opcode_callback(subscriber: "Subscriber", ir_opcode: IrOpcode) -> None:
     """Parse IR docking opcodes and set the corresponding buoy/force-field flags."""
