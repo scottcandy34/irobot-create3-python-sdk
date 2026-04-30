@@ -16,7 +16,7 @@ from typing import Sequence
 import numpy as np
 import numpy.typing as npt
 
-PointCloud = Sequence[tuple[float, float]] | npt.NDArray[np.float64]
+from create3.utils.common.algorithms import PointCloud
 
 
 def fit_circle(points: PointCloud) -> tuple[float, float, float]:
