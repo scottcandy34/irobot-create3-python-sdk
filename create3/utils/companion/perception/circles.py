@@ -1,24 +1,33 @@
 #
 # Circle Tools for iRobot Create3 - Jazzy
-# Created by scottcandy34
+# =====================================================================
+# Created by scottcandy34 • NumPy Optimized & Revised April 2026
 #
-
-"""Tools for working with circles, including fitting a circle to a set of points and calculating the distance from a point to a circle and calculating the angle range and arc length of an arc segment."""
+# High-performance utilities for fitting circles and working with
+# circular arcs (used by COLUMN_DETECTION).
+#
+# All functions are fully vectorized with NumPy while remaining
+# backward-compatible with plain Python lists.
+# =====================================================================
 
 import math
+from typing import Sequence
 
-def fit_circle(points: list[tuple[float, float]]) -> tuple[float, float, float]:
-    """Fit a circle to a set of 2D points using the centroid + mean-radius method.
+import numpy as np
+import numpy.typing as npt
 
-    This is a simple, fast, closed-form solution that mirrors the style of
-    `fit_line` (geometric center + average distance). It is robust for
-    noisy or roughly circular data and commonly used in robotics for
-    landmark fitting or arc detection.
+PointCloud = Sequence[tuple[float, float]] | npt.NDArray[np.float64]
+
+
+def fit_circle(points: PointCloud) -> tuple[float, float, float]:
+    """Fit a circle to a set of 2D points using centroid + mean-radius method.
+
+    Fast, closed-form solution that works very well for noisy robotics data.
 
     Parameters
     ----------
-    points : list[tuple[float, float]]
-        List of (x, y) coordinates (at least 3 points required).
+    points : list[tuple[float, float]] | np.ndarray
+        List of (x, y) points or Nx2 NumPy array.
 
     Returns
     -------
@@ -33,50 +42,67 @@ def fit_circle(points: list[tuple[float, float]]) -> tuple[float, float, float]:
     if len(points) < 3:
         raise ValueError("At least 3 points are required to fit a circle.")
 
-    n = len(points)
+    pts = np.asarray(points, dtype=np.float64)
+    if pts.ndim != 2 or pts.shape[1] != 2:
+        raise ValueError("points must be Nx2 array or list of (x, y) tuples")
 
-    # Centroid (geometric mean)
-    cx = sum(p[0] for p in points) / n
-    cy = sum(p[1] for p in points) / n
+    cx = float(pts[:, 0].mean())
+    cy = float(pts[:, 1].mean())
 
-    # Mean radial distance from centroid = radius
-    r = sum(math.hypot(p[0] - cx, p[1] - cy) for p in points) / n
+    radii = np.hypot(pts[:, 0] - cx, pts[:, 1] - cy)
+    r = float(radii.mean())
 
     return cx, cy, r
 
-def distance_to_circle(point: tuple[float, float], cx: float, cy: float, r: float) -> float:
-    """Calculate the absolute radial distance error from a point to a fitted circle.
 
-    This is the circle equivalent of `distance_to_line`. It measures how far
-    a point lies from the circumference — useful for residual analysis,
-    outlier rejection, or error metrics.
+def distance_to_circle(
+    point: tuple[float, float] | npt.NDArray[np.float64],
+    cx: float,
+    cy: float,
+    r: float,
+) -> float | npt.NDArray[np.float64]:
+    """Calculate the absolute radial distance error from point(s) to a fitted circle.
+
+    This is the circle equivalent of distance_to_line. Measures how far
+    a point lies from the circumference — used heavily in RANSAC inlier tests.
+
+    Fully vectorized for maximum performance.
 
     Parameters
     ----------
-    point : tuple[float, float]
-        (x, y) coordinates of the test point.
+    point : tuple[float, float] | np.ndarray
+        Single (x, y) or Nx2 array of points.
     cx, cy : float
-        Center coordinates of the fitted circle.
+        Center of the fitted circle.
     r : float
         Radius of the fitted circle.
 
     Returns
     -------
-    float
-        Absolute radial distance error (|distance_from_center - r|).
+    float | np.ndarray
+        Scalar distance (single point) or array of distances.
     """
-    x, y = point
-    dist_from_center = math.hypot(x - cx, y - cy)
-    return abs(dist_from_center - r)
+    pts = np.asarray(point, dtype=np.float64)
+    single = pts.ndim == 1
+    if single:
+        pts = pts.reshape(1, -1)
 
-def get_angle_range(arc_points: list[tuple[float, float]], cx: float, cy: float) -> tuple[float, float]:
+    dist_from_center = np.hypot(pts[:, 0] - cx, pts[:, 1] - cy)
+    dist = np.abs(dist_from_center - r)
+
+    return float(dist[0]) if single else dist
+
+
+def get_angle_range(
+    arc_points: PointCloud, cx: float, cy: float
+) -> tuple[float, float]:
     """Return the angular span (start_angle, end_angle) in degrees for an arc.
 
-    Used when constructing _CircleArc objects or for visualization.
+    Used when constructing Column objects or for visualization.
 
     Parameters
     ----------
-    arc_points : list[tuple[float, float]]
+    arc_points : list[tuple[float, float]] | np.ndarray
         Points belonging to a single contiguous arc.
     cx, cy : float
         Center of the circle.
@@ -84,25 +110,27 @@ def get_angle_range(arc_points: list[tuple[float, float]], cx: float, cy: float)
     Returns
     -------
     tuple[float, float]
-        (start_angle, end_angle) in degrees. Returns (0.0, 0.0) for empty input.
+        (start_angle, end_angle) in degrees.
+        Returns (0.0, 0.0) for empty input.
     """
-    if not arc_points:
+    if len(arc_points) == 0:
         return 0.0, 0.0
 
-    def get_angle(p: tuple[float, float]) -> float:
-        return math.degrees(math.atan2(p[1] - cy, p[0] - cx))
+    pts = np.asarray(arc_points, dtype=np.float64)
+    angles = np.degrees(np.arctan2(pts[:, 1] - cy, pts[:, 0] - cx))
+    return float(angles.min()), float(angles.max())
 
-    angles = [get_angle(p) for p in arc_points]
-    return min(angles), max(angles)
 
-def calculate_arc_length(arc_points: list[tuple[float, float]], cx: float, cy: float, r: float) -> float:
+def calculate_arc_length(
+    arc_points: PointCloud, cx: float, cy: float, r: float
+) -> float:
     """Calculate the arc length (in the same units as the radius).
 
-    This is the circle equivalent of `calculate_length` for line segments.
+    This is the circle equivalent of calculate_length for line segments.
 
     Parameters
     ----------
-    arc_points : list[tuple[float, float]]
+    arc_points : list[tuple[float, float]] | np.ndarray
         Points belonging to a single contiguous arc.
     cx, cy : float
         Center of the circle.
@@ -120,4 +148,3 @@ def calculate_arc_length(arc_points: list[tuple[float, float]], cx: float, cy: f
     start_angle, end_angle = get_angle_range(arc_points, cx, cy)
     delta_angle_rad = math.radians(end_angle - start_angle)
     return r * abs(delta_angle_rad)
-    
