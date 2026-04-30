@@ -54,21 +54,6 @@ def wall_detection_task(scheduler: "TaskScheduler") -> None:
 
     scheduler.set_task_output(companion.tasks.WALL_DETECTION, companion.tools.perception.detectors.find_line_segments(valid_points))
 
-def column_detection_task(scheduler: "TaskScheduler") -> None:
-    """Run circular arc (column/obstacle) detection on the latest point cloud.
-
-    Requires the GENERATE_COORDS task to have run first.
-    """
-    companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
-    coords: list[tuple[float, float]] | None = scheduler.get_task_output(companion.tasks.GENERATE_COORDS)
-    if coords is None:
-        return
-
-    # Filter out invalid (None) points before detection
-    valid_points = [p for p in coords if p is not None]
-
-    scheduler.set_task_output(companion.tasks.COLUMN_DETECTION, companion.tools.perception.detectors.find_circle_arcs(valid_points))
-
 def lidar_lightring_task(scheduler: "TaskScheduler") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
