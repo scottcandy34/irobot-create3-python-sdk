@@ -1,4 +1,4 @@
-from torch import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
     
 from create3.models import Nodes

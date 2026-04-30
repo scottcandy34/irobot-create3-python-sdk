@@ -1,4 +1,4 @@
-from torch import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from std_msgs.msg import Float32
 

@@ -1,4 +1,4 @@
-from torch import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
     
