@@ -31,7 +31,7 @@ class TaskScheduler(Logger):
         """Create the TaskScheduler node and start its background executor thread."""
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
-        node = rclpy.create_node(Nodes.TASK_SCHEDULAR)
+        node = rclpy.create_node(Nodes.TASK_SCHEDULER)
         node._logger.name = "Scheduler"
 
         # Initialize Logger parent
