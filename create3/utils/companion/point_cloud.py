@@ -9,6 +9,8 @@ from scipy.spatial import KDTree
 
 from create3.models.common import Position
 
+current_cloud: np.ndarray = np.empty((0, 2), dtype=np.float32)   # shape (N, 2)
+
 def correct_pose_with_icp(
     initial_pose: Position,
     local_points: list[tuple[float, float]],
@@ -90,88 +92,80 @@ def transform_points_to_world(points: list[tuple[float, float]], pose: Position)
         transformed.append((world_x, world_y))
     return transformed
 
-def merge_and_filter_spatial(current_cloud: list[tuple[float, float]], new_points: list[tuple[float, float] | None], min_distance_cm: float = 3.0) -> list[tuple[float, float]]:
-    """Merge new LiDAR points into an existing point cloud with spatial deduplication.
+def merge_and_filter_spatial(
+    current_cloud: np.ndarray | None,
+    new_points: list[tuple[float, float] | None] | np.ndarray,
+    min_distance_cm: float = 3.0
+) -> np.ndarray:
+    """High-accuracy spatial deduplication — now safe when current_cloud is None."""
+    if current_cloud is None:
+        current_cloud = np.empty((0, 2), dtype=np.float32)
 
-    Uses a KD-Tree for fast nearest-neighbor lookup. Only adds a new point if
-    it is at least `min_distance_cm` away from any existing point in the cloud.
+    if isinstance(new_points, list):
+        valid_new = np.array([p for p in new_points if p is not None], dtype=np.float32)
+    else:
+        valid_new = np.asarray(new_points, dtype=np.float32)
 
-    This is the high-accuracy spatial filtering method.
+    if len(valid_new) == 0:
+        return current_cloud.copy()
+    if len(current_cloud) == 0:
+        return valid_new.copy()
 
-    Parameters
-    ----------
-    current_cloud : list[tuple[float, float]]
-        Accumulated point cloud so far (x, y in cm).
-    new_points : list[tuple[float, float] | None]
-        Fresh points from `GENERATE_COORDS` (may contain None).
-    min_distance_cm : float
-        Minimum distance a new point must be from any existing point to be added.
+    tree = KDTree(current_cloud)
+    dists, _ = tree.query(valid_new, k=1)
 
-    Returns
-    -------
-    list[tuple[float, float]]
-        Updated point cloud with new valid points merged in.
-    """
-    # Filter out invalid (None) points
-    valid_new = [p for p in new_points if p is not None]
-    if not valid_new:
-        return current_cloud[:]
+    mask = dists >= min_distance_cm
+    good_new = valid_new[mask]
 
-    updated = current_cloud[:]
+    if len(good_new) == 0:
+        return current_cloud.copy()
 
-    if not updated:
-        return valid_new
+    return np.vstack([current_cloud, good_new])
 
-    # Build KD-Tree for fast spatial queries
-    tree = KDTree(updated)
+def merge_and_filter_voxel(
+    current_cloud: list[tuple[float, float]] | None,
+    new_points: list[tuple[float, float] | None] | np.ndarray,
+    voxel_size_cm: float = 2.0
+) -> list[tuple[float, float]]:
+    """Fast voxel-grid downsampling — returns plain list (100% backward compatible)."""
+    # Treat None as empty cloud
+    if current_cloud is None:
+        current_cloud = []
 
-    for p in valid_new:
-        dist, _ = tree.query(p, k=1)
-        if dist >= min_distance_cm:
-            updated.append(p)
-            # Rebuild tree after adding a point (simple and works well for moderate sizes)
-            tree = KDTree(updated)
+    # Convert new_points (supports your original list-with-None format)
+    if isinstance(new_points, list):
+        valid_new = np.array([p for p in new_points if p is not None], dtype=np.float32)
+    else:
+        valid_new = np.asarray(new_points, dtype=np.float32)
+
+    if len(valid_new) == 0:
+        return current_cloud[:]  # shallow copy of list
+
+    voxel_size = float(voxel_size_cm)
+
+    # Occupied voxels from current cloud (fully vectorized)
+    occupied = set()
+    if current_cloud:
+        curr_array = np.array(current_cloud, dtype=np.float32)
+        occ_vox = np.floor(curr_array / voxel_size).astype(np.int64)
+        occupied = {tuple(v) for v in occ_vox}
+
+    # New voxels — unique + index of first point in each voxel
+    new_vox = np.floor(valid_new / voxel_size).astype(np.int64)
+    unique_vox, first_idx = np.unique(new_vox, axis=0, return_index=True)
+
+    # Vectorized check for unoccupied voxels
+    unoccupied_mask = np.array([tuple(v) not in occupied for v in unique_vox])
+
+    updated = current_cloud[:]  # start with copy of existing list
+
+    if np.any(unoccupied_mask):
+        good_idx = first_idx[unoccupied_mask]
+        to_add = valid_new[good_idx]
+        # Convert only the new points back to tuples
+        updated.extend([tuple(p) for p in to_add.tolist()])
 
     return updated
-
-def merge_and_filter_voxel(current_cloud: list[tuple[float, float]], new_points: list[tuple[float, float] | None], voxel_size_cm: float = 2.0) -> list[tuple[float, float]]:
-    """Merge new points into the cloud using fast voxel-grid downsampling.
-
-    This method is significantly faster than KD-Tree for large point clouds
-    and produces nicely uniform spacing.
-
-    Parameters
-    ----------
-    current_cloud : list[tuple[float, float]]
-        Existing point cloud (x, y in cm).
-    new_points : list[tuple[float, float] | None]
-        Fresh points from `GENERATE_COORDS` (may contain None).
-    voxel_size_cm : float
-        Size of each voxel cell in centimeters.
-
-    Returns
-    -------
-    list[tuple[float, float]]
-        Updated point cloud with voxel-filtered new points added.
-    """
-    voxel_size = voxel_size_cm
-    occupied = set()
-
-    # Add existing points to the voxel grid
-    for x, y in current_cloud:
-        vx = int(x / voxel_size)
-        vy = int(y / voxel_size)
-        occupied.add((vx, vy))
-
-    # Add new valid points if their voxel is not already occupied
-    for p in (p for p in new_points if p is not None):
-        vx = int(p[0] / voxel_size)
-        vy = int(p[1] / voxel_size)
-        if (vx, vy) not in occupied:
-            occupied.add((vx, vy))
-            current_cloud.append(p)   # still mutate, but now we return a copy for safety
-
-    return current_cloud[:]  # return a shallow copy so scheduler list stays clean
 
 def build_corrected_point_cloud(current_cloud: list[tuple[float, float]], new_points: list[tuple[float, float] | None], current_pose: Position) -> list[tuple[float, float]]:
     """Core function: ICP correction + loop closure + pose graph optimization."""
