@@ -149,42 +149,42 @@ def dock_status_callback(subscriber: "Subscriber", status: DockStatus) -> None:
     """Update docking-related values (visible, docked)."""
     subscriber.update_uptime(subscriber._dock_status.topic_name)
 
-    subscriber._subscription_msgs.dockingValues.dock_visible._update_state(status.dock_visible)
-    subscriber._subscription_msgs.dockingValues.is_docked._update_state(status.is_docked)
+    subscriber._subscription_msgs.docking_values.dock_visible._update_state(status.dock_visible)
+    subscriber._subscription_msgs.docking_values.is_docked._update_state(status.is_docked)
 
 def ir_opcode_callback(subscriber: "Subscriber", ir_opcode: IrOpcode) -> None:
     """Parse IR docking opcodes and set the corresponding buoy/force-field flags."""
     subscriber.update_uptime(subscriber._ir_opcode.topic_name)
 
-    subscriber._subscription_msgs.dockingValues.sensor = ir_opcode.sensor
+    subscriber._subscription_msgs.docking_values.sensor = ir_opcode.sensor
 
     match ir_opcode.opcode:
         case 161:
-            subscriber._subscription_msgs.dockingValues.redBuoy = False
-            subscriber._subscription_msgs.dockingValues.greenBuoy = False
-            subscriber._subscription_msgs.dockingValues.forceField = True
+            subscriber._subscription_msgs.docking_values.redBuoy = False
+            subscriber._subscription_msgs.docking_values.greenBuoy = False
+            subscriber._subscription_msgs.docking_values.forceField = True
         case 164:
-            subscriber._subscription_msgs.dockingValues.redBuoy = False
-            subscriber._subscription_msgs.dockingValues.greenBuoy = True
-            subscriber._subscription_msgs.dockingValues.forceField = False
+            subscriber._subscription_msgs.docking_values.redBuoy = False
+            subscriber._subscription_msgs.docking_values.greenBuoy = True
+            subscriber._subscription_msgs.docking_values.forceField = False
         case 165:
-            subscriber._subscription_msgs.dockingValues.redBuoy = False
-            subscriber._subscription_msgs.dockingValues.greenBuoy = True
-            subscriber._subscription_msgs.dockingValues.forceField = True
+            subscriber._subscription_msgs.docking_values.redBuoy = False
+            subscriber._subscription_msgs.docking_values.greenBuoy = True
+            subscriber._subscription_msgs.docking_values.forceField = True
         case 168:
-            subscriber._subscription_msgs.dockingValues.redBuoy = True
-            subscriber._subscription_msgs.dockingValues.greenBuoy = False
-            subscriber._subscription_msgs.dockingValues.forceField = False
+            subscriber._subscription_msgs.docking_values.redBuoy = True
+            subscriber._subscription_msgs.docking_values.greenBuoy = False
+            subscriber._subscription_msgs.docking_values.forceField = False
         case 169:
-            subscriber._subscription_msgs.dockingValues.redBuoy = True
-            subscriber._subscription_msgs.dockingValues.greenBuoy = False
-            subscriber._subscription_msgs.dockingValues.forceField = True
+            subscriber._subscription_msgs.docking_values.redBuoy = True
+            subscriber._subscription_msgs.docking_values.greenBuoy = False
+            subscriber._subscription_msgs.docking_values.forceField = True
         case 172:
-            subscriber._subscription_msgs.dockingValues.redBuoy = True
-            subscriber._subscription_msgs.dockingValues.greenBuoy = True
-            subscriber._subscription_msgs.dockingValues.forceField = False
+            subscriber._subscription_msgs.docking_values.redBuoy = True
+            subscriber._subscription_msgs.docking_values.greenBuoy = True
+            subscriber._subscription_msgs.docking_values.forceField = False
         case 173:
-            subscriber._subscription_msgs.dockingValues.redBuoy = True
-            subscriber._subscription_msgs.dockingValues.greenBuoy = True
-            subscriber._subscription_msgs.dockingValues.forceField = True
+            subscriber._subscription_msgs.docking_values.redBuoy = True
+            subscriber._subscription_msgs.docking_values.greenBuoy = True
+            subscriber._subscription_msgs.docking_values.forceField = True
         

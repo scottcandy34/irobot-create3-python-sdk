@@ -14,7 +14,7 @@ from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, Int
 
 from create3.utils import Threading
 from create3.models.common import Position
-from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe
+from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe, RobotButtons
 
 from .callbacks.msg import (
     odom_callback,
@@ -112,7 +112,7 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         """Return the most recent cliff sensor states as a `HazardCliff` object."""
         return self._subscription_msgs.cliff
 
-    def get_touch_sensors(self) -> InterfaceButtons:
+    def get_touch_sensors(self) -> RobotButtons:
         """Return the most recent physical button states."""
         return self._subscription_msgs.buttons
 
@@ -127,4 +127,4 @@ class Subscriber(Threading if TYPE_CHECKING else object):
     def get_docking_values(self) -> DockingValues:
         """Return the most recent docking sensor values
         (is_docked, dock_visible, sensor, redBuoy, greenBuoy, forceField)."""
-        return self._subscription_msgs.dockingValues
+        return self._subscription_msgs.docking_values

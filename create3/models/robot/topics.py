@@ -36,7 +36,7 @@ class Subscribe(TopicContainer):
     acceleration: Stamped[Acceleration] = field(default_factory=lambda: Stamped(Acceleration()))
 
     # Docking sensors
-    dockingValues: DockingValues = field(default_factory=DockingValues)
+    docking_values: DockingValues = field(default_factory=DockingValues)
 
 @dataclass
 class Publish(TopicContainer):
