@@ -8,6 +8,7 @@ ROS2 interfaces for the Robot node, including publishers, subscribers, services 
 as well as callbacks for handling incoming messages and other events.
 """
 
+from .interface import Interface
 from .subscribers import Subscriber
 from .publishers import Publisher
 from .actions import ActionClient

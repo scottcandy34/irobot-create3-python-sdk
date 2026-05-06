@@ -3,9 +3,6 @@
 # Created by scottcandy34
 #
 
-from typing import TYPE_CHECKING
-
-from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from tf2_ros.buffer import Buffer
 from nav_msgs.msg import OccupancyGrid
@@ -14,10 +11,12 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from yolo_msgs.msg import DetectionArray
 
-from create3.utils import Threading
-from create3.models.remote import Controller, Map, Yolo, Subscribe
+from create3.models.common import Stamped
+from create3.utils.common.other import TIMEOUT
+from create3.utils import Logger, MonitoredSubscription, Node
+from create3.models.remote import Controller, Map, Yolo, Subscribe, Topics
 
-from .callbacks.msg import (
+from .callbacks import (
     joy_callback,
     map_callback,
     yolo_detections_callback,
@@ -31,7 +30,7 @@ qos_profile = QoSProfile(
     depth = 1
 )
 
-class Subscriber(Threading if TYPE_CHECKING else object):
+class Subscriber(Logger):
     """ROS subscriber manager for companion/remote topics (joystick, map, YOLO).
 
     This class handles higher-level perception and control input topics.
@@ -53,35 +52,58 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         super().__init__(node)  # initialize Threading + Logger
 
         # Shared container that holds the latest message data for every topic
-        self._subscription_msgs: Subscribe = Subscribe()
+        self.msgs: Subscribe = Subscribe()
 
         # Use a mutually exclusive callback group so callbacks never block each other
-        subscriber_callback_group = MutuallyExclusiveCallbackGroup()
-
-        # Create subscriptions
-        self._joy = self.node.create_subscription(Joy, 'joy', lambda msg: joy_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._map = self.node.create_subscription(OccupancyGrid, 'map', lambda msg: map_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._yolo_detections = self.node.create_subscription(DetectionArray, '/yolo/detections', lambda msg: yolo_detections_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
+        self.callback_group = MutuallyExclusiveCallbackGroup()
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self.node)
         self.node.create_timer(0.05, corrected_position_callback)
         
         # Register all subscriptions with the debugger for uptime monitoring
-        self.debug.subscriptions = [self._joy, self._map, self._yolo_detections]
-
-    # ----------------------------------------------------------------------
-    # Public getters (convenience API for the rest of the codebase)
-    # ----------------------------------------------------------------------
-
-    def get_controller(self) -> Controller:
-        """Return the most recent controller (joystick) input data."""
-        return self._subscription_msgs.controller
-
-    def get_map(self) -> Map:
-        """Return the most recent occupancy grid map data."""
-        return self._subscription_msgs.map.data
-
-    def get_yolo(self) -> Yolo:
-        """Return the most recent YOLO object detections."""
-        return self._subscription_msgs.yolo.data
+        self.topics: list[MonitoredSubscription] = []
+        
+    def find(self, name: Topics) -> MonitoredSubscription:
+        for subscription in self.topics:
+            if name == subscription.topic_name:
+                return subscription
+            
+        return None
+    
+    def wait(self, name: Topics):
+        if not self.find(name).ready_event.wait(TIMEOUT):
+            self.print_warning(f"Timeout waiting for first message on {name}")
+    
+    @property
+    def controller(self) -> Controller:
+        if not self.find(Topics.JOY):
+            self.topics.append(self.node.create_monitored_subscription(Joy, Topics.JOY, lambda msg: joy_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.JOY)
+        return self.msgs.controller
+    
+    @controller.setter
+    def controller(self, msg: Controller):
+        self.msgs.controller = msg
+        
+    @property
+    def map(self) -> Stamped[Map]:
+        if not self.find(Topics.MAP):
+            self.topics.append(self.node.create_monitored_subscription(OccupancyGrid, Topics.MAP, lambda msg: map_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.MAP)
+        return self.msgs.map
+    
+    @map.setter
+    def map(self, msg: Stamped[Map]):
+        self.msgs.map = msg
+        
+    @property
+    def yolo(self) -> Stamped[Yolo]:
+        if not self.find(Topics.YOLO_DETECTIONS):
+            self.topics.append(self.node.create_monitored_subscription(DetectionArray, Topics.YOLO_DETECTIONS, lambda msg: yolo_detections_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.YOLO_DETECTIONS)
+        return self.msgs.yolo
+    
+    @yolo.setter
+    def yolo(self, msg: Stamped[Yolo]):
+        self.msgs.yolo = msg

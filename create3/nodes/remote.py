@@ -3,13 +3,14 @@
 # Created by scottcandy34
 #
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.remote import Tasks
 from create3.utils import remote as tools
+from create3.utils.common.other import TIMEOUT
 from create3.utils import rclpy, Threading, global_debugger
-from create3.ros.remote import Publisher, Subscriber
+from create3.ros.remote import Interface
 
-class RemoteNode(Publisher, Subscriber, Threading):
+class RemoteNode(Interface, Threading):
     """Main remote control node for the iRobot Create3.
 
     This node typically runs on a laptop or computer and provides:
@@ -36,6 +37,7 @@ class RemoteNode(Publisher, Subscriber, Threading):
         # Initialize the multiple-inheritance chain:
         # Publisher → Subscriber → Threading
         super().__init__(node)  # calls Publisher then Subscriber
+        node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools
         """Tools and utilities available to the remote node."""
