@@ -15,11 +15,11 @@ def publish_handler(publisher: "Publisher") -> None:
     It follows the same "publish-only-on-change" pattern used for lightring
     and audio to reduce unnecessary network traffic.
     """
-    current_servo = publisher._publisher_msgs.servo
+    current_servo = publisher.servo
 
     # Publish only if the servo command has changed
-    if current_servo != publisher._publisher_msgs.last_servo:
-        publisher._servo.publish(current_servo)
+    if current_servo != publisher.last_servo:
+        publisher.send_servo_angle(current_servo)
 
     # Always update the last-known value for the next cycle
-    publisher._publisher_msgs.last_servo = current_servo
+    publisher.last_servo = current_servo

@@ -7,9 +7,9 @@ from create3.models import Nodes
 from create3.models.companion import Tasks
 from create3.utils import companion as tools
 from create3.utils import rclpy, Threading, global_debugger
-from create3.ros.companion import Publisher, Subscriber
+from create3.ros.companion import Interface
 
-class CompanionNode(Publisher, Subscriber, Threading):
+class CompanionNode(Interface, Threading):
     """Main companion node for the iRobot Create3.
 
     Combines:
@@ -51,6 +51,9 @@ class CompanionNode(Publisher, Subscriber, Threading):
         # Register with global debugger (optional)
         if enable_debugger:
             global_debugger.add_device(self)
+            
+        # Move servo to default position on startup
+        self.reset_servo()
 
     def shutdown(self) -> None:
         """Gracefully shut down the companion node.
