@@ -113,21 +113,25 @@ class Debugger(Logger):
         while self._devices:
             for device in self._devices:
                 # === Subscriptions (check publisher + frequency) ===
-                sub: MonitoredSubscription
-                for sub in device.subscriber.topics:
-                    self._check_interface(sub)
+                if device.subscriber:
+                    sub: MonitoredSubscription
+                    for sub in device.subscriber.topics:
+                        self._check_interface(sub)
 
-                    freq = sub.stats.current_hz  # current frequency (Hz)
-                    if freq >= UPTIME_FREQUENCY:
-                        self._log_high_frequency_warning(sub.topic_name)
+                        freq = sub.stats.current_hz  # current frequency (Hz)
+                        if freq >= UPTIME_FREQUENCY:
+                            self._log_high_frequency_warning(sub.topic_name)
 
                 # === Publishers, Actions, Services ===
-                for pub in device.publisher.topics:
-                    self._check_interface(pub)
-                for action in device.actions.clients:
-                    self._check_interface(action)
-                for service in device.services.clients:
-                    self._check_interface(service)
+                if device.publisher:
+                    for pub in device.publisher.topics:
+                        self._check_interface(pub)
+                if device.actions:
+                    for action in device.actions.clients:
+                        self._check_interface(action)
+                if device.services:
+                    for service in device.services.clients:
+                        self._check_interface(service)
 
             time.sleep(1.0 / DEBUGGER_INTERVAL)
 

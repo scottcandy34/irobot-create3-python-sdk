@@ -3,15 +3,13 @@
 # Created by scottcandy34
 #
 
-from typing import TYPE_CHECKING
-
-from rclpy.node import Node
+from rclpy.publisher import Publisher as Publishing
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JoyFeedbackArray
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from create3.utils import Threading
-from create3.models.remote import Publish
+from create3.utils import Logger, Node
+from create3.models.remote import Publish, Topics
 
 from .callbacks.handler import (
     publish_handler
@@ -22,7 +20,7 @@ qos_profile = QoSProfile(
     depth=1
 )
 
-class Publisher(Threading if TYPE_CHECKING else object):
+class Publisher(Logger):
     """ROS publisher for controller feedback (rumble/vibration).
 
     This lightweight Publisher is used by the remote/companion node to
@@ -43,25 +41,42 @@ class Publisher(Threading if TYPE_CHECKING else object):
         super().__init__(node)  # initialize Threading + Logger
 
         # Shared container that holds the latest messages to be published
-        self._publisher_msgs: Publish = Publish()
+        self.msgs: Publish = Publish()
 
         # Use a mutually exclusive callback group
-        publisher_callback_group = MutuallyExclusiveCallbackGroup()
-        publish_handler_callback_group = MutuallyExclusiveCallbackGroup()
-
-        # Create the joy feedback publisher
-        self._joy_feedback = self.node.create_publisher(JoyFeedbackArray, "joy/set_feedback", qos_profile, callback_group=publisher_callback_group)
+        self.callback_group = MutuallyExclusiveCallbackGroup()
 
         # Background timer that drives the rumble pulse logic
-        self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=publish_handler_callback_group)
+        self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=MutuallyExclusiveCallbackGroup())
 
-        # Register with debugger for interface monitoring
-        self.debug.publishers = [self._joy_feedback]
-
-    def controller_rumble(self) -> None:
-        """Trigger a short rumble pulse on the connected controller.
-
-        The actual rumble (0.5-second vibration) is handled by the
-        background `publish_handler` (rumble version).
-        """
-        self._publisher_msgs.rumble_enable = True
+        # Register publishers with the debugger for interface monitoring
+        self.topics: list[Publishing] = []
+        
+    def find(self, name: Topics) -> Publishing:
+        for publisher in self.topics:
+            if name == publisher.topic_name:
+                return publisher
+            
+        return None
+    
+    @property
+    def rumble_enable(self) -> bool:
+        return self.msgs.rumble_enable
+    
+    @rumble_enable.setter
+    def rumble_enable(self, msg: bool):
+        self.msgs.rumble_enable = msg
+        
+    @property
+    def rumble_running(self) -> bool:
+        return self.msgs.rumble_running
+    
+    @rumble_running.setter
+    def rumble_running(self, msg: bool):
+        self.msgs.rumble_running = msg
+    
+    def send_joy_feedback(self, joy_feedback_msg: JoyFeedbackArray):
+        if not self.find(Topics.JOY_FEEDBACK):
+            self.topics.append(self.node.create_publisher(JoyFeedbackArray, Topics.JOY_FEEDBACK, qos_profile, callback_group=self.callback_group))
+            
+        self.find(Topics.JOY_FEEDBACK).publish(joy_feedback_msg)

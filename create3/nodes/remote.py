@@ -7,9 +7,9 @@ from create3.models import Nodes
 from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils import rclpy, Threading, global_debugger
-from create3.ros.remote import Publisher, Subscriber
+from create3.ros.remote import Interface
 
-class RemoteNode(Publisher, Subscriber, Threading):
+class RemoteNode(Interface, Threading):
     """Main remote control node for the iRobot Create3.
 
     This node typically runs on a laptop or computer and provides:

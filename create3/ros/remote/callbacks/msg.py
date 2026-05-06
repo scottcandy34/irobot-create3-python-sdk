@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from rclpy.time import Time
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import OccupancyGrid
-from yolo_msgs.msg import DetectionArray
+from yolo_msgs.msg import DetectionArray, Detection
 
 from create3.models.common import Position, Stamped
 from create3.models.remote import Map, Yolo
@@ -26,12 +26,10 @@ def joy_callback(subscriber: "Subscriber", joy: Joy) -> None:
     Maps the raw axes and buttons from a standard PlayStation-style controller
     into the custom `Controller` object used throughout the codebase.
     """
-    subscriber.update_uptime(subscriber._joy.topic_name)
-
     axes = joy.axes
     buttons = joy.buttons
 
-    controller = subscriber._subscription_msgs.controller
+    controller = subscriber.controller
 
     # Left stick + triggers
     controller.left_joy.horizontal = axes[0]
@@ -70,8 +68,6 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
     Converts the grid origin from meters to centimeters and extracts the yaw
     angle from the quaternion orientation.
     """
-    subscriber.update_uptime(subscriber._map.topic_name)
-    
     map_ = Map()
 
     map_.resolution = grid.info.resolution
@@ -89,16 +85,15 @@ def map_callback(subscriber: "Subscriber", grid: OccupancyGrid) -> None:
 
     map_.origin = position
     
-    subscriber._subscription_msgs.map = Stamped(map_, Time.from_msg(grid.header.stamp))
+    subscriber.map = Stamped(map_, Time.from_msg(grid.header.stamp))
     
 def yolo_detections_callback(subscriber: "Subscriber", detection_array: DetectionArray) -> None:
     """Handle incoming YOLO detection array and convert detections into
     the internal BoundingBox format used by the rest of the system.
     """
-    subscriber.update_uptime(subscriber._yolo_detections.topic_name)
-
     yolo = Yolo()
 
+    detection: Detection
     for detection in detection_array.detections:
         bbox = BoundingBox(
             class_id=detection.class_id,
@@ -113,4 +108,4 @@ def yolo_detections_callback(subscriber: "Subscriber", detection_array: Detectio
         )
         yolo.bounding_boxes.append(bbox)
         
-    subscriber._subscription_msgs.yolo = Stamped(yolo, Time.from_msg(detection_array.header.stamp))
+    subscriber.yolo = Stamped(yolo, Time.from_msg(detection_array.header.stamp))

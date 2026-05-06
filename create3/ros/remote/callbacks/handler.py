@@ -20,7 +20,7 @@ def publish_handler(publisher: "Publisher") -> None:
 
     Called every 0.05 seconds by the Publisher's timer.
     """
-    if not (publisher._publisher_msgs.rumble_enable and publisher._publisher_msgs.rumble_running):
+    if not (publisher.rumble_enable and publisher.rumble_running):
         return
 
     # Prepare reusable feedback message (rumble motor ID 0 is standard)
@@ -31,21 +31,21 @@ def publish_handler(publisher: "Publisher") -> None:
 
     def start_rumble() -> None:
         """Activate the controller rumble."""
-        publisher._publisher_msgs.rumble_running = True
+        publisher.rumble_running = True
         feedback.intensity = 1.0
         feedback_array.array = [feedback]
-        publisher._joy_feedback.publish(feedback_array)
+        publisher.send_joy_feedback(feedback_array)
 
     def stop_rumble() -> None:
         """Stop the controller rumble after the pulse."""
-        publisher._publisher_msgs.rumble_running = False
+        publisher.rumble_running = False
         feedback.intensity = 0.0
         feedback_array.array = [feedback]
-        publisher._joy_feedback.publish(feedback_array)
+        publisher.send_joy_feedback(feedback_array)
 
     # Trigger the one-shot rumble pulse
     start_rumble()
-    publisher.delay_callback(0.5, stop_rumble)
+    publisher.node.create_oneshot_timer(0.5, stop_rumble)
 
     # Clear the enable flag so we don't retrigger on the next timer tick
-    publisher._publisher_msgs.rumble_enable = False
+    publisher.rumble_enable = False
