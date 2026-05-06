@@ -20,8 +20,12 @@ from .tasks import (
     history_keeper_task,
 )
 
+# =============================================================================
+# TASK REGISTRATION TABLES (fully declarative)
+# =============================================================================
+
 # Task → callback function
-TASK_CALLBACKS = {
+TASK_CALLBACKS: dict[Any, Callable] = {
     CommonTasks.HISTORY_KEEPER: history_keeper_task,
     CompanionTasks.GENERATE_COORDS: generate_coords_task,
     CompanionTasks.WALL_DETECTION: wall_detection_task,
@@ -31,80 +35,104 @@ TASK_CALLBACKS = {
     RemoteTasks.CONTROLLER: controller_task,
 }
 
-def get_task_callback(task: Any) -> Callable | None:
-    """Return the callback function for a given task name.
+# Task → list of tasks that must be started first
+TASK_DEPENDENCIES: dict[Any, list[Any]] = {
+    CompanionTasks.WALL_DETECTION: [CompanionTasks.GENERATE_COORDS],
+}
 
-    Returns None if the task is not registered in TASK_CALLBACKS.
-    """
+# Task → required devices/nodes (must all be present)
+TASK_REQUIREMENTS: dict[Any, dict] = {
+    CommonTasks.HISTORY_KEEPER: {},
+    CompanionTasks.GENERATE_COORDS: {
+        "required_nodes": [Nodes.CREATE3_COMPANION, Nodes.CREATE3_ROBOT],
+    },
+    CompanionTasks.WALL_DETECTION: {
+        "required_nodes": [Nodes.CREATE3_COMPANION, Nodes.CREATE3_ROBOT],
+        "required_tasks": [CompanionTasks.GENERATE_COORDS],
+    },
+    CompanionTasks.LIDAR_LIGHTRING: {
+        "required_nodes": [Nodes.CREATE3_COMPANION, Nodes.CREATE3_ROBOT],
+    },
+    CompanionTasks.SIMPLE_WALL_FOLLOWER: {
+        "required_nodes": [Nodes.CREATE3_COMPANION, Nodes.CREATE3_ROBOT],
+    },
+    RobotTasks.IR_LIGHTRING: {
+        "required_nodes": [Nodes.CREATE3_ROBOT],
+    },
+    RemoteTasks.CONTROLLER: {
+        "required_nodes": [Nodes.CREATE3_ROBOT, Nodes.CREATE3_REMOTE],
+    },
+}
+
+# Task → tasks that cannot run at the same time (mutual exclusions)
+TASK_CONFLICTS: dict[Any, list[Any]] = {
+    CompanionTasks.LIDAR_LIGHTRING: [RobotTasks.IR_LIGHTRING],
+    CompanionTasks.SIMPLE_WALL_FOLLOWER: [RemoteTasks.CONTROLLER],
+    RobotTasks.IR_LIGHTRING: [CompanionTasks.LIDAR_LIGHTRING],
+    RemoteTasks.CONTROLLER: [CompanionTasks.SIMPLE_WALL_FOLLOWER],
+}
+
+# =============================================================================
+# PUBLIC HELPERS
+# =============================================================================
+
+
+def get_task_callback(task: Any) -> Callable | None:
+    """Return the callback function for a given task name."""
     return TASK_CALLBACKS.get(task)
 
+
+def ensure_requirements(scheduler: "TaskScheduler", task: Any, _visited: set | None = None) -> bool:
+    """Auto-start missing dependencies + validate requirements (unchanged behavior)."""
+    if _visited is None:
+        _visited = set()
+
+    if task in _visited:
+        scheduler.print_error(f"Circular dependency detected involving {task}")
+        return False
+    _visited.add(task)
+
+    # Auto-start prerequisites
+    for dep in TASK_DEPENDENCIES.get(task, []):
+        if not scheduler._find_task(dep):
+            scheduler.print_notice(f"Auto-starting prerequisite task '{dep}' for '{task}'")
+            scheduler.add_task(dep)
+
+    _visited.remove(task)
+
+    # Now run the declarative validation
+    return check_requirements(scheduler, task)
+
+
 def check_requirements(scheduler: "TaskScheduler", task: Any) -> bool:
-    """Validate that all prerequisites for a task are satisfied before adding it.
+    """Declarative requirement checker — no more giant match statement!"""
+    req = TASK_REQUIREMENTS.get(task)
+    if req is None:
+        scheduler.print_error(f"{task} is not a known task.")
+        return False
 
-    Checks for required devices and mutually exclusive tasks.
-    Logs clear warnings (or errors) when requirements are not met.
-
-    Returns True only if the task can safely be added.
-    """
-    match task:
-        # === Common Tasks ===
-        case CommonTasks.HISTORY_KEEPER:
-            return True
-        # === Companion Tasks ===
-        case CompanionTasks.GENERATE_COORDS:
-            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
-                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.")
-                return False
-
-        case CompanionTasks.WALL_DETECTION:
-            if not scheduler._find_task(CompanionTasks.GENERATE_COORDS):
-                scheduler.print_warning(f"{task} task requires the {CompanionTasks.GENERATE_COORDS} task.")
-                return False
-
-        case CompanionTasks.LIDAR_LIGHTRING:
-            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
-                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.")
-                return False
-            if scheduler._find_task(RobotTasks.IR_LIGHTRING):
-                scheduler.print_warning(f"{task} task cannot run together with {RobotTasks.IR_LIGHTRING}.")
-                return False
-            
-        case CompanionTasks.SIMPLE_WALL_FOLLOWER:
-            if not (scheduler._find_device(Nodes.CREATE3_COMPANION) and scheduler._find_device(Nodes.CREATE3_ROBOT)):
-                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_COMPANION} and {Nodes.CREATE3_ROBOT} nodes.")
-                return False
-
-            if scheduler._find_task(RemoteTasks.CONTROLLER):
-                scheduler.print_warning(f"{task} task cannot run together with {RemoteTasks.CONTROLLER}.")
-                return False
-            
-        # === Robot Tasks ===
-        case RobotTasks.IR_LIGHTRING:
-            if not scheduler._find_device(Nodes.CREATE3_ROBOT):
-                scheduler.print_warning(f"{task} task requires the {Nodes.CREATE3_ROBOT} node.")
-                return False
-            if scheduler._find_task(CompanionTasks.LIDAR_LIGHTRING):
-                scheduler.print_warning(f"{task} task cannot run together with {CompanionTasks.LIDAR_LIGHTRING}.")
-                return False
-
-        # === Remote Tasks ===
-        case RemoteTasks.CONTROLLER:
-            if not (scheduler._find_device(Nodes.CREATE3_ROBOT) and scheduler._find_device(Nodes.CREATE3_REMOTE)):
-                scheduler.print_warning(f"{task} task requires both {Nodes.CREATE3_ROBOT} and {Nodes.CREATE3_REMOTE} nodes.")
-                return False
-
-            if not scheduler._find_device(Nodes.CREATE3_COMPANION):
-                scheduler.print_warning(f"{task} task works without {Nodes.CREATE3_COMPANION} (camera movement will be disabled).")
-                # Still allowed to run
-                return True
-
-            if scheduler._find_task(CompanionTasks.SIMPLE_WALL_FOLLOWER):
-                scheduler.print_warning(f"{task} task cannot run together with {CompanionTasks.SIMPLE_WALL_FOLLOWER}.")
-                return False
-
-        # Unknown task
-        case _:
-            scheduler.print_error(f"{task} is not a known task.")
+    # 1. Check required nodes
+    for node in req.get("required_nodes", []):
+        if not scheduler._find_device(node):
+            scheduler.print_warning(f"{task} task requires the {node} node.")
             return False
+
+    # 2. Check required tasks (beyond auto-start)
+    for required_task in req.get("required_tasks", []):
+        if not scheduler._find_task(required_task):
+            scheduler.print_warning(f"{task} task requires the {required_task} task.")
+            return False
+
+    # 3. Check conflicts (mutual exclusions)
+    for conflicting_task in TASK_CONFLICTS.get(task, []):
+        if scheduler._find_task(conflicting_task):
+            scheduler.print_warning(f"{task} task cannot run together with {conflicting_task}.")
+            return False
+
+    # Special case for Controller (optional companion node warning)
+    if task == RemoteTasks.CONTROLLER and not scheduler._find_device(Nodes.CREATE3_COMPANION):
+        scheduler.print_warning(
+            f"{task} task works without {Nodes.CREATE3_COMPANION} (camera movement will be disabled)."
+        )
 
     return True
