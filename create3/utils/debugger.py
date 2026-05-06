@@ -8,7 +8,6 @@ from threading import Thread
 from typing import Any
 import colorama
 
-from rclpy.node import Node
 from rclpy.client import Client
 from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
@@ -23,41 +22,6 @@ UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
 
 colorama.init(autoreset=True)
-
-class NodeTesting:
-    """Helper for testing availability of ROS 2 interfaces on a node.
-
-    Used internally by `Debugger` to check whether topics have publishers,
-    services/actions have servers, etc.
-    """
-
-    def __init__(self, node: Node) -> None:
-        """Initialize the interface tester.
-
-        Parameters
-        ----------
-        node : Node
-            ROS node used to query publisher/subscriber info.
-        """
-        self._node = node
-
-    def subscription(self, interface: MonitoredSubscription) -> bool:
-        """Return True if at least one publisher exists for this topic."""
-        pub_info = self._node.get_publishers_info_by_topic(interface.topic_name)
-        return len(pub_info) > 0
-
-    def publisher(self, interface: Publisher) -> bool:
-        """Return True if at least one subscriber exists for this topic."""
-        sub_info = self._node.get_subscriptions_info_by_topic(interface.topic_name)
-        return len(sub_info) > 0
-
-    def action_client(self, interface: ActionClient) -> bool:
-        """Return True if the action server is ready/available."""
-        return interface.server_is_ready()
-
-    def service_client(self, interface: Client) -> bool:
-        """Return True if the service server is ready/available."""
-        return interface.service_is_ready()
 
 class Debugger(Logger):
     """Background ROS interface watchdog and uptime monitor.
@@ -105,25 +69,24 @@ class Debugger(Logger):
 
     def _check_interface(self, interface: Any) -> None:
         """Check one ROS interface and log healthy/error state changes."""
-        test = NodeTesting(self.node)
 
         if isinstance(interface, MonitoredSubscription):
-            exist = test.subscription(interface)
+            exist = self.node.test_subscription(interface)
             name = interface.topic_name
             type_ = "Topic Publisher"
 
         elif isinstance(interface, Publisher):
-            exist = test.publisher(interface)
+            exist = self.node.test_publisher(interface)
             name = interface.topic_name
             type_ = "Topic Subscriber"
 
         elif isinstance(interface, ActionClient):
-            exist = test.action_client(interface)
+            exist = self.node.test_action_client(interface)
             name = interface._action_name
             type_ = "Action Server"
 
         elif isinstance(interface, Client):
-            exist = test.service_client(interface)
+            exist = self.node.test_service_client(interface)
             name = interface.service_name
             type_ = "Service Server"
 

@@ -12,6 +12,7 @@ from .subscribers import Subscriber
 from .publishers import Publisher
 from .actions import ActionClient
 from .services import ServiceClient
+from create3.utils import Node
 from create3.utils import Threading
 import create3.utils.robot as tools
 from create3.utils.common.other import DEFAULT_WAIT
@@ -19,7 +20,7 @@ from create3.utils.common.coords import convert_to_quaternion, find_direction
 
 class Interface(Threading if TYPE_CHECKING else object):
     """Mixin that exposes all user-facing methods for the RobotNode."""
-    def __init__(self, node):
+    def __init__(self, node: Node):
         super().__init__(node)  # initialize Threading + Logger
         
         # Create internal components

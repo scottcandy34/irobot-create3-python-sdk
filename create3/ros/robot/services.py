@@ -3,12 +3,11 @@
 # Created by scottcandy34
 #
 
-from rclpy.node import Node
 from rclpy.client import Client
 from irobot_create_msgs.srv import ResetPose
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from create3.utils import Logger
+from create3.utils import Logger, Node
 from create3.models.robot import Services
 from create3.utils.common.other import TIMEOUT, DEFAULT_WAIT
 

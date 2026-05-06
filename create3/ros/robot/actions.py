@@ -3,13 +3,12 @@
 # Created by scottcandy34
 #
 
-from rclpy.node import Node
 from rclpy.action import ActionClient as CreateActionClient
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
 from create3.models.robot import Actions
-from create3.utils import Logger
+from create3.utils import Logger, Node
 from create3.utils.common.other import TIMEOUT
 
 from .callbacks.goal import (

@@ -5,14 +5,11 @@
 
 import time
 from threading import Thread
-from typing import Any, Callable
 
-from rclpy.node import Node
-from rclpy.timer import Timer
 from rclpy.executors import SingleThreadedExecutor
 
-from create3.models import Debug
 from .logger import Logger
+from .node import Node
 
 class Threading(Logger):
     """ROS node threading helper with background spinning, timing utilities,
@@ -64,44 +61,7 @@ class Threading(Logger):
 
         self.print_warning(f"{self.get_name()} node has shutdown.")
         self.node.destroy_node()
-
-    def delay_callback(self, delay_time: float | int, callback: Callable, *args: Any, **kwargs: Any) -> Timer:
-        """Schedule a one-shot callback to run after a delay.
-
-        The timer is automatically destroyed after it fires (so it runs only once).
-
-        Parameters
-        ----------
-        delay_time : float | int
-            Delay in seconds before the callback runs.
-        callback : Callable
-            Function to call after the delay.
-        *args, **kwargs
-            Arguments passed to the callback.
-
-        Returns
-        -------
-        Timer
-            The created timer object (in case you need to cancel it early).
-        """
-        timer: Timer | None = None
-
-        def one_shot_wrapper() -> None:
-            nonlocal timer
-            # Destroy the timer so it never fires again
-            if timer is not None:
-                self.node.destroy_timer(timer)
-                timer = None
-
-            try:
-                callback(*args, **kwargs)
-            except Exception as e:  # noqa: BLE001
-                self.print_error(f"Delayed callback failed: {e}")
-
-        # Create the timer (one-shot)
-        timer = self.node.create_timer(delay_time, one_shot_wrapper)
-        return timer
-
+        
     def _spin(self) -> None:
         """Internal method that runs the ROS executor in a background thread.
 

@@ -3,14 +3,13 @@
 # Created by scottcandy34
 #
 
-from rclpy.node import Node
 from rclpy.publisher import Publisher as Publishing
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Twist
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
-from create3.utils import Logger
+from create3.utils import Logger, Node
 from create3.models.robot import Publish, Topics
 
 from .callbacks.handler import (
