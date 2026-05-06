@@ -15,3 +15,4 @@ from .debugger import global_debugger
 from .ros_threading import Threading
 from .robot.music import Note
 from .logger import Logger
+from .monitored_subscription import MonitoredSubscription

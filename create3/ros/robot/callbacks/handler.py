@@ -20,14 +20,14 @@ def set_wheel_speed_handler(publisher: "Publisher") -> None:
 
     Zero commands (default Twist()) are not re-published.
     """
-    current = publisher._publisher_msgs.wheel_speeds
+    current = publisher.velocity
 
     # Publish on change OR if we have an active non-zero movement command
-    if (current != publisher._publisher_msgs.last_wheel_speeds) or (current != Twist()):
-        publisher._velocities.publish(current)
+    if (current != publisher.last_velocity) or (current != Twist()):
+        publisher.send_velocity(current)
 
     # Always update the last-known command for next comparison
-    publisher._publisher_msgs.last_wheel_speeds = current
+    publisher.last_velocity = current
 
 def publish_handler(publisher: "Publisher") -> None:
     """Periodically check for changes and publish to non-velocity topics every 0.05 seconds.
@@ -41,13 +41,13 @@ def publish_handler(publisher: "Publisher") -> None:
     network traffic for these topics.
     """
     # === Lightring LEDs ===
-    current_lightring = publisher._publisher_msgs.lightring
-    if current_lightring != publisher._publisher_msgs.last_lightring:
-        publisher._lightring.publish(current_lightring)
-    publisher._publisher_msgs.last_lightring = current_lightring
+    current_lightring = publisher.lightring
+    if current_lightring != publisher.last_lightring:
+        publisher.send_lightring(current_lightring)
+    publisher.last_lightring = current_lightring
 
     # === Audio Note ===
-    current_audio = publisher._publisher_msgs.audio_note
-    if current_audio != publisher._publisher_msgs.last_audio_note:
-        publisher._audio.publish(current_audio)
-    publisher._publisher_msgs.last_audio_note = current_audio
+    current_audio = publisher.audio_note
+    if current_audio != publisher.last_audio_note:
+        publisher.send_audio(current_audio)
+    publisher.last_audio_note = current_audio

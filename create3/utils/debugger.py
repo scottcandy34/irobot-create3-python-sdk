@@ -12,12 +12,12 @@ from rclpy.node import Node
 from rclpy.client import Client
 from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
-from rclpy.subscription import Subscription
 
 from . import rclpy
 from create3.models import Nodes
 from .ros_threading import Threading
 from .logger import Logger
+from .monitored_subscription import MonitoredSubscription
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
@@ -41,7 +41,7 @@ class NodeTesting:
         """
         self._node = node
 
-    def subscription(self, interface: Subscription) -> bool:
+    def subscription(self, interface: MonitoredSubscription) -> bool:
         """Return True if at least one publisher exists for this topic."""
         pub_info = self._node.get_publishers_info_by_topic(interface.topic_name)
         return len(pub_info) > 0
@@ -94,7 +94,7 @@ class Debugger(Logger):
     def add_device(self, device: Threading) -> None:
         """Start watching a device's ROS interfaces and uptime statistics."""
         self._devices.append(device)
-        self._validated.update(device.debug.is_alive())  # copy initial validation state
+        self._validated.update(device.is_alive())  # copy initial validation state
 
     def remove_device(self, device: Threading) -> None:
         """Stop watching a device (removes it from the debugger)."""
@@ -107,7 +107,7 @@ class Debugger(Logger):
         """Check one ROS interface and log healthy/error state changes."""
         test = NodeTesting(self.node)
 
-        if isinstance(interface, Subscription):
+        if isinstance(interface, MonitoredSubscription):
             exist = test.subscription(interface)
             name = interface.topic_name
             type_ = "Topic Publisher"
@@ -150,21 +150,20 @@ class Debugger(Logger):
         while self._devices:
             for device in self._devices:
                 # === Subscriptions (check publisher + frequency) ===
-                for sub in device.debug.subscriptions:
+                sub: MonitoredSubscription
+                for sub in device.subscriber.topics:
                     self._check_interface(sub)
 
-                    topic = sub.topic_name
-                    if topic in device.debug.uptime:
-                        freq = device.debug.uptime[topic][1]  # current frequency (Hz)
-                        if freq >= UPTIME_FREQUENCY:
-                            self._log_high_frequency_warning(topic)
+                    freq = sub.stats.current_hz  # current frequency (Hz)
+                    if freq >= UPTIME_FREQUENCY:
+                        self._log_high_frequency_warning(sub.topic_name)
 
                 # === Publishers, Actions, Services ===
-                for pub in device.debug.publishers:
+                for pub in device.publisher.topics:
                     self._check_interface(pub)
-                for action in device.debug.actions:
+                for action in device.actions.clients:
                     self._check_interface(action)
-                for service in device.debug.services:
+                for service in device.services.clients:
                     self._check_interface(service)
 
             time.sleep(1.0 / DEBUGGER_INTERVAL)

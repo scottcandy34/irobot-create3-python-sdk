@@ -7,9 +7,9 @@ from create3.models import Nodes
 from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils import rclpy, Threading, global_debugger
-from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
+from create3.ros.robot import Interface
 
-class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
+class RobotNode(Interface, Threading):
     """Main robot node for the iRobot Create3.
 
     Combines everything needed to control the physical robot:
@@ -42,7 +42,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
         super().__init__(node)  # ActionClient → ServiceClient → Publisher → Subscriber → Threading
 
         self._use_goal = use_goal
-
+        
         self.tools = tools
         """Tools and utilities for working with the robot's sensors and controls."""
 

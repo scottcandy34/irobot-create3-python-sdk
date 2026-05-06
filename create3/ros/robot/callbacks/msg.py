@@ -23,8 +23,6 @@ def odom_callback(subscriber: "Subscriber", odom: Odometry) -> None:
 
     Converts pose from meters to centimeters and quaternion to Euler yaw (degrees).
     """
-    subscriber.update_uptime(subscriber._odom.topic_name)
-
     pos = odom.pose.pose.position
     orient = odom.pose.pose.orientation
 
@@ -34,12 +32,10 @@ def odom_callback(subscriber: "Subscriber", odom: Odometry) -> None:
     euler = tools.coords.convert_to_euler(orient.x, orient.y, orient.z, orient.w)
     position.angle = math.degrees(euler.yaw_z)
 
-    subscriber._subscription_msgs.position = Stamped(position, Time.from_msg(odom.header.stamp))
+    subscriber.position = Stamped(position, Time.from_msg(odom.header.stamp))
 
 def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> None:
     """Handle IR intensity readings and store the 7 sensor values in the shared state."""
-    subscriber.update_uptime(subscriber._ir_intensity.topic_name)
-    
     readings = ir.readings
     ir_values = [
         readings[0].value,
@@ -51,15 +47,13 @@ def ir_intensity_callback(subscriber: "Subscriber", ir: IrIntensityVector) -> No
         readings[6].value,
     ]
     
-    subscriber._subscription_msgs.ir_values = Stamped(ir_values, Time.from_msg(ir.header.stamp))
+    subscriber.ir_values = Stamped(ir_values, Time.from_msg(ir.header.stamp))
 
 def hazard_detection_callback(subscriber: "Subscriber", vector: HazardDetectionVector) -> None:
     """Parse hazard detections (bumpers and cliffs) and update the shared state objects."""
-    subscriber.update_uptime(subscriber._hazard_detection.topic_name)
-
     # Shared model objects
-    bumpers = subscriber._subscription_msgs.bumpers
-    cliffs = subscriber._subscription_msgs.cliff
+    bumpers = subscriber.bumpers
+    cliffs = subscriber.cliff_sensors
 
     # 1. Start with clean "all false" local state
     bumper_states = {
@@ -117,25 +111,19 @@ def hazard_detection_callback(subscriber: "Subscriber", vector: HazardDetectionV
 
 def interface_buttons_callback(subscriber: "Subscriber", buttons: InterfaceButtons) -> None:
     """Update the state of the physical buttons on the robot."""
-    subscriber.update_uptime(subscriber._interface_buttons.topic_name)
-
-    subscriber._subscription_msgs.buttons.button_1._update_state(buttons.button_1.is_pressed)
-    subscriber._subscription_msgs.buttons.button_power._update_state(buttons.button_power.is_pressed)
-    subscriber._subscription_msgs.buttons.button_2._update_state(buttons.button_2.is_pressed)
+    subscriber.buttons.button_1._update_state(buttons.button_1.is_pressed)
+    subscriber.buttons.button_power._update_state(buttons.button_power.is_pressed)
+    subscriber.buttons.button_2._update_state(buttons.button_2.is_pressed)
 
 def battery_state_callback(subscriber: "Subscriber", battery: BatteryState) -> None:
     """Update battery percentage (converted to 0–100 scale) and issue a warning when low."""
-    subscriber.update_uptime(subscriber._battery_state.topic_name)
+    subscriber.battery = battery.percentage * 100.0
 
-    subscriber._subscription_msgs.battery = battery.percentage * 100.0
-
-    if subscriber._subscription_msgs.battery <= 10.0:
-        subscriber.print_warning(f"Battery low: {subscriber._subscription_msgs.battery:.1f}% remaining.")
+    if subscriber.battery <= 10.0:
+        subscriber.print_warning(f"Battery low: {subscriber.msgs.battery:.1f}% remaining.")
 
 def imu_callback(subscriber: "Subscriber", imu: Imu) -> None:
     """Extract linear acceleration from the IMU and store it in the shared state."""
-    subscriber.update_uptime(subscriber._imu.topic_name)
-    
     acceleration = Acceleration()
 
     accel = imu.linear_acceleration
@@ -143,48 +131,44 @@ def imu_callback(subscriber: "Subscriber", imu: Imu) -> None:
     acceleration.y = accel.y
     acceleration.z = accel.z
     
-    subscriber._subscription_msgs.acceleration = Stamped(acceleration, Time.from_msg(imu.header.stamp))
+    subscriber.acceleration = Stamped(acceleration, Time.from_msg(imu.header.stamp))
 
 def dock_status_callback(subscriber: "Subscriber", status: DockStatus) -> None:
     """Update docking-related values (visible, docked)."""
-    subscriber.update_uptime(subscriber._dock_status.topic_name)
-
-    subscriber._subscription_msgs.docking_values.dock_visible._update_state(status.dock_visible)
-    subscriber._subscription_msgs.docking_values.is_docked._update_state(status.is_docked)
+    subscriber.docking_values.dock_visible._update_state(status.dock_visible)
+    subscriber.docking_values.is_docked._update_state(status.is_docked)
 
 def ir_opcode_callback(subscriber: "Subscriber", ir_opcode: IrOpcode) -> None:
     """Parse IR docking opcodes and set the corresponding buoy/force-field flags."""
-    subscriber.update_uptime(subscriber._ir_opcode.topic_name)
-
-    subscriber._subscription_msgs.docking_values.sensor = ir_opcode.sensor
+    subscriber.docking_values.sensor = ir_opcode.sensor
 
     match ir_opcode.opcode:
         case 161:
-            subscriber._subscription_msgs.docking_values.redBuoy = False
-            subscriber._subscription_msgs.docking_values.greenBuoy = False
-            subscriber._subscription_msgs.docking_values.forceField = True
+            subscriber.docking_values.redBuoy = False
+            subscriber.docking_values.greenBuoy = False
+            subscriber.docking_values.forceField = True
         case 164:
-            subscriber._subscription_msgs.docking_values.redBuoy = False
-            subscriber._subscription_msgs.docking_values.greenBuoy = True
-            subscriber._subscription_msgs.docking_values.forceField = False
+            subscriber.docking_values.redBuoy = False
+            subscriber.docking_values.greenBuoy = True
+            subscriber.docking_values.forceField = False
         case 165:
-            subscriber._subscription_msgs.docking_values.redBuoy = False
-            subscriber._subscription_msgs.docking_values.greenBuoy = True
-            subscriber._subscription_msgs.docking_values.forceField = True
+            subscriber.docking_values.redBuoy = False
+            subscriber.docking_values.greenBuoy = True
+            subscriber.docking_values.forceField = True
         case 168:
-            subscriber._subscription_msgs.docking_values.redBuoy = True
-            subscriber._subscription_msgs.docking_values.greenBuoy = False
-            subscriber._subscription_msgs.docking_values.forceField = False
+            subscriber.docking_values.redBuoy = True
+            subscriber.docking_values.greenBuoy = False
+            subscriber.docking_values.forceField = False
         case 169:
-            subscriber._subscription_msgs.docking_values.redBuoy = True
-            subscriber._subscription_msgs.docking_values.greenBuoy = False
-            subscriber._subscription_msgs.docking_values.forceField = True
+            subscriber.docking_values.redBuoy = True
+            subscriber.docking_values.greenBuoy = False
+            subscriber.docking_values.forceField = True
         case 172:
-            subscriber._subscription_msgs.docking_values.redBuoy = True
-            subscriber._subscription_msgs.docking_values.greenBuoy = True
-            subscriber._subscription_msgs.docking_values.forceField = False
+            subscriber.docking_values.redBuoy = True
+            subscriber.docking_values.greenBuoy = True
+            subscriber.docking_values.forceField = False
         case 173:
-            subscriber._subscription_msgs.docking_values.redBuoy = True
-            subscriber._subscription_msgs.docking_values.greenBuoy = True
-            subscriber._subscription_msgs.docking_values.forceField = True
+            subscriber.docking_values.redBuoy = True
+            subscriber.docking_values.greenBuoy = True
+            subscriber.docking_values.forceField = True
         

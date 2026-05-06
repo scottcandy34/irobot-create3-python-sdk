@@ -31,7 +31,6 @@ class Threading(Logger):
             The rclpy node this helper will manage.
         """
         super().__init__(node)          # properly initialize parent Logger
-        self.debug = Debug()            # debug statistics container
 
     def time(self) -> int:
         """Return the current ROS clock time in nanoseconds."""
@@ -40,38 +39,6 @@ class Threading(Logger):
     def get_name(self) -> str:
         """Return the name of this ROS node (useful for logging)."""
         return self.node.get_name()
-
-    def update_uptime(self, topic_name: str) -> None:
-        """Update frequency statistics for a topic (used by debug tools).
-
-        Tracks: last timestamp, current frequency (Hz), min frequency,
-        max frequency, and total message count.
-        """
-        if topic_name not in self.debug.uptime:
-            self.debug.uptime[topic_name] = [0, 0, 0, 0, 0]  # [last_ns, freq, min_freq, max_freq, total_calls]
-
-        uptime = self.debug.uptime[topic_name]
-        current_ns = self.time()
-
-        # Frequency = 1 / Δt (in seconds)
-        if uptime[0] != 0:
-            dt_sec = (current_ns - uptime[0]) / 1_000_000_000
-            uptime[1] = int(1.0 / dt_sec) if dt_sec > 0 else 0
-        else:
-            uptime[1] = 0
-
-        # Update last timestamp
-        uptime[0] = current_ns
-
-        # Update min/max frequency (ignore first sample where min is still 0)
-        if uptime[2] == 0:
-            uptime[2] = uptime[1]
-        else:
-            uptime[2] = min(uptime[1], uptime[2])
-        uptime[3] = max(uptime[1], uptime[3])
-
-        # Total calls
-        uptime[4] += 1
 
     def start(self) -> None:
         """Start ROS spinning in a background thread.

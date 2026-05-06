@@ -3,18 +3,17 @@
 # Created by scottcandy34
 #
 
-import time
-from typing import TYPE_CHECKING
-
 from rclpy.node import Node
+from rclpy.client import Client
 from irobot_create_msgs.srv import ResetPose
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from create3.utils import Threading
+from create3.utils import Logger
+from create3.models.robot import Services
 from create3.utils.common.other import TIMEOUT, DEFAULT_WAIT
 
 
-class ServiceClient(Threading if TYPE_CHECKING else object):
+class ServiceClient(Logger):
     """ROS service client manager for the iRobot Create3.
 
     Provides a clean interface to call robot services (currently only
@@ -36,27 +35,24 @@ class ServiceClient(Threading if TYPE_CHECKING else object):
 
         # Use a mutually exclusive callback group so service calls never block
         # other callbacks (subscriptions, timers, etc.)
-        service_callback_group = MutuallyExclusiveCallbackGroup()
-
-        # Create service clients
-        self._reset_pose = self.node.create_client(ResetPose, "reset_pose", callback_group=service_callback_group)
-
-        # Wait for the service to become available
-        self._reset_pose.wait_for_service(timeout_sec=TIMEOUT)
+        self.callback_group = MutuallyExclusiveCallbackGroup()
 
         # Register with debugger for interface monitoring
-        self.debug.services = [self._reset_pose]
+        self.clients: list[Client] = []
+        
+    def find(self, name: Services) -> Client:
+        for service in self.clients:
+            if name == service.srv_name:
+                return service
+            
+        return None
+        
+    def send_reset_navigation(self, reset_pose_request: ResetPose.Request) -> None:
+        if not self.find(Services.RESET_POSE):
+            client = self.node.create_client(ResetPose, Services.RESET_POSE, callback_group=self.callback_group)
+            client.wait_for_service(timeout_sec=TIMEOUT)
+            self.clients.append(client)
+            
+        self.find(Services.RESET_POSE).call(reset_pose_request, DEFAULT_WAIT)
 
-    def reset_navigation(self) -> None:
-        """Request the robot to reset its position and heading to (0, 0, 0°).
-
-        This is typically called once at startup. The robot takes up to ~4 seconds
-        to complete the reset.
-        """
-        self.print_warning("Resetting robot position. Max time 4 sec.")
-
-        # Send the reset request
-        self._reset_pose.call(ResetPose.Request(), DEFAULT_WAIT)
-
-        # Give the robot time to process the reset
-        time.sleep(1.0)
+        
