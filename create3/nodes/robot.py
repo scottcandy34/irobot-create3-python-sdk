@@ -7,7 +7,7 @@ from create3.models.common import Nodes
 from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Threading, global_debugger
+from create3.utils import rclpy, Threading, Debugger, get_debugger
 from create3.ros.robot import Interface
 
 class RobotNode(Interface, Threading):
@@ -53,8 +53,10 @@ class RobotNode(Interface, Threading):
         self.start()
 
         # Register with global debugger (optional)
+        self.debugger: Debugger = None
         if enable_debugger:
-            global_debugger.add_device(self)
+            self.debugger = get_debugger()
+            self.debugger.add_device(self)
 
         # Reset the robot's position and heading to (0, 0, 0°) on startup
         self.reset_navigation()
@@ -64,6 +66,7 @@ class RobotNode(Interface, Threading):
 
         Stops the debugger watch, shuts down all ROS resources, and cleans up.
         """
-        global_debugger.stop(self)          # stop debugger monitoring
+        if self.debugger:
+            self.debugger.stop(self)          # stop debugger monitoring
         super().shutdown()                  # calls Threading.shutdown() + all parent cleanup
         rclpy.shutdown()

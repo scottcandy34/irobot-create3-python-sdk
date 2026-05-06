@@ -166,5 +166,45 @@ class Debugger(Logger):
             self.node.destroy_node()
             rclpy.shutdown()
 
-# Initialize Debugger for global use
-global_debugger = Debugger()
+# =============================================================================
+# GLOBAL DEBUGGER (Lazy Initialization)
+# =============================================================================
+
+_global_debugger_instance: "Debugger | None" = None
+
+
+class _GlobalDebuggerProxy:
+    """Proxy object that creates the real Debugger **only** on first use.
+
+    This gives you the exact same convenient global access you had before:
+        global_debugger.add_device(...)
+        global_debugger.remove_device(...)
+
+    But the ROS node + watcher thread are **not** started until the first
+    time you actually touch `global_debugger`.
+    """
+    def __getattr__(self, name: str):
+        global _global_debugger_instance
+        if _global_debugger_instance is None:
+            _global_debugger_instance = Debugger()
+        return getattr(_global_debugger_instance, name)
+
+    def __setattr__(self, name: str, value):
+        # Allow setting attributes directly on the proxy if needed
+        global _global_debugger_instance
+        if _global_debugger_instance is None:
+            _global_debugger_instance = Debugger()
+        return setattr(_global_debugger_instance, name, value)
+
+
+# Public global instance — usage stays EXACTLY the same as before
+global_debugger = _GlobalDebuggerProxy()
+
+
+# Optional: explicit getter (recommended for new code)
+def get_debugger() -> "Debugger":
+    """Get (and lazily create) the global debugger instance."""
+    global _global_debugger_instance
+    if _global_debugger_instance is None:
+        _global_debugger_instance = Debugger()
+    return _global_debugger_instance

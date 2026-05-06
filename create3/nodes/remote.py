@@ -7,7 +7,7 @@ from create3.models.common import Nodes
 from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Threading, global_debugger
+from create3.utils import rclpy, Threading, Debugger, get_debugger
 from create3.ros.remote import Interface
 
 class RemoteNode(Interface, Threading):
@@ -49,14 +49,17 @@ class RemoteNode(Interface, Threading):
         self.start()
 
         # Register with global debugger (optional)
+        self.debugger: Debugger = None
         if enable_debugger:
-            global_debugger.add_device(self)
+            self.debugger = get_debugger()
+            self.debugger.add_device(self)
 
     def shutdown(self) -> None:
         """Gracefully shut down the remote node.
 
         Stops the debugger watch, shuts down all ROS resources, and cleans up.
         """
-        global_debugger.stop(self)          # stop debugger monitoring
+        if self.debugger:
+            self.debugger.stop(self)          # stop debugger monitoring
         super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup
         rclpy.shutdown()
