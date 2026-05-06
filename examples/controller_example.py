@@ -30,23 +30,17 @@ elif (script_dir.parent / "create3").exists():
 # =============================================================================
 
 from create3 import RobotNode, RemoteNode
-from create3.scheduler import TaskScheduler
 from create3.utils.display import ControllerVisualizer
 
 def main() -> None:
     """Run the Controller Visualizer example with docking button support."""
 
     # Initialize nodes
-    robot = RobotNode()
-    remote = RemoteNode()
-
-    # Create task scheduler and register devices
-    task_scheduler = TaskScheduler()
-    task_scheduler.add_device(robot)
-    task_scheduler.add_device(remote)
+    robot = RobotNode(enable_scheduler=True)
+    remote = RemoteNode(enable_scheduler=True)
 
     # Start the controller input task
-    task_scheduler.add_task(remote.tasks.CONTROLLER)
+    robot.scheduler.add_task(remote.tasks.CONTROLLER)
 
     # Register docking/undocking callback on the Options button (rising edge)
     @remote.get_controller().buttons.options.pressed
@@ -64,7 +58,6 @@ def main() -> None:
     ControllerVisualizer(remote)
 
     # Clean shutdown
-    task_scheduler.shutdown()
     robot.shutdown()
     remote.shutdown()
 

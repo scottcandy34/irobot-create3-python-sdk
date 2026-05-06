@@ -53,7 +53,6 @@ class RobotNode(Interface, Threading):
         # Start background ROS spinning
         self.start()
         
-
         # Register with global debugger (optional)
         self.debugger: Debugger = None
         if enable_debugger:

@@ -42,22 +42,16 @@ def main() -> None:
     """Run the PID tuner example with simple wall following."""
 
     # Initialize nodes
-    robot = RobotNode()
-    companion = CompanionNode()
-
-    # Create task scheduler and register devices
-    task_scheduler = TaskScheduler()
-    task_scheduler.add_device(robot)
-    task_scheduler.add_device(companion)
+    robot = RobotNode(enable_scheduler=True)
+    companion = CompanionNode(enable_scheduler=True)
 
     # Start the wall follower task
-    task_scheduler.add_task(companion.tasks.SIMPLE_WALL_FOLLOWER)
+    robot.scheduler.add_task(companion.tasks.SIMPLE_WALL_FOLLOWER)
 
     # Launch live PID tuner (tunes the angular PID used by wall following)
     PIDTuner(companion.tools.wall_follow.pid_angular)
 
     # Clean shutdown
-    task_scheduler.shutdown()
     robot.shutdown()
     companion.shutdown()
 
