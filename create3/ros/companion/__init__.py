@@ -10,3 +10,4 @@ as well as callbacks for handling incoming messages and other events.
 
 from .subscribers import Subscriber
 from .publishers import Publisher
+from .interface import Interface

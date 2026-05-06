@@ -3,6 +3,8 @@
 # Created by scottcandy34
 #
 
+from typing import Deque
+from collections import deque
 from threading import Thread, RLock
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -167,3 +169,73 @@ class TopicContainer:
         else:
             with self._lock:
                 super().__setattr__(name, value)
+                
+@dataclass
+class SubscriptionStats:
+    """Tracks detailed telemetry for any ROS 2 topic subscription."""
+
+    topic: str
+
+    current_hz: int = 0
+    min_hz: int = 0
+    max_hz: int = 0
+    avg_hz: float = 0.0
+    total_messages: int = 0
+
+    first_message_ns: int = 0
+    last_message_ns: int = 0
+
+    # Rolling window of the last 30 frequencies (for better average)
+    recent_frequencies: Deque[int] = field(default_factory=lambda: deque(maxlen=30))
+
+    def update(self, current_ns: int) -> None:
+        """Call this every time a message arrives."""
+        if self.first_message_ns == 0:
+            self.first_message_ns = current_ns
+
+        self.last_message_ns = current_ns
+        self.total_messages += 1
+
+        if self.last_message_ns != self.first_message_ns:
+            dt_sec = (current_ns - self.last_message_ns) / 1_000_000_000
+            if dt_sec > 0:
+                freq = int(1.0 / dt_sec)
+                self.current_hz = freq
+                self.recent_frequencies.append(freq)
+
+                # Update min/max
+                if self.min_hz == 0:
+                    self.min_hz = freq
+                else:
+                    self.min_hz = min(self.min_hz, freq)
+                self.max_hz = max(self.max_hz, freq)
+
+                # Simple moving average
+                if self.recent_frequencies:
+                    self.avg_hz = sum(self.recent_frequencies) / len(self.recent_frequencies)
+
+    @property
+    def time_since_last_message(self) -> float:
+        """Seconds since the last message arrived."""
+        if self.last_message_ns == 0:
+            return float('inf')
+        now = Time().nanoseconds
+        return (now - self.last_message_ns) / 1_000_000_000
+
+    def is_stale(self, timeout_sec: float = 1.0) -> bool:
+        """Return True if no message has arrived within the timeout."""
+        return self.time_since_last_message > timeout_sec
+
+    def is_healthy(self, expected_hz: int = 20, tolerance: float = 0.5) -> bool:
+        """Simple health check (very useful for debugger)."""
+        if self.current_hz == 0:
+            return False
+        return abs(self.current_hz - expected_hz) / expected_hz <= tolerance
+    
+    def reset(self) -> None:
+        self.__init__(topic=self.topic)
+
+    def __repr__(self) -> str:
+        return (f"SubscriptionStats({self.topic}: "
+                f"{self.current_hz}Hz avg={self.avg_hz:.1f}Hz "
+                f"total={self.total_messages})")

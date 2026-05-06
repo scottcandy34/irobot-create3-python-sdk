@@ -1,23 +1,33 @@
 #
 # Line Tools for iRobot Create3 - Jazzy
-# Created by scottcandy34
+# =====================================================================
+# Created by scottcandy34 • NumPy Optimized & Revised April 2026
 #
-
-"""Tools for working with lines, including fitting a line to a set of points, calculating the distance from a point to a line, including projecting points onto a line, and calculating the length of a segment along a line."""
+# High-performance utilities for fitting, measuring, and projecting
+# straight lines in 2D point clouds (used by WALL_DETECTION).
+#
+# All functions are fully vectorized with NumPy for maximum speed
+# while remaining fully backward-compatible with plain Python lists
+# of (x, y) tuples.
+# =====================================================================
 
 import math
 
-def fit_line(points: list[tuple[float, float]]) -> tuple[float, float]:
-    """Fit a straight line to a set of 2D points using least-squares regression.
+import numpy as np
+import numpy.typing as npt
 
-    Returns the slope (m) and y-intercept (b) of the best-fit line y = mx + b.
-    This is the exact parallel to `fit_circle` (closed-form, simple, and robust
-    for noisy data). Commonly used in robotics for wall/line detection.
+from create3.utils.common.algorithms import PointCloud
+
+
+def fit_line(points: PointCloud) -> tuple[float, float]:
+    """Fit a straight line y = mx + b to a set of 2D points using NumPy.
+
+    Uses `np.polyfit` for robust, high-speed least-squares regression.
 
     Parameters
     ----------
-    points : list[tuple[float, float]]
-        List of (x, y) coordinates (at least 2 points required).
+    points : PointCloud
+        List of (x, y) tuples OR Nx2 NumPy array.
 
     Returns
     -------
@@ -30,107 +40,130 @@ def fit_line(points: list[tuple[float, float]]) -> tuple[float, float]:
         If fewer than 2 points are provided or the points form a vertical line
         (infinite slope).
     """
-    if len(points) < 2:
+    pts = np.asarray(points, dtype=np.float64)
+
+    if len(pts) < 2:
         raise ValueError("At least 2 points are required to fit a line.")
 
-    x = [p[0] for p in points]
-    y = [p[1] for p in points]
-    n = len(points)
-    sum_x = sum(x)
-    sum_y = sum(y)
-    sum_xy = sum(xi * yi for xi, yi in zip(x, y))
-    sum_xx = sum(xi * xi for xi in x)
+    if pts.ndim != 2 or pts.shape[1] != 2:
+        raise ValueError("points must be Nx2 array or list of (x, y) tuples")
 
-    denominator = n * sum_xx - sum_x**2
-    if abs(denominator) < 1e-10:
+    x = pts[:, 0]
+    y = pts[:, 1]
+
+    m, b = np.polyfit(x, y, 1)
+
+    if abs(m) > 1e8:
         raise ValueError("Vertical line detected (infinite slope).")
 
-    m = (n * sum_xy - sum_x * sum_y) / denominator
-    b = (sum_y - m * sum_x) / n
+    return float(m), float(b)
 
-    return m, b
 
-def distance_to_line(point: tuple[float, float], m: float, b: float) -> float:
-    """Calculate the perpendicular distance from a point to the line y = mx + b.
+def distance_to_line(
+    point: tuple[float, float] | npt.NDArray[np.float64],
+    m: float,
+    b: float,
+) -> float | npt.NDArray[np.float64]:
+    """Calculate perpendicular distance from point(s) to the line y = mx + b.
 
-    This is the line equivalent of `distance_to_circle`. It measures the
-    shortest (orthogonal) distance to the fitted line — useful for residual
-    analysis, inlier counting, or RANSAC-style outlier rejection.
+    Fully vectorized — accepts a single point or an array of points.
 
     Parameters
     ----------
-    point : tuple[float, float]
-        (x, y) coordinates of the test point.
-    m : float
-        Slope of the fitted line.
-    b : float
-        Y-intercept of the fitted line.
+    point : tuple[float, float] | np.ndarray
+        Single (x, y) tuple or Nx2 array of points.
+    m, b : float
+        Slope and y-intercept from `fit_line()`.
+
+    Returns
+    -------
+    float | np.ndarray
+        Scalar distance (for single point) or array of distances.
+    """
+    pts = np.asarray(point, dtype=np.float64)
+
+    if pts.ndim == 1:
+        pts = pts.reshape(1, -1)
+
+    x, y = pts[:, 0], pts[:, 1]
+    dist = np.abs(y - (m * x + b)) / math.sqrt(1 + m**2)
+
+    return float(dist[0]) if len(dist) == 1 else dist
+
+
+def project_point(
+    point: tuple[float, float] | npt.NDArray[np.float64],
+    m: float,
+    b: float,
+) -> tuple[float, float] | npt.NDArray[np.float64]:
+    """Project point(s) onto the infinite line defined by y = mx + b.
+
+    This geometric projection is used by segment grouping and length calculation.
+    Fully vectorized for high performance.
+
+    Parameters
+    ----------
+    point : tuple[float, float] | np.ndarray
+        Single (x, y) tuple or Nx2 array of points.
+    m, b : float
+        Slope and y-intercept of the line.
+
+    Returns
+    -------
+    tuple[float, float] | np.ndarray
+        Projected point(s) as (x_proj, y_proj).
+        Returns a single tuple for one point, or an Nx2 array otherwise.
+    """
+    pts = np.asarray(point, dtype=np.float64)
+    single = pts.ndim == 1
+
+    if single:
+        pts = pts.reshape(1, -1)
+
+    x, y = pts[:, 0], pts[:, 1]
+    denom = 1.0 + m**2
+
+    x_proj = (x + m * y - m * b) / denom
+    y_proj = (m * x + m**2 * y + b) / denom
+
+    if single:
+        return float(x_proj[0]), float(y_proj[0])
+
+    return np.column_stack((x_proj, y_proj))
+
+
+def calculate_length(segment: PointCloud, m: float, b: float) -> float:
+    """Calculate the length of a contiguous segment along the fitted line.
+
+    Projects all points onto the line and returns the distance between the
+    first and last projected point (i.e., length along the line direction).
+
+    Parameters
+    ----------
+    segment : PointCloud
+        Points belonging to a single contiguous line segment.
+    m, b : float
+        Slope and y-intercept of the fitted line.
 
     Returns
     -------
     float
-        Perpendicular distance from the point to the line.
-    """
-    x, y = point
-    return abs(y - (m * x + b)) / math.sqrt(1 + m**2)
-
-def project_point(point: tuple[float, float], m: float, b: float) -> tuple[float, float]:
-    """Project a point onto the line defined by y = mx + b.
-
-    This returns the closest point on the infinite line to the given point.
-    It is the geometric projection used by `find` and `calculate_length`.
-
-    Parameters
-    ----------
-    point : tuple[float, float]
-        (x, y) coordinates of the point to project.
-    m : float
-        Slope of the line.
-    b : float
-        Y-intercept of the line.
-
-    Returns
-    -------
-    tuple[float, float]
-        (x_proj, y_proj) — the projected point on the line.
-    """
-    x, y = point
-    denominator = 1.0 + m**2
-    x_proj = (x + m * y - m * b) / denominator
-    y_proj = (m * x + m**2 * y + b) / denominator
-    return x_proj, y_proj
-
-def calculate_length(segment: list[tuple[float, float]], m: float, b: float) -> float:
-    """Calculate the length of a contiguous segment of points along the fitted line.
-
-    This is the line equivalent of `calculate_arc_length`. It projects the points
-    onto the line and returns the distance between the first and last projected
-    point (i.e., the length along the line).
-
-    Parameters
-    ----------
-    segment : list[tuple[float, float]]
-        Points belonging to a single contiguous segment.
-    m : float
-        Slope of the fitted line.
-    b : float
-        Y-intercept of the fitted line.
-
-    Returns
-    -------
-    float
-        Length of the segment along the line. Returns 0.0 if fewer than 2 points.
+        Length of the segment along the line (in the same units as the points).
+        Returns 0.0 if fewer than 2 points are provided.
     """
     if len(segment) < 2:
         return 0.0
 
-    projections = [project_point(point, m, b) for point in segment]
+    projections = project_point(segment, m, b)
+
+    # If a single point was passed (should not happen for segments)
+    if isinstance(projections, tuple):
+        return 0.0
 
     # Unit direction vector along the line
     norm = math.sqrt(1.0 + m**2)
-    direction_x = 1.0 / norm
-    direction_y = m / norm
+    direction = np.array([1.0 / norm, m / norm], dtype=np.float64)
 
-    positions = [p[0] * direction_x + p[1] * direction_y for p in projections]
+    positions = projections @ direction
 
-    return max(positions) - min(positions)
+    return float(max(positions) - min(positions))

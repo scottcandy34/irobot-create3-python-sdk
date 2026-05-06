@@ -27,6 +27,6 @@ class Nodes(StrEnum):
     """Global debugger node — monitors all attached nodes and logs warnings
     or errors when ROS interfaces are missing or misbehaving."""
 
-    TASK_SCHEDULAR = auto()
+    TASK_SCHEDULER = auto()
     """Task scheduler node — manages periodic tasks across all registered devices
     and nodes."""

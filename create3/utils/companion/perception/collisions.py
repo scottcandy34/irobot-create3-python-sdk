@@ -1,7 +1,21 @@
 #
-# Predictive Tools for iRobot Create3 - Jazzy
-# Created by scottcandy34
+# Predictive Collision Tools for iRobot Create3 - Jazzy
+# =====================================================================
+# Created by scottcandy34 • Revised & Fully Documented April 2026
 #
+# High-performance geometric collision prediction between the circular
+# robot body and detected wall segments.
+#
+# This module is used by navigation and obstacle avoidance tasks to
+# predict the first point of contact along the robot's current heading.
+#
+# Key Features:
+#   • Accurate circle-to-finite-line-segment intersection
+#   • Handles already-intersecting cases, infinite line hits, and endpoint hits
+#   • Returns Interaction object with angle, distance, and in-path flag
+#
+# Performance Note: Pure scalar math — called per detected wall, so remains very fast.
+# =====================================================================
 
 import math
 
@@ -9,37 +23,36 @@ from create3.models.common import Position
 from create3.utils.robot.constraints import RADIUS
 from create3.models.companion import Wall, Interaction
 
-def circle_to_wall_distance(wall: Wall, position: Position) -> Interaction:
-    """Calculate the first collision distance (if any) between a circular robot and a finite wall segment.
 
-    This function determines:
+def circle_to_wall_distance(wall: Wall, position: Position) -> Interaction:
+    """Calculate the first collision distance (if any) between the circular robot
+    and a finite wall segment.
+
+    This is the core predictive collision function used for safe navigation
+    and wall-following behaviors. It determines:
+
       • The acute angle between the robot's heading and the wall
-      • The distance along the heading until the circle first touches the wall segment
+      • The distance along the heading until the circle first touches the wall
       • Whether a collision occurs at all
 
-    It handles three geometric cases:
-      1. The robot is already intersecting the wall (distance = 0)
-      2. The circle touches the infinite line of the wall
-      3. The circle touches one of the wall's endpoints
+    It intelligently handles three geometric cases:
+      1. Robot is already intersecting the wall (distance = 0)
+      2. Circle touches the infinite line of the wall
+      3. Circle touches one of the wall's endpoints
 
     Parameters
     ----------
     wall : Wall
-        Wall object with:
-        - .slope (float): slope of the line y = mx + b
-        - .intercept (float): y-intercept of the line
-        - .xmin, .xmax (float): x-range where the finite wall segment exists
+        Detected wall segment containing slope, intercept, and x-range.
     position : Position
-        Robot pose with:
-        - .x, .y (float): center of the circle (robot position)
-        - .angle (float): heading in degrees (converted to radians internally)
+        Current robot pose (x, y in cm, angle in degrees).
 
     Returns
     -------
     Interaction
         Container with:
-        - angle (rad): acute angle between heading and wall
-        - distance (float): collision distance along heading (or inf if no collision)
+        - angle (rad): acute angle between robot heading and wall
+        - distance (float): collision distance along heading (or inf if none)
         - in_path (bool): True if the wall lies in the robot's future path
     """
     # Unpack robot pose
@@ -48,17 +61,16 @@ def circle_to_wall_distance(wall: Wall, position: Position) -> Interaction:
     heading_rad = math.radians(position.angle)
 
     # Precompute line coefficients
-    A = wall.slope * math.cos(heading_rad) - math.sin(heading_rad)          # heading · normal
-    B = wall.slope * x - y + wall.intercept                                 # signed distance term
-    normalizer = math.sqrt(wall.slope**2 + 1.0)                            # line normal length
+    A = wall.slope * math.cos(heading_rad) - math.sin(heading_rad)
+    B = wall.slope * x - y + wall.intercept
+    normalizer = math.sqrt(wall.slope**2 + 1.0)
 
     # Acute angle between heading and wall
     angle = math.asin(abs(A) / normalizer)
 
     # ------------------------------------------------------------------
-    # 1. Check if the robot is already intersecting the wall segment
+    # 1. Check if robot is already intersecting the wall segment
     # ------------------------------------------------------------------
-    # Project robot center onto the infinite line
     denom = 1.0 + wall.slope**2
     x_proj = (x + wall.slope * y - wall.slope * wall.intercept) / denom
 
@@ -104,7 +116,6 @@ def circle_to_wall_distance(wall: Wall, position: Position) -> Interaction:
         dx = x - p_x
         dy = y - p_y
 
-        # Quadratic coefficients for circle-line intersection along ray
         b_coeff = 2.0 * (dx * math.cos(heading_rad) + dy * math.sin(heading_rad))
         c_coeff = dx**2 + dy**2 - RADIUS**2
         discriminant = b_coeff**2 - 4.0 * c_coeff
