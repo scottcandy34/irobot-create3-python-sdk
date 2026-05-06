@@ -7,7 +7,7 @@ from create3.models.common import Nodes
 from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Threading, Debugger, get_debugger
+from create3.utils import rclpy, Threading, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.remote import Interface
 
@@ -22,13 +22,13 @@ class RemoteNode(Interface, Threading):
     It combines Publisher, Subscriber, and Threading via multiple inheritance.
     """
 
-    def __init__(self, enable_debugger: bool = True, enable_scheduler: bool = False) -> None:
+    def __init__(self, enable_watchdog: bool = True, enable_scheduler: bool = False) -> None:
         """Create and start the remote node.
 
         Parameters
         ----------
-        enable_debugger : bool
-            Whether to register this node with the global debugger.
+        enable_watchdog : bool
+            Whether to register this node with the global watchdog.
         """
         # Safe ROS initialization (only once)
         rclpy.init()
@@ -49,11 +49,11 @@ class RemoteNode(Interface, Threading):
         # Start background ROS spinning
         self.start()
 
-        # Register with global debugger (optional)
-        self.debugger: Debugger = None
-        if enable_debugger:
-            self.debugger = get_debugger()
-            self.debugger.add_device(self)
+        # Register with global watchdog (optional)
+        self.watchdog: Watchdog = None
+        if enable_watchdog:
+            self.watchdog = get_watchdog()
+            self.watchdog.add_device(self)
             
         self.scheduler: TaskScheduler = None
         if enable_scheduler:
@@ -63,10 +63,10 @@ class RemoteNode(Interface, Threading):
     def shutdown(self) -> None:
         """Gracefully shut down the remote node.
 
-        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        Stops the watchdog watch, shuts down all ROS resources, and cleans up.
         """
-        if self.debugger:
-            self.debugger.stop(self)          # stop debugger monitoring
+        if self.watchdog:
+            self.watchdog.stop(self)          # stop watchdog monitoring
         if self.scheduler:
             self.scheduler.stop(self)
         super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup

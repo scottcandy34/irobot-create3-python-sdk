@@ -31,7 +31,7 @@ class Interface(Threading if TYPE_CHECKING else object):
         """Return a list of all ROS interfaces belonging to this device.
 
         Format: list of `(interface_name, True)` tuples.
-        Used by the Debugger to track which interfaces are present.
+        Used by the Watchdog to track which interfaces are present.
         """
         subs = [(sub.topic_name, True) for sub in self.subscriber.topics]
         pubs = [(pub.topic_name, True) for pub in self.publisher.topics]

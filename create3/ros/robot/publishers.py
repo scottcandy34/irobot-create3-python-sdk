@@ -58,7 +58,7 @@ class Publisher(Logger):
         self.node.create_timer(0.05, lambda: set_velocity_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
         self.node.create_timer(0.05, lambda: publish_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
 
-        # Register publishers with the debugger for interface monitoring
+        # Register publishers with the watchdog for interface monitoring
         self.topics: list[Publishing] = []
         
     def find(self, name: Topics) -> Publishing:

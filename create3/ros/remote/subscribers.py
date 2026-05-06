@@ -34,7 +34,7 @@ class Subscriber(Logger):
     All callbacks run in a mutually exclusive callback group so they never
     interfere with each other or with other nodes.
 
-    The class also registers itself with the debugger for uptime and
+    The class also registers itself with the watchdog for uptime and
     interface monitoring.
     """
 
@@ -54,7 +54,7 @@ class Subscriber(Logger):
         # Use a mutually exclusive callback group so callbacks never block each other
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register all subscriptions with the debugger for uptime monitoring
+        # Register all subscriptions with the watchdog for uptime monitoring
         self.topics: list[MonitoredSubscription] = []
         
     def find(self, name: Topics) -> MonitoredSubscription:

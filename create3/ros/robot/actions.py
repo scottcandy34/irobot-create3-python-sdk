@@ -25,7 +25,7 @@ class ActionClient(Logger):
 
     All action clients use a mutually exclusive callback group so they never
     interfere with subscriptions or other callbacks. The class also registers
-    itself with the debugger for interface monitoring.
+    itself with the watchdog for interface monitoring.
     """
 
     def __init__(self, node: Node) -> None:
@@ -44,7 +44,7 @@ class ActionClient(Logger):
         # other callbacks (subscriptions, timers, etc.)
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register with debugger for interface monitoring
+        # Register with watchdog for interface monitoring
         self.clients: list[CreateActionClient] = []
         
     def find(self, name: Actions) -> CreateActionClient:

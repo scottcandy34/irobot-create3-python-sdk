@@ -7,7 +7,7 @@ from create3.models.common import Nodes
 from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Threading, Debugger, get_debugger
+from create3.utils import rclpy, Threading, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.robot import Interface
 
@@ -24,13 +24,13 @@ class RobotNode(Interface, Threading):
     This is the central node that directly interfaces with the Create3 robot.
     """
 
-    def __init__(self, enable_debugger: bool = True, enable_scheduler: bool = False) -> None:
+    def __init__(self, enable_watchdog: bool = True, enable_scheduler: bool = False) -> None:
         """Create and start the main robot node.
 
         Parameters
         ----------
-        enable_debugger : bool
-            Whether to register this node with the global debugger.
+        enable_watchdog : bool
+            Whether to register this node with the global watchdog.
         use_goal : bool
             Whether to use high-level action goals (True) or low-level
             timed twist commands (False) for movement.
@@ -53,11 +53,11 @@ class RobotNode(Interface, Threading):
         # Start background ROS spinning
         self.start()
         
-        # Register with global debugger (optional)
-        self.debugger: Debugger = None
-        if enable_debugger:
-            self.debugger = get_debugger()
-            self.debugger.add_device(self)
+        # Register with global watchdog (optional)
+        self.watchdog: Watchdog = None
+        if enable_watchdog:
+            self.watchdog = get_watchdog()
+            self.watchdog.add_device(self)
         
         self.scheduler: TaskScheduler = None
         if enable_scheduler:
@@ -70,10 +70,10 @@ class RobotNode(Interface, Threading):
     def shutdown(self) -> None:
         """Gracefully shut down the robot node.
 
-        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        Stops the watchdog watch, shuts down all ROS resources, and cleans up.
         """
-        if self.debugger:
-            self.debugger.stop(self)          # stop debugger monitoring
+        if self.watchdog:
+            self.watchdog.stop(self)          # stop watchdog monitoring
         if self.scheduler:
             self.scheduler.stop(self)
         super().shutdown()                  # calls Threading.shutdown() + all parent cleanup

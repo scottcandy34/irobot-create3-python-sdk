@@ -227,7 +227,7 @@ class SubscriptionStats:
         return self.time_since_last_message > timeout_sec
 
     def is_healthy(self, expected_hz: int = 20, tolerance: float = 0.5) -> bool:
-        """Simple health check (very useful for debugger)."""
+        """Simple health check (very useful for watchdog)."""
         if self.current_hz == 0:
             return False
         return abs(self.current_hz - expected_hz) / expected_hz <= tolerance

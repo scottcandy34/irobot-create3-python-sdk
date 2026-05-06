@@ -30,7 +30,7 @@ class Subscriber(Logger):
 
     Handles the `/scan` (LaserScan) and `/range` (Range) topics.
     All callbacks run inside a mutually exclusive callback group so they never
-    block each other. The class also registers itself with the debugger for
+    block each other. The class also registers itself with the watchdog for
     uptime and interface monitoring.
     """
 
@@ -50,7 +50,7 @@ class Subscriber(Logger):
         # Use a mutually exclusive callback group so callbacks never block each other
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register all subscriptions with the debugger for uptime monitoring
+        # Register all subscriptions with the watchdog for uptime monitoring
         self.topics: list[MonitoredSubscription] = []
         
     def find(self, name: Topics) -> MonitoredSubscription:

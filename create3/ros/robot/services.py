@@ -19,7 +19,7 @@ class ServiceClient(Logger):
     `reset_pose`). All service calls are placed in a mutually exclusive
     callback group so they never interfere with subscriptions or other callbacks.
 
-    The class also registers itself with the debugger for interface monitoring.
+    The class also registers itself with the watchdog for interface monitoring.
     """
 
     def __init__(self, node: Node) -> None:
@@ -36,7 +36,7 @@ class ServiceClient(Logger):
         # other callbacks (subscriptions, timers, etc.)
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register with debugger for interface monitoring
+        # Register with watchdog for interface monitoring
         self.clients: list[Client] = []
         
     def find(self, name: Services) -> Client:

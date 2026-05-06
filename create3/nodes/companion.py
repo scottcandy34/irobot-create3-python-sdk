@@ -7,7 +7,7 @@ from create3.models.common import Nodes
 from create3.models.companion import Tasks
 from create3.utils import companion as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Threading, Debugger, get_debugger
+from create3.utils import rclpy, Threading, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.companion import Interface
 
@@ -20,17 +20,17 @@ class CompanionNode(Interface, Threading):
       • Threading (background ROS spinning + logging)
 
     This is the central node that runs on the companion computer (Raspberry Pi).
-    It automatically starts spinning, registers itself with the global debugger,
+    It automatically starts spinning, registers itself with the global watchdog,
     and exposes `tools` and `tasks` for easy access from other parts of the SDK.
     """
 
-    def __init__(self, enable_debugger: bool = True, enable_scheduler: bool = False) -> None:
+    def __init__(self, enable_watchdog: bool = True, enable_scheduler: bool = False) -> None:
         """Create and start the companion node.
 
         Parameters
         ----------
-        enable_debugger : bool
-            Whether to register this node with the global debugger.
+        enable_watchdog : bool
+            Whether to register this node with the global watchdog.
         """
         # Safe ROS initialization (only once)
         rclpy.init()
@@ -51,11 +51,11 @@ class CompanionNode(Interface, Threading):
         # Start background ROS spinning
         self.start()
 
-        # Register with global debugger (optional)
-        self.debugger: Debugger = None
-        if enable_debugger:
-            self.debugger = get_debugger()
-            self.debugger.add_device(self)
+        # Register with global watchdog (optional)
+        self.watchdog: Watchdog = None
+        if enable_watchdog:
+            self.watchdog = get_watchdog()
+            self.watchdog.add_device(self)
             
         self.scheduler: TaskScheduler = None
         if enable_scheduler:
@@ -68,10 +68,10 @@ class CompanionNode(Interface, Threading):
     def shutdown(self) -> None:
         """Gracefully shut down the companion node.
 
-        Stops the debugger watch, shuts down all ROS resources, and cleans up.
+        Stops the watchdog watch, shuts down all ROS resources, and cleans up.
         """
-        if self.debugger:
-            self.debugger.stop(self)          # stop debugger monitoring
+        if self.watchdog:
+            self.watchdog.stop(self)          # stop watchdog monitoring
         if self.scheduler:
             self.scheduler.stop(self)
         super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup

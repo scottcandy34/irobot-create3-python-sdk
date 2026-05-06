@@ -71,7 +71,7 @@ class TaskScheduler(Logger):
 
     def remove_device(self, device: Threading) -> bool:
         """Remove a device AND automatically stop/remove all tasks that depend on it.
-        Then auto-shutdown the scheduler if nothing is left (exactly like Debugger)."""
+        Then auto-shutdown the scheduler if nothing is left (exactly like Watchdog)."""
         device_name = device.get_name()
 
         if not self._find_device(device_name):
@@ -192,7 +192,7 @@ class _GlobalTaskSchedulerProxy:
     """Proxy object that creates the real TaskScheduler **only** on first use.
 
     This gives you the exact same convenient global access pattern as
-    global_debugger:
+    global_watchdog:
 
         from create3.scheduler.scheduler import global_task_scheduler
 
