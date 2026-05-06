@@ -3,13 +3,32 @@
 # Created by scottcandy34
 #
 
-from geometry_msgs.msg import Twist
+from enum import StrEnum, auto
 from dataclasses import dataclass, field
+
+from geometry_msgs.msg import Twist
 from irobot_create_msgs.action import LedAnimation
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
 from create3.models.common import Position, Stamped, TopicContainer
 from .objects import HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
+
+class Topics(StrEnum):
+    def _generate_next_value_(name, start, count, last_values):
+        # Add a prefix to the auto-generated name
+        return f"/{name.lower()}"
+    
+    CMD_LIGHTRING = auto()
+    CMD_AUDIO = auto()
+    CMD_VEL = auto()
+    ODOM = auto()
+    IR_INTENSITY = auto()
+    HAZARD_DETECTION = auto()
+    INTERFACE_BUTTONS = auto()
+    BATTERY_STATE = auto()
+    IMU = auto()
+    DOCK_STATUS = auto()
+    IR_OPCODE = auto()
 
 @dataclass
 class Subscribe(TopicContainer):
@@ -32,11 +51,11 @@ class Subscribe(TopicContainer):
     buttons: RobotButtons = field(default_factory=RobotButtons)
 
     # Battery & IMU
-    battery: int | float = 100
+    battery: float = 100.0
     acceleration: Stamped[Acceleration] = field(default_factory=lambda: Stamped(Acceleration()))
 
     # Docking sensors
-    dockingValues: DockingValues = field(default_factory=DockingValues)
+    docking_values: DockingValues = field(default_factory=DockingValues)
 
 @dataclass
 class Publish(TopicContainer):
@@ -46,8 +65,8 @@ class Publish(TopicContainer):
     """
 
     # Wheel velocity (continuously published)
-    wheel_speeds: Twist = field(default_factory=Twist)
-    last_wheel_speeds: Twist = field(default_factory=Twist)
+    velocity: Twist = field(default_factory=Twist)
+    last_velocity: Twist = field(default_factory=Twist)
 
     # Lightring LEDs
     lightring: LightringLeds = field(default_factory=LightringLeds)

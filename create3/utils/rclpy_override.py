@@ -4,7 +4,8 @@
 #
 
 import rclpy as _rclpy
-from rclpy.node import Node
+
+from .node import Node
 
 class rclpy:
     """Singleton-style wrapper around rclpy to guarantee initialization and shutdown happen only once.
@@ -45,7 +46,7 @@ class rclpy:
     @classmethod
     def create_node(cls, node_name: str) -> Node:
         """Create and return a new ROS 2 node (delegates to the real rclpy)."""
-        return _rclpy.create_node(node_name)
+        return Node(node_name)
 
     @classmethod
     def count_nodes(cls) -> int:
