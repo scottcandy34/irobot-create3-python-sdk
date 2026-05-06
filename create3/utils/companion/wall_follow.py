@@ -3,6 +3,8 @@
 # Created by scottcandy34
 #
 
+import numpy as np
+
 from geometry_msgs.msg import Twist
 
 from create3.models.companion import Lidar
@@ -36,28 +38,24 @@ def pid_lidar_to_twist(lidar: Lidar) -> Twist:
         - linear.x : forward speed in m/s
         - angular.z : turning rate in rad/s (positive = left turn)
     """
-    # Filter valid right-side distances for wall following
-    right_distances = [
-        d for d in lidar.get_right_slice()
-        if 0.1 < d < lidar.range_max
-    ]
-    # Filter valid front distances for obstacle avoidance
-    front_distances = [
-        d for d in lidar.get_front_slice()
-        if 0.1 < d < lidar.range_max
-    ]
+    range_max = lidar.range_max
+    min_valid = 0.1
 
-    # Safe averaging (original code would crash on empty lists)
-    wall_dist = (
-        sum(right_distances) / len(right_distances)
-        if right_distances
-        else lidar.range_max
-    )
-    front_dist = (
-        sum(front_distances) / len(front_distances)
-        if front_distances
-        else lidar.range_max
-    )
+    # Convert slices (still cheap even if input is Python list)
+    right = np.asarray(lidar.get_right_slice(), dtype=np.float32)
+    front = np.asarray(lidar.get_front_slice(), dtype=np.float32)
+
+    # ── Right wall distance (single mask, no copy) ──
+    valid_right = (right > min_valid) & (right < range_max)
+    wall_dist = np.mean(right, where=valid_right)
+    if np.isnan(wall_dist):          # all values invalid → fallback
+        wall_dist = range_max
+
+    # ── Front obstacle distance (same pattern) ──
+    valid_front = (front > min_valid) & (front < range_max)
+    front_dist = np.mean(front, where=valid_front)
+    if np.isnan(front_dist):
+        front_dist = range_max
 
     # Run PID controllers
     angular_output = pid_angular(wall_dist)
@@ -67,5 +65,4 @@ def pid_lidar_to_twist(lidar: Lidar) -> Twist:
     twist_msg = Twist()
     twist_msg.angular.z = angular_output
     twist_msg.linear.x = linear_output / 100.0   # cm/s → m/s
-
     return twist_msg

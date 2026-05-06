@@ -3,20 +3,18 @@
 # Created by scottcandy34
 #
 
-from typing import TYPE_CHECKING
-
-from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, Imu
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, InterfaceButtons, DockStatus, IrOpcode
 
-from create3.utils import Threading
-from create3.models.common import Position
-from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe
+from create3.utils.common.other import TIMEOUT
+from create3.utils import Logger, MonitoredSubscription, Node
+from create3.models.common import Position, Stamped
+from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe, RobotButtons, Topics
 
-from .callbacks.msg import (
+from .callbacks import (
     odom_callback,
     ir_intensity_callback,
     hazard_detection_callback,
@@ -34,7 +32,7 @@ qos_profile = QoSProfile(
     depth = 1
 )
 
-class Subscriber(Threading if TYPE_CHECKING else object):
+class Subscriber(Logger):
     """ROS subscriber manager for the iRobot Create3.
 
     Creates subscriptions to all core robot topics (odometry, IR intensity,
@@ -57,74 +55,112 @@ class Subscriber(Threading if TYPE_CHECKING else object):
         super().__init__(node)  # initialize Threading + Logger
 
         # Shared container that holds the latest message data for every topic
-        self._subscription_msgs: Subscribe = Subscribe()
+        self.msgs: Subscribe = Subscribe()
 
         # Use a mutually exclusive callback group so callbacks never block each other
-        subscriber_callback_group = MutuallyExclusiveCallbackGroup()
-
-        # ------------------------------------------------------------------
-        # Create all subscriptions
-        # ------------------------------------------------------------------
-        self._odom = self.node.create_subscription(Odometry, 'odom', lambda msg: odom_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._ir_intensity = self.node.create_subscription(IrIntensityVector, 'ir_intensity', lambda msg: ir_intensity_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._hazard_detection = self.node.create_subscription(HazardDetectionVector, 'hazard_detection', lambda msg: hazard_detection_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._interface_buttons = self.node.create_subscription(InterfaceButtons, 'interface_buttons', lambda msg: interface_buttons_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._battery_state = self.node.create_subscription(BatteryState, 'battery_state', lambda msg: battery_state_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._imu = self.node.create_subscription(Imu, 'imu', lambda msg: imu_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._dock_status = self.node.create_subscription(DockStatus, 'dock_status', lambda msg: dock_status_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-        self._ir_opcode = self.node.create_subscription(IrOpcode, 'ir_opcode', lambda msg: ir_opcode_callback(self, msg), qos_profile, callback_group=subscriber_callback_group)
-
+        self.callback_group = MutuallyExclusiveCallbackGroup()
 
         # Register all subscriptions with the debugger for uptime monitoring
-        self.debug.subscriptions = [
-            self._odom,
-            self._ir_intensity,
-            self._hazard_detection,
-            self._interface_buttons,
-            self._battery_state,
-            self._imu,
-            self._dock_status,
-            self._ir_opcode,
-        ]
-
-    # ----------------------------------------------------------------------
-    # Public getters (convenience API for the rest of the codebase)
-    # ----------------------------------------------------------------------
-
-    def get_ir_proximity(self) -> list[int]:
-        """Return the most recent IR proximity sensor readings (7 integers)."""
-        return self._subscription_msgs.ir_values.data
-
-    def get_position(self) -> Position:
-        """Return the robot's current position and heading.
-
-        Units:
-            x, y     → centimeters
-            angle    → degrees
-        """
-        return self._subscription_msgs.position.data
-
-    def get_bumpers(self) -> HazardBumper:
-        """Return the most recent bumper states as a `HazardBumper` object."""
-        return self._subscription_msgs.bumpers
-
-    def get_cliff_sensors(self) -> HazardCliff:
-        """Return the most recent cliff sensor states as a `HazardCliff` object."""
-        return self._subscription_msgs.cliff
-
-    def get_touch_sensors(self) -> InterfaceButtons:
-        """Return the most recent physical button states."""
-        return self._subscription_msgs.buttons
-
-    def get_battery_level(self) -> int | float:
-        """Return the current battery level as a percentage (0–100)."""
-        return self._subscription_msgs.battery
-
-    def get_accelerometer(self) -> Acceleration:
-        """Return the most recent linear acceleration values (x, y, z)."""
-        return self._subscription_msgs.acceleration.data
-
-    def get_docking_values(self) -> DockingValues:
-        """Return the most recent docking sensor values
-        (is_docked, dock_visible, sensor, redBuoy, greenBuoy, forceField)."""
-        return self._subscription_msgs.dockingValues
+        self.topics: list[MonitoredSubscription] = []
+        
+    def find(self, name: Topics) -> MonitoredSubscription:
+        for subscription in self.topics:
+            if name == subscription.topic_name:
+                return subscription
+            
+        return None
+    
+    def wait(self, name: Topics):
+        if not self.find(name).ready_event.wait(TIMEOUT):
+            self.print_warning(f"Timeout waiting for first message on {name}")
+    
+    @property
+    def position(self) -> Stamped[Position]:
+        if not self.find(Topics.ODOM):
+            self.topics.append(self.node.create_monitored_subscription(Odometry, Topics.ODOM, lambda msg: odom_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.ODOM)
+        return self.msgs.position
+    
+    @position.setter
+    def position(self, msg: Stamped[Position]):
+        self.msgs.position = msg
+    
+    @property
+    def ir_values(self) -> Stamped[list[int]]:
+        if not self.find(Topics.IR_INTENSITY):
+            self.topics.append(self.node.create_monitored_subscription(IrIntensityVector, Topics.IR_INTENSITY, lambda msg: ir_intensity_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.IR_INTENSITY)
+        return self.msgs.ir_values
+    
+    @ir_values.setter
+    def ir_values(self, msg: Stamped[list[int]]):
+        self.msgs.ir_values = msg
+    
+    @property
+    def bumpers(self) -> HazardBumper:
+        if not self.find(Topics.HAZARD_DETECTION):
+            self.topics.append(self.node.create_monitored_subscription(HazardDetectionVector, Topics.HAZARD_DETECTION, lambda msg: hazard_detection_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.HAZARD_DETECTION)
+        return self.msgs.bumpers
+    
+    @bumpers.setter
+    def bumpers(self, msg: HazardBumper):
+        self.msgs.bumpers = msg
+    
+    @property
+    def cliff_sensors(self) -> HazardCliff:
+        if not self.find(Topics.HAZARD_DETECTION):
+            self.topics.append(self.node.create_monitored_subscription(HazardDetectionVector, Topics.HAZARD_DETECTION, lambda msg: hazard_detection_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.HAZARD_DETECTION)
+        return self.msgs.cliff
+    
+    @cliff_sensors.setter
+    def cliff_sensors(self, msg: HazardCliff):
+        self.msgs.cliff = msg
+    
+    @property
+    def buttons(self) -> RobotButtons:
+        if not self.find(Topics.INTERFACE_BUTTONS):
+            self.topics.append(self.node.create_monitored_subscription(InterfaceButtons, Topics.INTERFACE_BUTTONS, lambda msg: interface_buttons_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.INTERFACE_BUTTONS)
+        return self.msgs.buttons
+    
+    @buttons.setter
+    def buttons(self, msg: RobotButtons):
+        self.msgs.buttons = msg
+    
+    @property
+    def battery(self) -> float:
+        if not self.find(Topics.BATTERY_STATE):
+            self.topics.append(self.node.create_monitored_subscription(BatteryState, Topics.BATTERY_STATE, lambda msg: battery_state_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.BATTERY_STATE)
+        return self.msgs.battery
+    
+    @battery.setter
+    def battery(self, msg: float):
+        self.msgs.battery = msg
+    
+    @property
+    def acceleration(self) -> Stamped[Acceleration]:
+        if not self.find(Topics.IMU):
+            self.topics.append(self.node.create_monitored_subscription(Imu, Topics.IMU, lambda msg: imu_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.IMU)
+        return self.msgs.acceleration
+    
+    @acceleration.setter
+    def acceleration(self, msg: Stamped[Acceleration]):
+        self.msgs.acceleration = msg
+    
+    @property
+    def docking_values(self) -> DockingValues:
+        if not self.find(Topics.DOCK_STATUS):
+            self.topics.append(self.node.create_monitored_subscription(DockStatus, Topics.DOCK_STATUS, lambda msg: dock_status_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.DOCK_STATUS)
+        if not self.find(Topics.IR_OPCODE):
+            self.topics.append(self.node.create_monitored_subscription(IrOpcode, Topics.IR_OPCODE, lambda msg: ir_opcode_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.IR_OPCODE)
+        return self.msgs.docking_values
+    
+    @docking_values.setter
+    def docking_values(self, msg: DockingValues):
+        self.msgs.docking_values = msg

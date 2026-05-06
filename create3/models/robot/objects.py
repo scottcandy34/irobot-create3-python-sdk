@@ -5,24 +5,26 @@
 
 from dataclasses import dataclass, field
 
+from create3.models.common import Button
+
 @dataclass
 class HazardBumper:
     """Stores the current state of all bumper sensors on the robot."""
 
-    right: bool = False
-    front_right: bool = False
-    front_center: bool = False
-    front_left: bool = False
-    left: bool = False
+    right: Button = field(default_factory=Button)
+    front_right: Button = field(default_factory=Button)
+    front_center: Button = field(default_factory=Button)
+    front_left: Button = field(default_factory=Button)
+    left: Button = field(default_factory=Button)
 
 @dataclass
 class HazardCliff:
     """Stores the current state of all cliff sensors on the robot."""
 
-    side_right: bool = False
-    front_right: bool = False
-    front_left: bool = False
-    side_left: bool = False
+    side_right: Button = field(default_factory=Button)
+    front_right: Button = field(default_factory=Button)
+    front_left: Button = field(default_factory=Button)
+    side_left: Button = field(default_factory=Button)
 
 @dataclass
 class Acceleration:
@@ -36,8 +38,8 @@ class Acceleration:
 class DockingValues:
     """Stores the latest docking-related sensor values."""
 
-    is_docked: bool = False
-    dock_visible: bool = False
+    is_docked: Button = field(default_factory=Button)
+    dock_visible: Button = field(default_factory=Button)
     sensor: int = 0
     greenBuoy: bool = False
     redBuoy: bool = False
@@ -47,6 +49,6 @@ class DockingValues:
 class RobotButtons:
     """Stores the current state of the physical buttons on the robot."""
 
-    button_1: bool = False
-    button_power: bool = False
-    button_2: bool = False
+    button_1: Button = field(default_factory=Button)
+    button_power: Button = field(default_factory=Button)
+    button_2: Button = field(default_factory=Button)

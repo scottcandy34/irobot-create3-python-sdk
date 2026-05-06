@@ -3,13 +3,14 @@
 # Created by scottcandy34
 #
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.robot import Tasks
 from create3.utils import robot as tools
-from create3.utils import rclpy, Threading, global_interrupt, global_debugger
-from create3.ros.robot import ActionClient, ServiceClient, Publisher, Subscriber
+from create3.utils.common.other import TIMEOUT
+from create3.utils import rclpy, Threading, global_debugger, global_interrupt
+from create3.ros.robot import Interface
 
-class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
+class RobotNode(Interface, Threading):
     """Main robot node for the iRobot Create3.
 
     Combines everything needed to control the physical robot:
@@ -22,7 +23,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
     This is the central node that directly interfaces with the Create3 robot.
     """
 
-    def __init__(self, enable_debugger: bool = True, use_goal: bool = True) -> None:
+    def __init__(self, enable_debugger: bool = True) -> None:
         """Create and start the main robot node.
 
         Parameters
@@ -42,8 +43,7 @@ class RobotNode(ActionClient, ServiceClient, Publisher, Subscriber, Threading):
 
         # Initialize the multiple-inheritance chain in the correct MRO order
         super().__init__(node)  # ActionClient → ServiceClient → Publisher → Subscriber → Threading
-
-        self._use_goal = use_goal
+        node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools
         """Tools and utilities for working with the robot's sensors and controls."""

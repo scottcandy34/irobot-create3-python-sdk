@@ -3,13 +3,14 @@
 # Created by scottcandy34
 #
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.companion import Tasks
 from create3.utils import companion as tools
-from create3.utils import rclpy, Threading, global_interrupt, global_debugger
-from create3.ros.companion import Publisher, Subscriber
+from create3.utils.common.other import TIMEOUT
+from create3.utils import rclpy, Threading, global_debugger, global_interrupt
+from create3.ros.companion import Interface
 
-class CompanionNode(Publisher, Subscriber, Threading):
+class CompanionNode(Interface, Threading):
     """Main companion node for the iRobot Create3.
 
     Combines:
@@ -40,6 +41,7 @@ class CompanionNode(Publisher, Subscriber, Threading):
         # Initialize the multiple-inheritance chain:
         # Publisher → Subscriber → Threading
         super().__init__(node)
+        node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools
         """Tools and utilities for working with LiDAR, perception, etc."""
@@ -53,6 +55,9 @@ class CompanionNode(Publisher, Subscriber, Threading):
         # Register with global debugger (optional)
         if enable_debugger:
             global_debugger.add_device(self)
+            
+        # Move servo to default position on startup
+        self.reset_servo()
 
     def shutdown(self) -> None:
         """Gracefully shut down the companion node.

@@ -16,3 +16,5 @@ from .interrupt import global_interrupt
 from .ros_threading import Threading
 from .robot.music import Note
 from .logger import Logger
+from .monitored_subscription import MonitoredSubscription
+from .node import Node

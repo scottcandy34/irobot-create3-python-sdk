@@ -1,7 +1,6 @@
-from torch import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-    
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.common import Stamped, Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
 
@@ -27,11 +26,11 @@ def history_keeper_task(scheduler: "TaskScheduler") -> None:
     # Collect all subscription message containers
     containers = []
     if companion is not None:
-        containers.append((companion.get_name(), companion._subscription_msgs))
+        containers.append((companion.get_name(), companion.subscriber.msgs))
     if robot is not None:
-        containers.append((robot.get_name(), robot._subscription_msgs))
+        containers.append((robot.get_name(), robot.subscriber.msgs))
     if remote is not None:
-        containers.append((remote.get_name(), remote._subscription_msgs))
+        containers.append((remote.get_name(), remote.subscriber.msgs))
 
     for node_name, msgs in containers:
         # Iterate through every attribute in the subscription container

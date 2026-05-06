@@ -1,9 +1,8 @@
-from torch import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from std_msgs.msg import Float32
 
-from create3.models import Nodes
-from create3.models.remote import Tasks
+from create3.models.common import Nodes
 from create3 import RobotNode, CompanionNode, RemoteNode
 from create3.models.common import Button
 
@@ -43,7 +42,7 @@ def controller_task(scheduler: "TaskScheduler") -> None:
     # === Drive mode (R1 held) ===
     if ctrl.buttons.r1:
         twist_msg = remote.tools.joy.get_twist(ctrl.left_joy.horizontal, ctrl.left_joy.vertical)
-        robot.send_twist(twist_msg)
+        robot.publisher.send_velocity(twist_msg)
         return
 
     # === Servo pan + drive mode (L1 held) ===
@@ -51,8 +50,8 @@ def controller_task(scheduler: "TaskScheduler") -> None:
         # Right stick vertical → servo angle (45° to 135° range)
         servo_msg = Float32()
         servo_msg.data = ((ctrl.right_joy.vertical + 1.0) / 2.0 * 90.0) + 45.0
-        companion._servo.publish(servo_msg)
+        companion.publisher.send_servo_angle(servo_msg)
 
         # Right stick horizontal → pure turning
         twist_msg = remote.tools.joy.get_twist(ctrl.right_joy.horizontal, 0.0)
-        robot.send_twist(twist_msg)
+        robot.publisher.send_velocity(twist_msg)
