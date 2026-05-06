@@ -5,31 +5,10 @@
 
 from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Twist
-
 if TYPE_CHECKING:
     from create3.ros.robot import Publisher
 
-def set_wheel_speed_handler(publisher: "Publisher") -> None:
-    """Periodically publish wheel velocity commands (/cmd_vel) every 0.05 seconds.
-
-    This handler ensures continuous robot motion by:
-      • Publishing immediately when the wheel speed command changes
-      • Continuously re-publishing any non-empty (non-zero) command every cycle
-        (standard ROS practice to prevent velocity timeout/safety stop)
-
-    Zero commands (default Twist()) are not re-published.
-    """
-    current = publisher.velocity
-
-    # Publish on change OR if we have an active non-zero movement command
-    if (current != publisher.last_velocity) or (current != Twist()):
-        publisher.send_velocity(current)
-
-    # Always update the last-known command for next comparison
-    publisher.last_velocity = current
-
-def publish_handler(publisher: "Publisher") -> None:
+def publish_handler_callback(publisher: "Publisher") -> None:
     """Periodically check for changes and publish to non-velocity topics every 0.05 seconds.
 
     This is the general publish handler used by the Publisher class. It currently

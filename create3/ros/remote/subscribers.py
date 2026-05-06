@@ -14,7 +14,7 @@ from create3.utils.common.other import TIMEOUT
 from create3.utils import Logger, MonitoredSubscription, Node
 from create3.models.remote import Controller, Map, Yolo, Subscribe, Topics
 
-from .callbacks.msg import (
+from .callbacks import (
     joy_callback,
     map_callback,
     yolo_detections_callback

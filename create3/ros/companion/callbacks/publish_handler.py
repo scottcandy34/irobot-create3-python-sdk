@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from create3.ros.companion import Publisher
 
-def publish_handler(publisher: "Publisher") -> None:
+def publish_handler_callback(publisher: "Publisher") -> None:
     """Periodically publish servo commands when they change.
 
     This handler is called every 0.05 seconds by the Publisher class timer.

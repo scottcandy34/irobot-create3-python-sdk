@@ -12,9 +12,9 @@ from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 from create3.utils import Logger, Node
 from create3.models.robot import Publish, Topics
 
-from .callbacks.handler import (
-    set_wheel_speed_handler,
-    publish_handler,
+from .callbacks import (
+    set_velocity_handler_callback,
+    publish_handler_callback,
 )
 
 qos_profile = QoSProfile(
@@ -55,8 +55,8 @@ class Publisher(Logger):
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
         # Background timers (called every 50 ms)
-        self.node.create_timer(0.05, lambda: set_wheel_speed_handler(self), callback_group=MutuallyExclusiveCallbackGroup())
-        self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=MutuallyExclusiveCallbackGroup())
+        self.node.create_timer(0.05, lambda: set_velocity_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
+        self.node.create_timer(0.05, lambda: publish_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
 
         # Register publishers with the debugger for interface monitoring
         self.topics: list[Publishing] = []

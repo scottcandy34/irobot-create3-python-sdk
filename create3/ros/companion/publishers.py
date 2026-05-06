@@ -12,8 +12,8 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from create3.utils import Logger, companion as Tools
 from create3.models.companion import Publish, Topics
 
-from .callbacks.handler import (
-    publish_handler,
+from .callbacks import (
+    publish_handler_callback,
 )
 
 qos_profile = QoSProfile(
@@ -50,7 +50,7 @@ class Publisher(Logger):
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
         # Background timer that drives the "publish only on change" logic
-        self.node.create_timer(0.05, lambda: publish_handler(self), callback_group=MutuallyExclusiveCallbackGroup())
+        self.node.create_timer(0.05, lambda: publish_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
 
         # Register publishers with the debugger for interface monitoring
         self.topics: list[Publishing] = []

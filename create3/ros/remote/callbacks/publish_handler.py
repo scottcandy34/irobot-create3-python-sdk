@@ -11,7 +11,7 @@ from sensor_msgs.msg import JoyFeedbackArray, JoyFeedback
 if TYPE_CHECKING:
     from create3.ros.remote import Publisher
 
-def publish_handler(publisher: "Publisher") -> None:
+def publish_handler_callback(publisher: "Publisher") -> None:
     """Handle controller rumble (vibration) feedback on the `/joy_feedback` topic.
 
     When `rumble_enable` is activated (and `rumble_running` is True), this

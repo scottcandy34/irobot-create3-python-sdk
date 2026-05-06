@@ -14,7 +14,7 @@ from create3.utils import Logger, MonitoredSubscription, Node
 from create3.models.common import Position, Stamped
 from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe, RobotButtons, Topics
 
-from .callbacks.msg import (
+from .callbacks import (
     odom_callback,
     ir_intensity_callback,
     hazard_detection_callback,

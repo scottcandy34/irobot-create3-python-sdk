@@ -13,7 +13,7 @@ from create3.utils.common.other import TIMEOUT
 from create3.utils import Logger, MonitoredSubscription
 from create3.models.companion import Subscribe, Topics, Ultrasonic, Lidar
 
-from .callbacks.msg import (
+from .callbacks import (
     scan_callback,
     range_callback
 )

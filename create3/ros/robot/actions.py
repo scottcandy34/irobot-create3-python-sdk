@@ -11,7 +11,7 @@ from create3.models.robot import Actions
 from create3.utils import Logger, Node
 from create3.utils.common.other import TIMEOUT
 
-from .callbacks.goal import (
+from .callbacks import (
     goal_response_callback,
 )
 
