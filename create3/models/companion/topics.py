@@ -3,12 +3,22 @@
 # Created by scottcandy34
 #
 
+from enum import StrEnum, auto
 from dataclasses import dataclass, field
 
 from std_msgs.msg import Float32
 
 from .objects import Lidar, Ultrasonic
 from create3.models.common import Stamped, TopicContainer
+
+class Topics(StrEnum):
+    def _generate_next_value_(name, start, count, last_values):
+        # Add a prefix to the auto-generated name
+        return f"/{name.lower()}"
+    
+    SCAN = auto()
+    RANGE = auto()
+    SERVO_ANGLE = auto()
 
 @dataclass
 class Subscribe(TopicContainer):
@@ -20,9 +30,6 @@ class Subscribe(TopicContainer):
     # LiDAR and ultrasonic sensor data
     lidar: Stamped[Lidar] = field(default_factory=lambda: Stamped(Lidar()))
     ultrasonic: Stamped[Ultrasonic] = field(default_factory=lambda: Stamped(Ultrasonic()))
-
-    # Current servo angle (degrees)
-    servo_angle: float = 90.0
 
 @dataclass
 class Publish(TopicContainer):

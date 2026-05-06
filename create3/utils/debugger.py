@@ -8,56 +8,20 @@ from threading import Thread
 from typing import Any
 import colorama
 
-from rclpy.node import Node
 from rclpy.client import Client
 from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
-from rclpy.subscription import Subscription
 
 from . import rclpy
-from create3.models import Nodes
+from create3.models.common import Nodes
 from .ros_threading import Threading
 from .logger import Logger
+from .monitored_subscription import MonitoredSubscription
 
 UPTIME_FREQUENCY = 100 # in Hz
 DEBUGGER_INTERVAL = 2 # in Hz
 
 colorama.init(autoreset=True)
-
-class NodeTesting:
-    """Helper for testing availability of ROS 2 interfaces on a node.
-
-    Used internally by `Debugger` to check whether topics have publishers,
-    services/actions have servers, etc.
-    """
-
-    def __init__(self, node: Node) -> None:
-        """Initialize the interface tester.
-
-        Parameters
-        ----------
-        node : Node
-            ROS node used to query publisher/subscriber info.
-        """
-        self._node = node
-
-    def subscription(self, interface: Subscription) -> bool:
-        """Return True if at least one publisher exists for this topic."""
-        pub_info = self._node.get_publishers_info_by_topic(interface.topic_name)
-        return len(pub_info) > 0
-
-    def publisher(self, interface: Publisher) -> bool:
-        """Return True if at least one subscriber exists for this topic."""
-        sub_info = self._node.get_subscriptions_info_by_topic(interface.topic_name)
-        return len(sub_info) > 0
-
-    def action_client(self, interface: ActionClient) -> bool:
-        """Return True if the action server is ready/available."""
-        return interface.server_is_ready()
-
-    def service_client(self, interface: Client) -> bool:
-        """Return True if the service server is ready/available."""
-        return interface.service_is_ready()
 
 class Debugger(Logger):
     """Background ROS interface watchdog and uptime monitor.
@@ -94,7 +58,7 @@ class Debugger(Logger):
     def add_device(self, device: Threading) -> None:
         """Start watching a device's ROS interfaces and uptime statistics."""
         self._devices.append(device)
-        self._validated.update(device.debug.is_alive())  # copy initial validation state
+        self._validated.update(device.is_alive())  # copy initial validation state
 
     def remove_device(self, device: Threading) -> None:
         """Stop watching a device (removes it from the debugger)."""
@@ -105,25 +69,24 @@ class Debugger(Logger):
 
     def _check_interface(self, interface: Any) -> None:
         """Check one ROS interface and log healthy/error state changes."""
-        test = NodeTesting(self.node)
 
-        if isinstance(interface, Subscription):
-            exist = test.subscription(interface)
+        if isinstance(interface, MonitoredSubscription):
+            exist = self.node.test_subscription(interface)
             name = interface.topic_name
             type_ = "Topic Publisher"
 
         elif isinstance(interface, Publisher):
-            exist = test.publisher(interface)
+            exist = self.node.test_publisher(interface)
             name = interface.topic_name
             type_ = "Topic Subscriber"
 
         elif isinstance(interface, ActionClient):
-            exist = test.action_client(interface)
+            exist = self.node.test_action_client(interface)
             name = interface._action_name
             type_ = "Action Server"
 
         elif isinstance(interface, Client):
-            exist = test.service_client(interface)
+            exist = self.node.test_service_client(interface)
             name = interface.service_name
             type_ = "Service Server"
 
@@ -150,22 +113,25 @@ class Debugger(Logger):
         while self._devices:
             for device in self._devices:
                 # === Subscriptions (check publisher + frequency) ===
-                for sub in device.debug.subscriptions:
-                    self._check_interface(sub)
+                if device.subscriber:
+                    sub: MonitoredSubscription
+                    for sub in device.subscriber.topics:
+                        self._check_interface(sub)
 
-                    topic = sub.topic_name
-                    if topic in device.debug.uptime:
-                        freq = device.debug.uptime[topic][1]  # current frequency (Hz)
+                        freq = sub.stats.current_hz  # current frequency (Hz)
                         if freq >= UPTIME_FREQUENCY:
-                            self._log_high_frequency_warning(topic)
+                            self._log_high_frequency_warning(sub.topic_name)
 
                 # === Publishers, Actions, Services ===
-                for pub in device.debug.publishers:
-                    self._check_interface(pub)
-                for action in device.debug.actions:
-                    self._check_interface(action)
-                for service in device.debug.services:
-                    self._check_interface(service)
+                if device.publisher:
+                    for pub in device.publisher.topics:
+                        self._check_interface(pub)
+                if device.actions:
+                    for action in device.actions.clients:
+                        self._check_interface(action)
+                if device.services:
+                    for service in device.services.clients:
+                        self._check_interface(service)
 
             time.sleep(1.0 / DEBUGGER_INTERVAL)
 

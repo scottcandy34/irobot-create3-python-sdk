@@ -7,10 +7,10 @@ import math
 from typing import TYPE_CHECKING
 
 from rclpy.time import Time
-from sensor_msgs.msg import LaserScan, Range
+from sensor_msgs.msg import LaserScan
 
 from create3.models.common import Stamped
-from create3.models.companion import Lidar, Ultrasonic
+from create3.models.companion import Lidar
 
 if TYPE_CHECKING:
     from create3.ros.companion import Subscriber
@@ -21,8 +21,6 @@ def scan_callback(subscriber: "Subscriber", scan: LaserScan) -> None:
     Converts all distance values from meters to centimeters and all angles
     from radians to degrees to match the internal units used throughout the SDK.
     """
-    subscriber.update_uptime(subscriber._scan.topic_name)
-
     if not scan.ranges:
         return
     
@@ -44,24 +42,4 @@ def scan_callback(subscriber: "Subscriber", scan: LaserScan) -> None:
 
     lidar.time_increment = scan.time_increment
     
-    subscriber._subscription_msgs.lidar = Stamped(lidar, Time.from_msg(scan.header.stamp))
-
-def range_callback(subscriber: "Subscriber", range_: Range) -> None:
-    """Handle incoming ultrasonic Range data and update the shared ultrasonic state.
-
-    Converts all distance values from meters to centimeters to match the
-    internal units used throughout the SDK.
-    """
-    subscriber.update_uptime(subscriber._range.topic_name)
-    
-    ultrasonic = Ultrasonic()
-
-    ultrasonic.field_of_view = range_.field_of_view
-
-    # Convert distances to cm
-    ultrasonic.max_range = range_.max_range * 100.0
-    ultrasonic.min_range = range_.min_range * 100.0
-    ultrasonic.range = range_.range * 100.0
-    
-    subscriber._subscription_msgs.ultrasonic = Stamped(ultrasonic, Time.from_msg(range_.header.stamp))
-    
+    subscriber.lidar = Stamped(lidar, Time.from_msg(scan.header.stamp))

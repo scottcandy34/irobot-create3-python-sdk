@@ -33,6 +33,7 @@ setup(
     url="https://github.com/scottcandy34/irobot-create3-python-sdk/",
     packages=find_packages(where=".", include=["create3*"]),
     package_dir={"create3": "create3"},
+    package_data={"create3.utils.display": ["*.jpg"]},
     description="SDK for iRobot Create3 robot control over ROS2",
     long_description=readme,
     long_description_content_type="text/markdown",
