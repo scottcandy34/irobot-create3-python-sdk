@@ -10,6 +10,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, Durabilit
 from yolo_msgs.msg import DetectionArray
 
 from create3.models.common import Stamped
+from create3.utils.common.other import TIMEOUT
 from create3.utils import Logger, MonitoredSubscription, Node
 from create3.models.remote import Controller, Map, Yolo, Subscribe, Topics
 
@@ -61,12 +62,18 @@ class Subscriber(Logger):
             if name == subscription.topic_name:
                 return subscription
             
+        self.print_error(f'Cannot find topic {name}')
         return None
+    
+    def wait(self, name: Topics):
+        if not self.find(name).ready_event.wait(TIMEOUT):
+            self.print_warning(f"Timeout waiting for first message on {name}")
     
     @property
     def controller(self) -> Controller:
         if not self.find(Topics.JOY):
             self.topics.append(self.node.create_monitored_subscription(Joy, Topics.JOY, lambda msg: joy_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.JOY)
         return self.msgs.controller
     
     @controller.setter
@@ -77,6 +84,7 @@ class Subscriber(Logger):
     def map(self) -> Stamped[Map]:
         if not self.find(Topics.MAP):
             self.topics.append(self.node.create_monitored_subscription(OccupancyGrid, Topics.MAP, lambda msg: map_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.MAP)
         return self.msgs.map
     
     @map.setter
@@ -87,6 +95,7 @@ class Subscriber(Logger):
     def yolo(self) -> Stamped[Yolo]:
         if not self.find(Topics.YOLO_DETECTIONS):
             self.topics.append(self.node.create_monitored_subscription(DetectionArray, Topics.YOLO_DETECTIONS, lambda msg: yolo_detections_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.YOLO_DETECTIONS)
         return self.msgs.yolo
     
     @yolo.setter

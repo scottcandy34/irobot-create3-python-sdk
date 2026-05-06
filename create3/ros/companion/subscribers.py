@@ -9,6 +9,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
 
 from create3.models.common import Stamped
+from create3.utils.common.other import TIMEOUT
 from create3.utils import Logger, MonitoredSubscription
 from create3.models.companion import Subscribe, Topics, Ultrasonic, Lidar
 
@@ -57,12 +58,18 @@ class Subscriber(Logger):
             if name == subscription.topic_name:
                 return subscription
             
+        self.print_error(f'Cannot find topic {name}')
         return None
+    
+    def wait(self, name: Topics):
+        if not self.find(name).ready_event.wait(TIMEOUT):
+            self.print_warning(f"Timeout waiting for first message on {name}")
     
     @property
     def lidar(self) -> Stamped[Lidar]:
         if not self.find(Topics.SCAN):
             self.topics.append(self.node.create_monitored_subscription(LaserScan, Topics.SCAN, lambda msg: scan_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.SCAN)
         return self.msgs.lidar
     
     @lidar.setter
@@ -73,6 +80,7 @@ class Subscriber(Logger):
     def ultrasonic(self) -> Stamped[Ultrasonic]:
         if not self.find(Topics.RANGE):
             self.topics.append(self.node.create_monitored_subscription(Range, Topics.RANGE, lambda msg: range_callback(self, msg), qos_profile, callback_group=self.callback_group))
+            self.wait(Topics.RANGE)
         return self.msgs.ultrasonic
     
     @ultrasonic.setter

@@ -1,3 +1,4 @@
+from threading import Event
 from typing import Any, Callable, Type
 
 from rclpy.node import Node
@@ -20,11 +21,13 @@ class MonitoredSubscription:
         **kwargs,
     ):
         self.stats = SubscriptionStats(topic=topic)
+        self.ready_event = Event()
 
         def wrapped_callback(msg: Any):
             current_ns = node.get_clock().now().nanoseconds
             self.stats.update(current_ns)
             callback(msg)
+            self.ready_event.set()
 
         self._subscription: Subscription = node.create_subscription(
             msg_type=msg_type,
