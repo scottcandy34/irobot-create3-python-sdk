@@ -13,7 +13,7 @@ from rclpy.executors import SingleThreadedExecutor, MultiThreadedExecutor
 
 from create3.utils import rclpy
 from create3.utils import Logger
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.utils import Threading
 from .registry import get_task_callback, check_requirements
 
@@ -31,7 +31,7 @@ class TaskScheduler(Logger):
         """Create the TaskScheduler node and start its background executor thread."""
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
-        node = rclpy.create_node(Nodes.TASK_SCHEDULAR)
+        node = rclpy.create_node(Nodes.TASK_SCHEDULER)
         node._logger.name = "Scheduler"
 
         # Initialize Logger parent

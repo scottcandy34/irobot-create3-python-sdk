@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Callable
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.robot import Tasks as RobotTasks
 from create3.models.remote import Tasks as RemoteTasks
 from create3.models.common import Tasks as CommonTasks
@@ -10,25 +10,23 @@ if TYPE_CHECKING:
     from .scheduler import TaskScheduler
 
 # Import all task functions
-from .tasks.companion import (
+from .tasks import (
     generate_coords_task,
     wall_detection_task,
-    column_detection_task,
     lidar_lightring_task,
-    simple_wall_follower,
+    simple_wall_follower_task,
+    ir_lightring_task,
+    controller_task,
+    history_keeper_task,
 )
-from .tasks.robot import ir_lightring_task
-from .tasks.remote import controller_task
-from .tasks.common import history_keeper_task
 
 # Task → callback function
 TASK_CALLBACKS = {
     CommonTasks.HISTORY_KEEPER: history_keeper_task,
     CompanionTasks.GENERATE_COORDS: generate_coords_task,
     CompanionTasks.WALL_DETECTION: wall_detection_task,
-    CompanionTasks.COLUMN_DETECTION: column_detection_task,
     CompanionTasks.LIDAR_LIGHTRING: lidar_lightring_task,
-    CompanionTasks.SIMPLE_WALL_FOLLOWER: simple_wall_follower,
+    CompanionTasks.SIMPLE_WALL_FOLLOWER: simple_wall_follower_task,
     RobotTasks.IR_LIGHTRING: ir_lightring_task,
     RemoteTasks.CONTROLLER: controller_task,
 }
@@ -59,11 +57,6 @@ def check_requirements(scheduler: "TaskScheduler", task: Any) -> bool:
                 return False
 
         case CompanionTasks.WALL_DETECTION:
-            if not scheduler._find_task(CompanionTasks.GENERATE_COORDS):
-                scheduler.print_warning(f"{task} task requires the {CompanionTasks.GENERATE_COORDS} task.")
-                return False
-
-        case CompanionTasks.COLUMN_DETECTION:
             if not scheduler._find_task(CompanionTasks.GENERATE_COORDS):
                 scheduler.print_warning(f"{task} task requires the {CompanionTasks.GENERATE_COORDS} task.")
                 return False

@@ -6,8 +6,7 @@
 from typing import Any
 from colorama import init, Fore, Style
 
-from rclpy.node import Node
-
+from .node import Node
 from .common.other import object_to_string
 
 init(autoreset=True)

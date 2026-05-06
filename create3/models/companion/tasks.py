@@ -14,9 +14,6 @@ class Tasks(StrEnum):
     WALL_DETECTION = auto()
     """Detect straight wall segments using RANSAC on the point cloud."""
 
-    COLUMN_DETECTION = auto()
-    """Detect circular columns/obstacles using RANSAC on the point cloud."""
-
     LIDAR_LIGHTRING = auto()
     """Use LiDAR data to create a directional lightring pattern on the robot's LEDs."""
 
