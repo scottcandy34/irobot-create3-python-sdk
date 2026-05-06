@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
 from create3.models.common import Stamped, Tasks
-from create3 import RobotNode, CompanionNode, RemoteNode
 
 if TYPE_CHECKING:
     from create3.scheduler import TaskScheduler
+    from create3 import RobotNode, CompanionNode, RemoteNode
 
 def history_keeper_task(scheduler: "TaskScheduler") -> None:
     """Maintain a rolling history of the last 20 Stamped messages from all registered nodes.

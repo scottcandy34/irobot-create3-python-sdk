@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import RobotNode, CompanionNode
 
 if TYPE_CHECKING:
     from create3.scheduler import TaskScheduler
+    from create3 import RobotNode, CompanionNode
 
 def lidar_lightring_task(scheduler: "TaskScheduler") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""

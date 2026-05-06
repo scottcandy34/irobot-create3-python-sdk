@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import RobotNode
 
 if TYPE_CHECKING:
+    from create3 import RobotNode
     from create3.scheduler import TaskScheduler
 
 def ir_lightring_task(scheduler: "TaskScheduler") -> None:

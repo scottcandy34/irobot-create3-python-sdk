@@ -8,6 +8,7 @@ from create3.models.companion import Tasks
 from create3.utils import companion as tools
 from create3.utils.common.other import TIMEOUT
 from create3.utils import rclpy, Threading, Debugger, get_debugger
+from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.companion import Interface
 
 class CompanionNode(Interface, Threading):
@@ -23,7 +24,7 @@ class CompanionNode(Interface, Threading):
     and exposes `tools` and `tasks` for easy access from other parts of the SDK.
     """
 
-    def __init__(self, enable_debugger: bool = True) -> None:
+    def __init__(self, enable_debugger: bool = True, enable_scheduler: bool = False) -> None:
         """Create and start the companion node.
 
         Parameters
@@ -56,6 +57,11 @@ class CompanionNode(Interface, Threading):
             self.debugger = get_debugger()
             self.debugger.add_device(self)
             
+        self.scheduler: TaskScheduler = None
+        if enable_scheduler:
+            self.scheduler = get_task_scheduler()
+            self.scheduler.add_device(self)
+            
         # Move servo to default position on startup
         self.reset_servo()
 
@@ -66,5 +72,7 @@ class CompanionNode(Interface, Threading):
         """
         if self.debugger:
             self.debugger.stop(self)          # stop debugger monitoring
+        if self.scheduler:
+            self.scheduler.stop(self)
         super().shutdown()                  # calls Threading.shutdown() + Publisher/Subscriber cleanup
         rclpy.shutdown()

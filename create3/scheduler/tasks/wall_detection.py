@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import CompanionNode
 
 if TYPE_CHECKING:
+    from create3 import CompanionNode
     from create3.scheduler import TaskScheduler
 
 def wall_detection_task(scheduler: "TaskScheduler") -> None:

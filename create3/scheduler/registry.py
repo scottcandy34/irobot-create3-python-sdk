@@ -76,6 +76,14 @@ TASK_CONFLICTS: dict[Any, list[Any]] = {
 # PUBLIC HELPERS
 # =============================================================================
 
+def get_tasks_requiring_device(device: Any) -> list[Any]:
+    """Return every task that requires this device (for auto-stop on remove_device)."""
+    return [
+        task
+        for task, req in TASK_REQUIREMENTS.items()
+        if device in req.get("required_nodes", [])
+    ]
+    
 
 def get_task_callback(task: Any) -> Callable | None:
     """Return the callback function for a given task name."""

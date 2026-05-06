@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 from std_msgs.msg import Float32
 
 from create3.models.common import Nodes
-from create3 import RobotNode, CompanionNode, RemoteNode
 from create3.models.common import Button
 
 if TYPE_CHECKING:
     from create3.scheduler import TaskScheduler
+    from create3 import RobotNode, CompanionNode, RemoteNode
 
 def controller_task(scheduler: "TaskScheduler") -> None:
     """Handle remote controller input and translate it into robot actions.

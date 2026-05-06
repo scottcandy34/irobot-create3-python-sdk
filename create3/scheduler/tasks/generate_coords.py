@@ -2,12 +2,12 @@ from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
 from create3.models.common import Tasks
-from create3 import RobotNode, CompanionNode
 from create3.models.common import Stamped, Position
 from create3.models.companion import Lidar
 
 if TYPE_CHECKING:
     from create3.scheduler import TaskScheduler
+    from create3 import RobotNode, CompanionNode
 
 def generate_coords_task(scheduler: "TaskScheduler") -> None:
     """Generate a motion-compensated (deskewed) world-frame point cloud from the latest LiDAR scan.

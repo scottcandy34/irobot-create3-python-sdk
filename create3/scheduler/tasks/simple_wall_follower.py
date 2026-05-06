@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import RobotNode, CompanionNode
 
 if TYPE_CHECKING:
     from create3.scheduler import TaskScheduler
+    from create3 import RobotNode, CompanionNode
 
 def simple_wall_follower_task(scheduler: "TaskScheduler") -> None:
     """Simple reactive wall-follower using LiDAR and PID control.
