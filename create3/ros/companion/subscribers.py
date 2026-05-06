@@ -58,7 +58,6 @@ class Subscriber(Logger):
             if name == subscription.topic_name:
                 return subscription
             
-        self.print_error(f'Cannot find topic {name}')
         return None
     
     def wait(self, name: Topics):

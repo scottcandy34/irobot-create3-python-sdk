@@ -66,6 +66,8 @@ class DetectionsVisualizer:
     def _update(self) -> None:
         """Redraw map + clean sidebar list."""
         walls = self.get_walls() if self.get_walls else []
+        if walls is None:
+            walls = []
         pose = self.robot.get_position()
 
         cx, cy = 420 + self.SIDEBAR_WIDTH // 2, 420   # center of map area
