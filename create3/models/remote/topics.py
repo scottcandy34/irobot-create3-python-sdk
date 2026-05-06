@@ -10,6 +10,10 @@ from .objects import Controller, Map, Yolo
 from create3.models.common import Stamped, TopicContainer
 
 class Topics(StrEnum):
+    def _generate_next_value_(name, start, count, last_values):
+        # Add a prefix to the auto-generated name
+        return f"/{name.lower()}"
+    
     JOY = auto()
     JOY_FEEDBACK = "/joy/set_feedback"
     MAP = auto()

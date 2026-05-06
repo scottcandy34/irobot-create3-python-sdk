@@ -14,6 +14,10 @@ from create3.models.common import Position, Stamped, TopicContainer
 from .objects import HazardBumper, HazardCliff, RobotButtons, Acceleration, DockingValues
 
 class Topics(StrEnum):
+    def _generate_next_value_(name, start, count, last_values):
+        # Add a prefix to the auto-generated name
+        return f"/{name.lower()}"
+    
     CMD_LIGHTRING = auto()
     CMD_AUDIO = auto()
     CMD_VEL = auto()

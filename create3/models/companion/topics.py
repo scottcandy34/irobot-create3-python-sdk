@@ -12,6 +12,10 @@ from .objects import Lidar, Ultrasonic
 from create3.models.common import Stamped, TopicContainer
 
 class Topics(StrEnum):
+    def _generate_next_value_(name, start, count, last_values):
+        # Add a prefix to the auto-generated name
+        return f"/{name.lower()}"
+    
     SCAN = auto()
     RANGE = auto()
     SERVO_ANGLE = auto()
