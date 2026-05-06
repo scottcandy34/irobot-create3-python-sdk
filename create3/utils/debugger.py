@@ -47,7 +47,8 @@ class Debugger(Logger):
         super().__init__(node)
 
         self.print(f"{node.get_name()} node is initiating... Watching Topics, Services and Actions.")
-
+        
+        self._running = True
         self._devices: list[Threading] = []
         self._validated: dict[str, bool] = {}
         self._logged: dict[str, list[int]] = {}   # topic_name → list of recent timestamps (ns)
@@ -110,7 +111,7 @@ class Debugger(Logger):
         while not self._devices:
             time.sleep(0.1)
 
-        while self._devices:
+        while self._devices and self._running:
             for device in self._devices:
                 # === Subscriptions (check publisher + frequency) ===
                 if device.subscriber:
@@ -151,20 +152,26 @@ class Debugger(Logger):
             self._logged[topic_name] = []  # reset for next second
 
         self._logged[topic_name].append(now_ns)
+        
+    def shutdown(self) -> None:
+        """Gracefully shut down the scheduler, all tasks, and the ROS node."""
+        self._running = False
 
+        # Wait for watcher thread to exit
+        while self._thread.is_alive():
+            time.sleep(0.1)
+        self._thread.join()
+
+        self.print_warning(f"{self.node.get_name()} node has shutdown.")
+        self.node.destroy_node()
+        rclpy.shutdown()
+    
     def stop(self, device: Threading) -> None:
         """Stop watching a device and shut down the debugger if no devices remain."""
         self.remove_device(device)
 
         if not self._devices:
-            # Wait for watcher thread to exit
-            while self._thread.is_alive():
-                time.sleep(0.1)
-            self._thread.join()
-
-            self.print_warning(f"{self.node.get_name()} node has shutdown.")
-            self.node.destroy_node()
-            rclpy.shutdown()
+            self.shutdown()
 
 # =============================================================================
 # GLOBAL DEBUGGER (Lazy Initialization)
