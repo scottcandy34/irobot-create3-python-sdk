@@ -13,7 +13,7 @@ from rclpy.action import ActionClient
 from rclpy.publisher import Publisher
 
 from . import rclpy
-from create3.models import Nodes
+from create3.models.common import Nodes
 from .ros_threading import Threading
 from .logger import Logger
 from .monitored_subscription import MonitoredSubscription

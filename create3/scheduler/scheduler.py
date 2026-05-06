@@ -13,7 +13,7 @@ from rclpy.executors import SingleThreadedExecutor, MultiThreadedExecutor
 
 from create3.utils import rclpy
 from create3.utils import Logger
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.utils import Threading
 from .registry import get_task_callback, check_requirements
 

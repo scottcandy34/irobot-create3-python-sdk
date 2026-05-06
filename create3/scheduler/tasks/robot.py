@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.robot import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
 

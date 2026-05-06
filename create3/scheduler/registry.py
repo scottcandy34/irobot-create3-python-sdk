@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Callable
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.robot import Tasks as RobotTasks
 from create3.models.remote import Tasks as RemoteTasks
 from create3.models.common import Tasks as CommonTasks

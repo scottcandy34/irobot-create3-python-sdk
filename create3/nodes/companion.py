@@ -3,9 +3,10 @@
 # Created by scottcandy34
 #
 
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.companion import Tasks
 from create3.utils import companion as tools
+from create3.utils.common.other import TIMEOUT
 from create3.utils import rclpy, Threading, global_debugger
 from create3.ros.companion import Interface
 
@@ -38,6 +39,7 @@ class CompanionNode(Interface, Threading):
         # Initialize the multiple-inheritance chain:
         # Publisher → Subscriber → Threading
         super().__init__(node)
+        node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools
         """Tools and utilities for working with LiDAR, perception, etc."""

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
     
-from create3.models import Nodes
+from create3.models.common import Nodes
 from create3.models.common import Tasks
 from create3 import RobotNode, CompanionNode, RemoteNode
 from create3.models.common import Stamped, Position
@@ -27,10 +27,10 @@ def generate_coords_task(scheduler: "TaskScheduler") -> None:
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
     
     # Get latest stamped LiDAR data
-    lidar_stamped: Stamped[Lidar] = companion._subscription_msgs.lidar
+    lidar_stamped: Stamped[Lidar] = companion.subscriber.lidar
 
     # Get pose history for deskewing (from HISTORY_KEEPER task)
-    history_key = f"{Tasks.HISTORY_KEEPER}_{companion.get_name()}_{robot._subscription_msgs.position.name}"
+    history_key = f"{Tasks.HISTORY_KEEPER}_{companion.get_name()}_{robot.subscriber.position.name}"
     pose_history: list[Stamped[Position]] = scheduler.get_task_output(history_key)
 
     # Perform motion-compensated deskewing
@@ -75,7 +75,7 @@ def simple_wall_follower(scheduler: "TaskScheduler") -> None:
     if not companion.get_scans():
         return
 
-    lidar = companion._subscription_msgs.lidar.data
+    lidar = companion.subscriber.lidar.data
 
     twist_msg = companion.tools.wall_follow.pid_lidar_to_twist(lidar)
-    robot.send_twist(twist_msg)
+    robot.publisher.send_velocity(twist_msg)
