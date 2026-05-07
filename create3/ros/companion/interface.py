@@ -1,6 +1,5 @@
 import math
 import time
-from typing import TYPE_CHECKING
 
 from std_msgs.msg import Float32
 
@@ -8,7 +7,7 @@ from .subscribers import Subscriber
 from .publishers import Publisher
 from create3.utils import Node, Threading, companion as tools
 
-class Interface(Threading if TYPE_CHECKING else object):
+class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RemoteNode."""
     def __init__(self, node: Node):
         super().__init__(node)  # initialize Threading + Logger

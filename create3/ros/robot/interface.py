@@ -1,6 +1,5 @@
 import math
 import time
-from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
 from builtin_interfaces.msg import Duration
@@ -16,7 +15,7 @@ from create3.utils import Threading, Node, robot as tools
 from create3.utils.common.other import DEFAULT_WAIT
 from create3.utils.common.coords import convert_to_quaternion, find_direction
 
-class Interface(Threading if TYPE_CHECKING else object):
+class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RobotNode."""
     def __init__(self, node: Node):
         super().__init__(node)  # initialize Threading + Logger

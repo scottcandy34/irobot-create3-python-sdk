@@ -1,11 +1,9 @@
-from typing import TYPE_CHECKING
-
 from .subscribers import Subscriber
 from .publishers import Publisher
 from create3.utils import Node, Threading, remote as tools
 from create3.models.remote import Controller, Map, Yolo
 
-class Interface(Threading if TYPE_CHECKING else object):
+class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RemoteNode."""
     def __init__(self, node: Node):
         super().__init__(node)  # initialize Threading + Logger
