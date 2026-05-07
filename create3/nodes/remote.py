@@ -7,11 +7,11 @@ from create3.models.common import Nodes
 from create3.models.remote import Tasks
 from create3.utils import remote as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Watchdog, get_watchdog
+from create3.utils import rclpy, AsyncEventMixin, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.remote import InterfaceMixin
 
-class RemoteNode(InterfaceMixin):
+class RemoteNode(InterfaceMixin, AsyncEventMixin):
     """Main remote control node for the iRobot Create3.
 
     This node typically runs on a laptop or computer and provides:

@@ -7,11 +7,11 @@ from create3.models.common import Nodes
 from create3.models.companion import Tasks
 from create3.utils import companion as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Watchdog, get_watchdog
+from create3.utils import rclpy, AsyncEventMixin, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.companion import InterfaceMixin
 
-class CompanionNode(InterfaceMixin):
+class CompanionNode(InterfaceMixin, AsyncEventMixin):
     """Main companion node for the iRobot Create3.
 
     Combines:

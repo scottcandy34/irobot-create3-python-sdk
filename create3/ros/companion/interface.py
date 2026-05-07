@@ -44,6 +44,10 @@ class InterfaceMixin(Threading):
     # ===================================================================
     # PUBLISHER COMMANDS
     # ===================================================================
+    
+    async def reset_servo_async(self):
+        """Exact same signature as reset_servo()"""
+        return await self._run_sync_method(self.reset_servo)
 
     def reset_servo(self) -> None:
         """Reset the servo to the default 90° (center) position.
@@ -64,6 +68,10 @@ class InterfaceMixin(Threading):
         servo_msg.data = float(angle)
 
         self.publisher.servo = servo_msg
+        
+    async def set_servo_angle_with_speed_async(self, angle: float, speed: float):
+        """Exact same signature as set_servo_angle_with_speed()"""
+        return await self._run_sync_method(self.set_servo_angle_with_speed, angle, speed)
 
     def set_servo_angle_with_speed(self, target_angle: float | int, speed: float | int) -> None:
         """Smoothly move the servo to `target_angle` (degrees) at constant speed (rad/s).

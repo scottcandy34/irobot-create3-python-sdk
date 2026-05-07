@@ -17,3 +17,4 @@ from .robot.music import Note
 from .logger import Logger
 from .monitored_subscription import MonitoredSubscription
 from .node import Node
+from .async_events import AsyncEventMixin

@@ -180,13 +180,33 @@ class InterfaceMixin(Threading):
 
         self.actions.send_audio_note_sequence(audio_msg)
         
+    async def dock_async(self) -> bool:
+        """Async version of dock().
+        Use this with `await` inside @event handlers and async tasks.
+        The original `dock()` method is untouched.
+        """
+        return await self._run_sync_method(self.dock)
+        
     def dock(self) -> None:
         """Request the robot to dock with the dock station."""
         self.actions.send_dock(Dock.Goal())
+        
+    async def undock_async(self) -> bool:
+        """Async version of undock().
+        Use this with `await` inside @event handlers and async tasks.
+        """
+        return await self._run_sync_method(self.undock)
 
     def undock(self) -> None:
         """Request the robot to undock from the dock station."""
         self.actions.send_undock(Undock.Goal())
+        
+    async def navigate_to(self, x: float | int, y: float | int, heading: float | int | None = None, speed: float | int = 20, use_goal: bool = True) -> None:
+        """Async version of navigate_to().
+        Accepts exactly the same arguments as your current navigate_to().
+        Example: await robot.navigate_to_async(x=0.5, y=0.5, theta=0.0)
+        """
+        return await self._run_sync_method(self.turn_left, x, y, heading, speed, use_goal)
         
     def navigate_to(self, x: float | int, y: float | int, heading: float | int | None = None, speed: float | int = 20, use_goal: bool = True) -> None:
         """Navigate to a world coordinate (x, y) in centimeters.
@@ -247,6 +267,10 @@ class InterfaceMixin(Threading):
                     self.turn_right(math.degrees(dif_w), speed, use_goal=False)
                 elif turn_dir == 1:
                     self.turn_left(math.degrees(dif_w), speed, use_goal=False)
+                    
+    async def turn_left_async(self, angle: float = 90.0, speed: float | int = 20, use_goal: bool = True):
+        """Exact same signature as turn_left()"""
+        return await self._run_sync_method(self.turn_left, angle, speed, use_goal)
         
     def turn_left(self, angle: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
         """Rotate left by `angle` degrees at the given speed (cm/s)."""
@@ -265,6 +289,10 @@ class InterfaceMixin(Threading):
             time.sleep(DEFAULT_WAIT + t)
         else:
             self._run_twist(twist_msg, t)
+            
+    async def turn_right_async(self, angle: float = 90.0, speed: float | int = 20, use_goal: bool = True):
+        """Exact same signature as turn_right()"""
+        return await self._run_sync_method(self.turn_right, angle, speed, use_goal)
 
     def turn_right(self, angle: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
         """Rotate right by `angle` degrees at the given speed (cm/s)."""
@@ -284,6 +312,10 @@ class InterfaceMixin(Threading):
         else:
             self._run_twist(twist_msg, t)
             
+    async def move_async(self, distance: float, speed: float | int = 20, use_goal: bool = True):
+        """Exact same signature as move()"""
+        return await self._run_sync_method(self.move, distance, speed, use_goal)
+            
     def move(self, distance: float | int, speed: float | int = 20, use_goal: bool = True) -> None:
         """Drive straight for `distance` cm at the given speed (cm/s)."""
         self.set_wheel_speeds(0, 0)
@@ -300,6 +332,10 @@ class InterfaceMixin(Threading):
             time.sleep(DEFAULT_WAIT + t)
         else:
             self._run_twist(twist_msg, t)
+    
+    async def arc_left_async(self, radius: float, angle: float, speed: float | int = 20, use_goal: bool = True):
+        """Exact same signature as arc_left()"""
+        return await self._run_sync_method(self.arc_left, radius, angle, speed, use_goal)
             
     def arc_left(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True) -> None:
         """Drive a left arc of `angle` degrees with given radius (cm).
@@ -319,12 +355,16 @@ class InterfaceMixin(Threading):
             arc_msg.angle = abs(math.radians(angle))
             arc_msg.radius = abs(radius) / 100.0
             arc_msg.max_translation_speed = abs(speed)
-            arc_msg.translate_direction = direction
+            arc_msg.translate_direction = DriveArc.Goal.TRANSLATE_FORWARD
 
             self.actions.send_drive_arc(arc_msg)
             time.sleep(DEFAULT_WAIT + t)
         else:
             self._run_twist(twist_msg, t)
+            
+    async def arc_right_async(self, radius: float, angle: float, speed: float | int = 20, use_goal: bool = True):
+        """Exact same signature as arc_right()"""
+        return await self._run_sync_method(self.arc_right, radius, angle, speed, use_goal)
 
     def arc_right(self, angle: float | int, radius: float | int, direction: int = 1, speed: float | int = 20, use_goal: bool = True) -> None:
         """Drive a right arc of `angle` degrees with given radius (cm).
@@ -344,7 +384,7 @@ class InterfaceMixin(Threading):
             arc_msg.angle = -abs(math.radians(angle))
             arc_msg.radius = abs(radius) / 100.0
             arc_msg.max_translation_speed = abs(speed)
-            arc_msg.translate_direction = direction
+            arc_msg.translate_direction = DriveArc.Goal.TRANSLATE_FORWARD
 
             self.actions.send_drive_arc(arc_msg)
             time.sleep(DEFAULT_WAIT + t)
@@ -368,10 +408,14 @@ class InterfaceMixin(Threading):
         self.publisher.send_velocity(Twist())  # stop
 
         time.sleep(0.5)  # final safety buffer
-
+        
     # ===================================================================
     # SERVICE COMMANDS
     # ===================================================================
+    
+    async def reset_navigation_async(self):
+        """Exact same signature as reset_navigation()"""
+        return await self._run_sync_method(self.reset_navigation)
 
     def reset_navigation(self) -> None:
         """Request the robot to reset its position and heading to (0, 0, 0°).

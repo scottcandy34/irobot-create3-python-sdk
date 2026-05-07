@@ -3,6 +3,7 @@
 # Created by scottcandy34
 #
 
+import asyncio
 import time
 from threading import Thread
 
@@ -69,3 +70,10 @@ class Threading(Logger):
         """
         self._executor.add_node(self.node)
         self._executor.spin()
+        
+    async def _run_sync_method(self, method, *args, **kwargs):
+        """Internal helper: safely runs any synchronous method in the async loop."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, lambda: method(*args, **kwargs)
+        )

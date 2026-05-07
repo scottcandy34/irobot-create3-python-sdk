@@ -7,11 +7,11 @@ from create3.models.common import Nodes
 from create3.models.robot import Tasks
 from create3.utils import robot as tools
 from create3.utils.common.other import TIMEOUT
-from create3.utils import rclpy, Watchdog, get_watchdog
+from create3.utils import rclpy, AsyncEventMixin, Watchdog, get_watchdog
 from create3.scheduler import TaskScheduler, get_task_scheduler
 from create3.ros.robot import InterfaceMixin
 
-class RobotNode(InterfaceMixin):
+class RobotNode(InterfaceMixin, AsyncEventMixin):
     """Main robot node for the iRobot Create3.
 
     Combines everything needed to control the physical robot:

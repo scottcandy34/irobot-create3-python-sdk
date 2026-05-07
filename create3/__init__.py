@@ -6,3 +6,4 @@
 from .nodes import RobotNode, CompanionNode, RemoteNode
 from . import utils
 from .scheduler import TaskScheduler
+from .events import event
