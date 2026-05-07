@@ -14,6 +14,9 @@ def ir_lightring_task(scheduler: "TaskScheduler") -> None:
     lightring task, but driven by IR instead.
     """
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    
+    if robot is None:
+        return
 
     # No IR data available → do nothing
     if not robot.get_ir_proximity():

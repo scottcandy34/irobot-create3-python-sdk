@@ -89,7 +89,7 @@ class InterfaceMixin(Threading):
         led_msg.override_system = True
         led_msg.leds = [led] * 6
 
-        self.publisher.lightring(led_msg)
+        self.publisher.lightring = led_msg
 
     def set_lights(self, leds: list[LedColor]) -> None:
         """Set each of the six LEDs to a custom color.
@@ -100,7 +100,7 @@ class InterfaceMixin(Threading):
         led_msg.override_system = True
         led_msg.leds = leds
 
-        self.publisher.lightring(led_msg)
+        self.publisher.lightring = led_msg
 
     def set_lights_off(self) -> None:
         """Turn off all Lightring LEDs."""
@@ -117,7 +117,7 @@ class InterfaceMixin(Threading):
         twist.linear.x = ((right_wheel + left_wheel) / 100.0) / 2.0
         twist.angular.z = (right_wheel - left_wheel) / tools.constraints.WHEEL_DISTANCE_APART
 
-        self.publisher.velocity(twist)
+        self.publisher.velocity = twist
 
     def set_left_speed(self, speed: float | int) -> None:
         """Set only the left wheel speed in cm/s (right wheel is kept from last command)."""

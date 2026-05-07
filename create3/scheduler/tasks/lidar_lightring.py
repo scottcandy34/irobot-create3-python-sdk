@@ -10,6 +10,9 @@ def lidar_lightring_task(scheduler: "TaskScheduler") -> None:
     """Update the robot's lightring LEDs based on the closest LiDAR obstacle."""
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    
+    if robot is None or companion is None:
+        return
 
     if not companion.get_scans():
         return

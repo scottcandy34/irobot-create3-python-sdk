@@ -13,6 +13,9 @@ def simple_wall_follower_task(scheduler: "TaskScheduler") -> None:
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    
+    if robot is None or companion is None:
+        return
 
     if not companion.get_scans():
         return

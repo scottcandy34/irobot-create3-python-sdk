@@ -24,6 +24,9 @@ def generate_coords_task(scheduler: "TaskScheduler") -> None:
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
     
+    if robot is None or companion is None:
+        return
+    
     # Get latest stamped LiDAR data
     lidar_stamped: Stamped[Lidar] = companion.subscriber.lidar
 

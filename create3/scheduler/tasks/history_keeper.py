@@ -22,6 +22,9 @@ def history_keeper_task(scheduler: "TaskScheduler") -> None:
     companion: CompanionNode | None = scheduler._get_device(Nodes.CREATE3_COMPANION)
     robot: RobotNode | None = scheduler._get_device(Nodes.CREATE3_ROBOT)
     remote: RemoteNode | None = scheduler._get_device(Nodes.CREATE3_REMOTE)
+    
+    if robot is None or remote is None or companion is None:
+        return
 
     # Collect all subscription message containers
     containers = []
