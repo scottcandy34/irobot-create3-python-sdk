@@ -15,6 +15,7 @@ from create3.utils import rclpy
 from create3.utils import Logger
 from create3.models.common import Nodes
 from create3.utils import Threading
+from create3.events import GlobalEventHandler
 from .registry import get_task_callback, ensure_requirements, get_tasks_requiring_device
 
 class TaskScheduler(Logger):
@@ -143,9 +144,11 @@ class TaskScheduler(Logger):
             return self._outputs.get(task)
 
     def set_task_output(self, task: Any, value: Any) -> None:
-        """Thread-safe write to outputs."""
+        """Thread-safe write to outputs + fire event for listeners."""
         with self._lock:
             self._outputs[task] = value
+
+        GlobalEventHandler.emit_task(task, self, value)
 
     def _blank_task(self) -> None:
         """Empty placeholder task (kept for API compatibility)."""

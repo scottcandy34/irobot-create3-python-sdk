@@ -1,14 +1,19 @@
 import asyncio
 import threading
 import atexit
-from typing import Callable, Dict, Set
+from typing import Any, Callable, Dict, Set
 
 class GlobalEventHandler:
     """Central async event bus for all @event.when_xxx handlers."""
     _instance = None
     _loop: asyncio.AbstractEventLoop | None = None
     _thread: threading.Thread | None = None
+
+    # Regular when_xxx events
     _handlers: Dict[str, Set[Callable]] = {}
+    # New: task-specific handlers (keyed by the actual Tasks enum member)
+    _task_handlers: Dict[Any, Set[Callable]] = {}
+
     _lock = threading.Lock()
 
     def __new__(cls):
@@ -63,10 +68,28 @@ class GlobalEventHandler:
                 asyncio.create_task(handler(*args, **kwargs))
 
         cls._loop.call_soon_threadsafe(run_emit)
+        
+    @classmethod
+    def register_task(cls, task: Any, handler: Callable):
+        """Register a handler for a specific scheduler task output."""
+        cls._task_handlers.setdefault(task, set()).add(handler)
+
+    @classmethod
+    def emit_task(cls, task: Any, *args, **kwargs):
+        """Emit a task-output event (called from scheduler)."""
+        if cls._loop is None or task not in cls._task_handlers:
+            return
+
+        def run_emit():
+            for handler in list(cls._task_handlers[task]):
+                asyncio.create_task(handler(*args, **kwargs))
+
+        cls._loop.call_soon_threadsafe(run_emit)
 
 
 class EventNamespace:
-    """Global events: @event.when_play"""
+    """Global events: @event.when_play, @event.when_tasks(...), etc."""
+
     def __getattr__(self, name: str):
         if name.startswith("when_"):
             def decorator(func: Callable):
@@ -76,6 +99,21 @@ class EventNamespace:
                 return func
             return decorator
         raise AttributeError(f"event has no attribute '{name}'")
+
+    def when_tasks(self, task: Any):
+        """Decorator for task scheduler outputs.
+
+        Usage:
+            @event.when_tasks(CompanionTasks.GENERATE_COORDS)
+            async def handler(scheduler: TaskScheduler, output: Any):
+                ...
+        """
+        def decorator(func: Callable):
+            if not asyncio.iscoroutinefunction(func):
+                raise TypeError("@event.when_tasks handler must be async def")
+            GlobalEventHandler.register_task(task, func)
+            return func
+        return decorator
 
     def trigger(self, event_name: str, *args, **kwargs):
         """Fire a global event (for testing or manual triggering).
