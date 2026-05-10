@@ -1,16 +1,16 @@
 from .subscribers import Subscriber
 from .publishers import Publisher
-from create3.utils import Node, Threading, remote as tools
+from create3.utils import Threading, remote as tools
 from create3.models.remote import Controller, Map, Yolo
 
 class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RemoteNode."""
-    def __init__(self, node: Node):
-        super().__init__(node)  # initialize Threading + Logger
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         
         # Create internal components
-        self.subscriber = Subscriber(node)
-        self.publisher = Publisher(node)
+        self.subscriber = Subscriber(self.node)
+        self.publisher = Publisher(self.node)
         self.actions = None
         self.services = None
         

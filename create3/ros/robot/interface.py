@@ -11,20 +11,20 @@ from .subscribers import Subscriber
 from .publishers import Publisher
 from .actions import ActionClient
 from .services import ServiceClient
-from create3.utils import Threading, Node, robot as tools
+from create3.utils import Threading, robot as tools
 from create3.utils.common.other import DEFAULT_WAIT
 from create3.utils.common.coords import convert_to_quaternion, find_direction
 
 class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RobotNode."""
-    def __init__(self, node: Node):
-        super().__init__(node)  # initialize Threading + Logger
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         
         # Create internal components
-        self.subscriber = Subscriber(node)
-        self.publisher = Publisher(node)
-        self.actions = ActionClient(node)
-        self.services = ServiceClient(node)
+        self.subscriber = Subscriber(self.node)
+        self.publisher = Publisher(self.node)
+        self.actions = ActionClient(self.node)
+        self.services = ServiceClient(self.node)
         
     def is_alive(self) -> list[tuple[str, bool]]:
         """Return a list of all ROS interfaces belonging to this device.

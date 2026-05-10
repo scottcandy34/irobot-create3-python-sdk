@@ -33,11 +33,10 @@ class RemoteNode(InterfaceMixin):
         # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_REMOTE)
-        node._logger.name = "Computer"
 
         # Initialize the multiple-inheritance chain:
         # Publisher → Subscriber → Threading
-        super().__init__(node)  # calls Publisher then Subscriber
+        super().__init__(node, "Computer")  # calls Publisher then Subscriber
         node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools

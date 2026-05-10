@@ -7,7 +7,7 @@ from rclpy.client import Client
 from irobot_create_msgs.srv import ResetPose
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from create3.utils import Logger, Node
+from create3.utils import Logger
 from create3.models.robot import Services
 from create3.utils.common.other import TIMEOUT, DEFAULT_WAIT
 
@@ -22,7 +22,7 @@ class ServiceClient(Logger):
     The class also registers itself with the watchdog for interface monitoring.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the service client and wait for the required services.
 
         Parameters
@@ -30,7 +30,7 @@ class ServiceClient(Logger):
         node : Node
             The ROS node that owns this service client.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Use a mutually exclusive callback group so service calls never block
         # other callbacks (subscriptions, timers, etc.)

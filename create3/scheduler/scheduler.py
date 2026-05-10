@@ -32,10 +32,9 @@ class TaskScheduler(Logger):
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
         node = rclpy.create_node(Nodes.TASK_SCHEDULER)
-        node._logger.name = "Scheduler"
 
         # Initialize Logger parent
-        super().__init__(node)
+        super().__init__(node, "Scheduler")
 
         self.print(f"{node.get_name()} node is initiating... Waiting for tasks.")
 

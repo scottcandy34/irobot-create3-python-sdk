@@ -11,7 +11,7 @@ from yolo_msgs.msg import DetectionArray
 
 from create3.models.common import Stamped
 from create3.utils.common.other import TIMEOUT
-from create3.utils import Logger, MonitoredSubscription, Node
+from create3.utils import Logger, MonitoredSubscription
 from create3.models.remote import Controller, Map, Yolo, Subscribe, Topics
 
 from .callbacks import (
@@ -38,7 +38,7 @@ class Subscriber(Logger):
     interface monitoring.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize subscriptions for joystick input, occupancy grid, and YOLO detections.
 
         Parameters
@@ -46,7 +46,7 @@ class Subscriber(Logger):
         node : Node
             The ROS node that owns these subscriptions.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Shared container that holds the latest message data for every topic
         self.msgs: Subscribe = Subscribe()

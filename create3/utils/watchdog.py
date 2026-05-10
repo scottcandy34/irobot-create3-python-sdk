@@ -41,10 +41,9 @@ class Watchdog(Logger):
         # Create our own watchdog node (uses the custom rclpy)
         rclpy.init()
         node = rclpy.create_node(Nodes.ROS_WATCHDOG)
-        node._logger.name = "Watchdog"
 
         # Initialize Logger parent with our node
-        super().__init__(node)
+        super().__init__(node, "Watchdog")
 
         self.print(f"{node.get_name()} node is initiating... Watching Topics, Services and Actions.")
         
