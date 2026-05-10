@@ -31,7 +31,6 @@ elif (script_dir.parent / "create3").exists():
 # =============================================================================
 
 from create3 import RobotNode, CompanionNode
-from create3.scheduler import TaskScheduler
 from create3.utils.display import PointCloudVisualizer
 from create3.models.common import Tasks
 
@@ -39,23 +38,17 @@ def main() -> None:
     """Run the live LiDAR coordinate points visualizer example."""
 
     # Initialize nodes
-    robot = RobotNode()
-    companion = CompanionNode()
-
-    # Create task scheduler and register devices
-    task_scheduler = TaskScheduler()
-    task_scheduler.add_device(robot)
-    task_scheduler.add_device(companion)
+    robot = RobotNode(enable_scheduler=True)
+    companion = CompanionNode(enable_scheduler=True)
 
     # Start the coordinate generation task
-    task_scheduler.add_task(Tasks.HISTORY_KEEPER)
-    task_scheduler.add_task(companion.tasks.GENERATE_COORDS)
+    robot.scheduler.add_task(Tasks.HISTORY_KEEPER)
+    robot.scheduler.add_task(companion.tasks.GENERATE_COORDS)
 
     # Launch live point cloud visualizer
-    PointCloudVisualizer(get_point_cloud=lambda: task_scheduler.get_task_output(companion.tasks.GENERATE_COORDS), robot=robot)
+    PointCloudVisualizer(get_point_cloud=lambda: robot.scheduler.get_task_output(companion.tasks.GENERATE_COORDS), robot=robot)
 
     # Clean shutdown (reached when visualizer window is closed)
-    task_scheduler.shutdown()
     robot.shutdown()
     companion.shutdown()
 

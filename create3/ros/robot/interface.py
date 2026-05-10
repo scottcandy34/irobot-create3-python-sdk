@@ -1,6 +1,5 @@
 import math
 import time
-from typing import TYPE_CHECKING
 
 from geometry_msgs.msg import Twist
 from builtin_interfaces.msg import Duration
@@ -12,26 +11,26 @@ from .subscribers import Subscriber
 from .publishers import Publisher
 from .actions import ActionClient
 from .services import ServiceClient
-from create3.utils import Threading, Node, robot as tools
+from create3.utils import Threading, robot as tools
 from create3.utils.common.other import DEFAULT_WAIT
 from create3.utils.common.coords import convert_to_quaternion, find_direction
 
-class Interface(Threading if TYPE_CHECKING else object):
+class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RobotNode."""
-    def __init__(self, node: Node):
-        super().__init__(node)  # initialize Threading + Logger
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         
         # Create internal components
-        self.subscriber = Subscriber(node)
-        self.publisher = Publisher(node)
-        self.actions = ActionClient(node)
-        self.services = ServiceClient(node)
+        self.subscriber = Subscriber(self.node)
+        self.publisher = Publisher(self.node)
+        self.actions = ActionClient(self.node)
+        self.services = ServiceClient(self.node)
         
     def is_alive(self) -> list[tuple[str, bool]]:
         """Return a list of all ROS interfaces belonging to this device.
 
         Format: list of `(interface_name, True)` tuples.
-        Used by the Debugger to track which interfaces are present.
+        Used by the Watchdog to track which interfaces are present.
         """
         subs = [(sub.topic_name, True) for sub in self.subscriber.topics]
         pubs = [(pub.topic_name, True) for pub in self.publisher.topics]
@@ -90,7 +89,7 @@ class Interface(Threading if TYPE_CHECKING else object):
         led_msg.override_system = True
         led_msg.leds = [led] * 6
 
-        self.publisher.lightring(led_msg)
+        self.publisher.lightring = led_msg
 
     def set_lights(self, leds: list[LedColor]) -> None:
         """Set each of the six LEDs to a custom color.
@@ -101,7 +100,7 @@ class Interface(Threading if TYPE_CHECKING else object):
         led_msg.override_system = True
         led_msg.leds = leds
 
-        self.publisher.lightring(led_msg)
+        self.publisher.lightring = led_msg
 
     def set_lights_off(self) -> None:
         """Turn off all Lightring LEDs."""
@@ -118,7 +117,7 @@ class Interface(Threading if TYPE_CHECKING else object):
         twist.linear.x = ((right_wheel + left_wheel) / 100.0) / 2.0
         twist.angular.z = (right_wheel - left_wheel) / tools.constraints.WHEEL_DISTANCE_APART
 
-        self.publisher.velocity(twist)
+        self.publisher.velocity = twist
 
     def set_left_speed(self, speed: float | int) -> None:
         """Set only the left wheel speed in cm/s (right wheel is kept from last command)."""

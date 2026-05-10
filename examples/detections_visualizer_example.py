@@ -24,7 +24,6 @@ elif (script_dir.parent / "create3").exists():
     sys.path.insert(0, str(script_dir.parent))
 
 from create3 import RobotNode, CompanionNode
-from create3.scheduler import TaskScheduler
 from create3.models.common import Tasks
 from create3.utils.display import DetectionsVisualizer
 
@@ -32,26 +31,20 @@ from create3.utils.display import DetectionsVisualizer
 def main() -> None:
     """Run the live wall detections visualizer example."""
 
-    robot = RobotNode()
-    companion = CompanionNode()
-
-    scheduler = TaskScheduler()
-    scheduler.add_device(robot)
-    scheduler.add_device(companion)
+    robot = RobotNode(enable_scheduler=True)
+    companion = CompanionNode(enable_scheduler=True)
 
     # Start only the tasks needed for wall detection
-    scheduler.add_task(Tasks.HISTORY_KEEPER)
-    scheduler.add_task(companion.tasks.GENERATE_COORDS)
-    scheduler.add_task(companion.tasks.WALL_DETECTION)
+    robot.scheduler.add_task(Tasks.HISTORY_KEEPER)
+    robot.scheduler.add_task(companion.tasks.WALL_DETECTION)
 
     # Launch visualizer (only walls + robot pose)
     DetectionsVisualizer(
         robot=robot,
-        get_walls=lambda: scheduler.get_task_output(companion.tasks.WALL_DETECTION),
+        get_walls=lambda: robot.scheduler.get_task_output(companion.tasks.WALL_DETECTION),
     )
 
     # Clean shutdown when visualizer window is closed
-    scheduler.shutdown()
     robot.shutdown()
     companion.shutdown()
 

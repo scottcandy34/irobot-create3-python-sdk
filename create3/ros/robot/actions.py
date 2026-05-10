@@ -8,7 +8,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.action import NavigateToPosition, DriveArc, DriveDistance, RotateAngle, Dock, Undock, LedAnimation, AudioNoteSequence
 
 from create3.models.robot import Actions
-from create3.utils import Logger, Node
+from create3.utils import Logger
 from create3.utils.common.other import TIMEOUT
 
 from .callbacks import (
@@ -25,10 +25,10 @@ class ActionClient(Logger):
 
     All action clients use a mutually exclusive callback group so they never
     interfere with subscriptions or other callbacks. The class also registers
-    itself with the debugger for interface monitoring.
+    itself with the watchdog for interface monitoring.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize all action clients and wait for the servers to become available.
 
         Parameters
@@ -36,7 +36,7 @@ class ActionClient(Logger):
         node : Node
             The ROS node that owns these action clients.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         self._use_goal = True
 
@@ -44,7 +44,7 @@ class ActionClient(Logger):
         # other callbacks (subscriptions, timers, etc.)
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register with debugger for interface monitoring
+        # Register with watchdog for interface monitoring
         self.clients: list[CreateActionClient] = []
         
     def find(self, name: Actions) -> CreateActionClient:

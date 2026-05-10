@@ -15,7 +15,7 @@ from create3.utils import rclpy
 from create3.utils import Logger
 from create3.models.common import Nodes
 from create3.utils import Threading
-from .registry import get_task_callback, check_requirements
+from .registry import get_task_callback, ensure_requirements, get_tasks_requiring_device
 
 class TaskScheduler(Logger):
     """Background task scheduler for the iRobot Create3.
@@ -32,10 +32,9 @@ class TaskScheduler(Logger):
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
         node = rclpy.create_node(Nodes.TASK_SCHEDULER)
-        node._logger.name = "Scheduler"
 
         # Initialize Logger parent
-        super().__init__(node)
+        super().__init__(node, "Scheduler")
 
         self.print(f"{node.get_name()} node is initiating... Waiting for tasks.")
 
@@ -62,24 +61,26 @@ class TaskScheduler(Logger):
 
         if not self._find_device(device_name):
             self._devices[device_name] = device
-            self.print_notice(f"Added {device_name} device to the Schedular.")
-        else:
-            self.print_warning(
-                f"{device_name} device is already added to the Schedular. "
-                "Cannot add more than one of the same device."
-            )
 
     def remove_device(self, device: Threading) -> bool:
-        """Remove a device from the scheduler."""
+        """Remove a device AND automatically stop/remove all tasks that depend on it.
+        Then auto-shutdown the scheduler if nothing is left (exactly like Watchdog)."""
         device_name = device.get_name()
 
-        if self._find_device(device_name):
-            self._devices.pop(device_name)
-            self.print_notice(f"Removed {device_name} device from the Schedular.")
-            return True
+        if not self._find_device(device_name):
+            self.print_warning(f"{device_name} device is not found in the Scheduler. Cannot remove.")
+            return False
 
-        self.print_warning(f"{device_name} device is not found in the Schedular. Cannot remove.")
-        return False
+        # Remove the device
+        self._devices.pop(device_name)
+
+        # NEW: Auto-stop every task that required this device
+        for task in get_tasks_requiring_device(device_name):
+            if self._find_task(task):
+                self.remove_task(task)          # re-uses your existing remove_task
+                self.print_notice(f"Auto-stopped dependent task '{task}' because {device_name} was removed.")
+
+        return True
 
     def _find_task(self, task) -> bool:
         """Return True if the task is currently registered."""
@@ -90,7 +91,7 @@ class TaskScheduler(Logger):
 
         The task will be executed at the given frequency (Hz) using a ROS timer.
         """
-        if not check_requirements(self, task):
+        if not ensure_requirements(self, task):
             return
 
         if not self._find_task(task):
@@ -159,8 +160,62 @@ class TaskScheduler(Logger):
         self.print_warning(f"{self.node.get_name()} node has shutdown.")
         self.node.destroy_node()
         rclpy.shutdown()
+        
+    def stop(self, device: Threading) -> None:
+        """Stop watching a device and shut down the scheduler if no devices remain."""
+        self.remove_device(device)
+
+        if not self._devices:
+            self.shutdown()
 
     def _spin(self) -> None:
         """Internal background thread that runs the ROS executor."""
         self._executor.add_node(self.node)
         self._executor.spin()
+        
+# =============================================================================
+# GLOBAL TASK SCHEDULER (Lazy Initialization)
+# =============================================================================
+
+_global_task_scheduler_instance: "TaskScheduler | None" = None
+
+
+class _GlobalTaskSchedulerProxy:
+    """Proxy object that creates the real TaskScheduler **only** on first use.
+
+    This gives you the exact same convenient global access pattern as
+    global_watchdog:
+
+        from create3.scheduler.scheduler import global_task_scheduler
+
+        global_task_scheduler.add_task(...)
+        global_task_scheduler.start()
+        # etc.
+
+    No ROS node, no threads, no resource usage until you actually touch it.
+    """
+    def __getattr__(self, name: str):
+        global _global_task_scheduler_instance
+        if _global_task_scheduler_instance is None:
+            _global_task_scheduler_instance = TaskScheduler()
+        return getattr(_global_task_scheduler_instance, name)
+
+    def __setattr__(self, name: str, value):
+        global _global_task_scheduler_instance
+        if _global_task_scheduler_instance is None:
+            _global_task_scheduler_instance = TaskScheduler()
+        return setattr(_global_task_scheduler_instance, name, value)
+
+
+# Public global instance — usage stays clean and familiar
+global_task_scheduler = _GlobalTaskSchedulerProxy()
+
+
+# Optional: explicit getter (recommended for new code or when you want
+# to pass parameters on first creation)
+def get_task_scheduler() -> "TaskScheduler":
+    """Get (and lazily create) the global task scheduler instance."""
+    global _global_task_scheduler_instance
+    if _global_task_scheduler_instance is None:
+        _global_task_scheduler_instance = TaskScheduler()
+    return _global_task_scheduler_instance

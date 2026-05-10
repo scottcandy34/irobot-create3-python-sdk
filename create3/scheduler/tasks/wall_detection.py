@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import CompanionNode
 
 if TYPE_CHECKING:
+    from create3 import CompanionNode
     from create3.scheduler import TaskScheduler
 
 def wall_detection_task(scheduler: "TaskScheduler") -> None:
@@ -13,6 +13,10 @@ def wall_detection_task(scheduler: "TaskScheduler") -> None:
     """
     companion: CompanionNode = scheduler._get_device(Nodes.CREATE3_COMPANION)
     coords: list[tuple[float, float]] | None = scheduler.get_task_output(companion.tasks.GENERATE_COORDS)
+    
+    if companion is None:
+        return
+    
     if coords is None:
         return
 

@@ -2,7 +2,7 @@ import datetime
 
 from setuptools import setup, find_packages
 
-readme = open("readme.md").read()
+readme = open("README.md").read()
 
 fp = open("create3/__version__.py", "r").read()
 VERSION = eval(fp.strip().split()[-1])

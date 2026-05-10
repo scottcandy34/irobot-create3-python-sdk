@@ -1,18 +1,16 @@
-from typing import TYPE_CHECKING
-
 from .subscribers import Subscriber
 from .publishers import Publisher
-from create3.utils import Node, Threading, remote as tools
+from create3.utils import Threading, remote as tools
 from create3.models.remote import Controller, Map, Yolo
 
-class Interface(Threading if TYPE_CHECKING else object):
+class InterfaceMixin(Threading):
     """Mixin that exposes all user-facing methods for the RemoteNode."""
-    def __init__(self, node: Node):
-        super().__init__(node)  # initialize Threading + Logger
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         
         # Create internal components
-        self.subscriber = Subscriber(node)
-        self.publisher = Publisher(node)
+        self.subscriber = Subscriber(self.node)
+        self.publisher = Publisher(self.node)
         self.actions = None
         self.services = None
         
@@ -20,7 +18,7 @@ class Interface(Threading if TYPE_CHECKING else object):
         """Return a list of all ROS interfaces belonging to this device.
 
         Format: list of `(interface_name, True)` tuples.
-        Used by the Debugger to track which interfaces are present.
+        Used by the Watchdog to track which interfaces are present.
         """
         subs = [(sub.topic_name, True) for sub in self.subscriber.topics]
         pubs = [(pub.topic_name, True) for pub in self.publisher.topics]

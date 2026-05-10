@@ -9,7 +9,7 @@ from geometry_msgs.msg import Twist
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from irobot_create_msgs.msg import LightringLeds, AudioNoteVector
 
-from create3.utils import Logger, Node
+from create3.utils import Logger
 from create3.models.robot import Publish, Topics
 
 from .callbacks import (
@@ -38,7 +38,7 @@ class Publisher(Logger):
     for LEDs and audio).
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize all publishers and background publish timers.
 
         Parameters
@@ -46,7 +46,7 @@ class Publisher(Logger):
         node : Node
             The ROS node that owns these publishers.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Shared container that holds the latest messages to be published
         self.msgs: Publish = Publish()
@@ -58,7 +58,7 @@ class Publisher(Logger):
         self.node.create_timer(0.05, lambda: set_velocity_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
         self.node.create_timer(0.05, lambda: publish_handler_callback(self), callback_group=MutuallyExclusiveCallbackGroup())
 
-        # Register publishers with the debugger for interface monitoring
+        # Register publishers with the watchdog for interface monitoring
         self.topics: list[Publishing] = []
         
     def find(self, name: Topics) -> Publishing:

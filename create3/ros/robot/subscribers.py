@@ -10,7 +10,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, Durabilit
 from irobot_create_msgs.msg import IrIntensityVector, HazardDetectionVector, InterfaceButtons, DockStatus, IrOpcode
 
 from create3.utils.common.other import TIMEOUT
-from create3.utils import Logger, MonitoredSubscription, Node
+from create3.utils import Logger, MonitoredSubscription
 from create3.models.common import Position, Stamped
 from create3.models.robot import HazardBumper, HazardCliff, Acceleration, DockingValues, Subscribe, RobotButtons, Topics
 
@@ -40,11 +40,11 @@ class Subscriber(Logger):
     the most recent data in a shared `_subscription_msgs` container.
 
     All callbacks run inside a `MutuallyExclusiveCallbackGroup` so they never
-    block each other. The class also registers itself with the debugger for
+    block each other. The class also registers itself with the watchdog for
     uptime and interface monitoring.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the subscriber and create all ROS topic subscriptions.
 
         Parameters
@@ -52,7 +52,7 @@ class Subscriber(Logger):
         node : Node
             The ROS node that owns these subscriptions.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Shared container that holds the latest message data for every topic
         self.msgs: Subscribe = Subscribe()
@@ -60,7 +60,7 @@ class Subscriber(Logger):
         # Use a mutually exclusive callback group so callbacks never block each other
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register all subscriptions with the debugger for uptime monitoring
+        # Register all subscriptions with the watchdog for uptime monitoring
         self.topics: list[MonitoredSubscription] = []
         
     def find(self, name: Topics) -> MonitoredSubscription:

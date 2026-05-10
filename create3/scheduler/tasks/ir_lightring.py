@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from create3.models.common import Nodes
-from create3 import RobotNode
 
 if TYPE_CHECKING:
+    from create3 import RobotNode
     from create3.scheduler import TaskScheduler
 
 def ir_lightring_task(scheduler: "TaskScheduler") -> None:
@@ -14,6 +14,9 @@ def ir_lightring_task(scheduler: "TaskScheduler") -> None:
     lightring task, but driven by IR instead.
     """
     robot: RobotNode = scheduler._get_device(Nodes.CREATE3_ROBOT)
+    
+    if robot is None:
+        return
 
     # No IR data available → do nothing
     if not robot.get_ir_proximity():

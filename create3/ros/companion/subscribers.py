@@ -3,7 +3,6 @@
 # Created by scottcandy34
 #
 
-from rclpy.node import Node
 from sensor_msgs.msg import LaserScan, Range
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, LivelinessPolicy, DurabilityPolicy
@@ -30,11 +29,11 @@ class Subscriber(Logger):
 
     Handles the `/scan` (LaserScan) and `/range` (Range) topics.
     All callbacks run inside a mutually exclusive callback group so they never
-    block each other. The class also registers itself with the debugger for
+    block each other. The class also registers itself with the watchdog for
     uptime and interface monitoring.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize subscriptions for LiDAR scan and ultrasonic range data.
 
         Parameters
@@ -42,7 +41,7 @@ class Subscriber(Logger):
         node : Node
             The ROS node that owns these subscriptions.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Shared container that holds the latest message data for every topic
         self.msgs: Subscribe = Subscribe()
@@ -50,7 +49,7 @@ class Subscriber(Logger):
         # Use a mutually exclusive callback group so callbacks never block each other
         self.callback_group = MutuallyExclusiveCallbackGroup()
 
-        # Register all subscriptions with the debugger for uptime monitoring
+        # Register all subscriptions with the watchdog for uptime monitoring
         self.topics: list[MonitoredSubscription] = []
         
     def find(self, name: Topics) -> MonitoredSubscription:

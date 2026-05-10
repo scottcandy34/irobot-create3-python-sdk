@@ -23,8 +23,8 @@ class Nodes(StrEnum):
     """Remote control node — runs on a laptop or computer and handles joystick
     input, high-level commands, and remote operation."""
 
-    ROS_DEBUGGER = auto()
-    """Global debugger node — monitors all attached nodes and logs warnings
+    ROS_WATCHDOG = auto()
+    """Global watchdog node — monitors all attached nodes and logs warnings
     or errors when ROS interfaces are missing or misbehaving."""
 
     TASK_SCHEDULER = auto()
