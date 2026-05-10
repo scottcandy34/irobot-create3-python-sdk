@@ -2,8 +2,8 @@ import asyncio
 from typing import Callable, Dict, Set
 
 class AsyncEventMixin:
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self._local_handlers: Dict[str, Set[Callable]] = {}
         self.event = self._create_event_namespace()   # ← gives you robot.event.when_xxx
 
