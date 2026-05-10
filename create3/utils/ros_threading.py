@@ -10,7 +10,6 @@ from threading import Thread
 from rclpy.executors import SingleThreadedExecutor
 
 from .logger import Logger
-from .node import Node
 
 class Threading(Logger):
     """ROS node threading helper with background spinning, timing utilities,
@@ -19,8 +18,7 @@ class Threading(Logger):
     Inherits from `Logger` so all colored logging methods (`print_healthy`,
     `print_error`, etc.) are available.
     """
-
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize threading support for a ROS node.
 
         Parameters
@@ -28,7 +26,7 @@ class Threading(Logger):
         node : Node
             The rclpy node this helper will manage.
         """
-        super().__init__(node)          # properly initialize parent Logger
+        super().__init__(*args, **kwargs)
 
     def time(self) -> int:
         """Return the current ROS clock time in nanoseconds."""

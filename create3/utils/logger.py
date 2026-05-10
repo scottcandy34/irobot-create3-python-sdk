@@ -25,7 +25,7 @@ class Logger:
         logger.print_error("Something went wrong")
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, name: str = None, *args, **kwargs) -> None:
         """Initialize the logger with a ROS node.
 
         Parameters
@@ -33,8 +33,11 @@ class Logger:
         node : Node
             The rclpy Node instance whose logger will be used.
         """
+        super().__init__(*args, **kwargs)
         self.node = node
-
+        if name:
+            self.node._logger.name = name
+            
     def print(self, msg: Any) -> None:
         """Log a message at INFO level (white/default color)."""
         self.node.get_logger().info(object_to_string(msg))

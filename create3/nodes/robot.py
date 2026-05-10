@@ -38,10 +38,9 @@ class RobotNode(InterfaceMixin, AsyncEventMixin):
         # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_ROBOT)
-        node._logger.name = "Create3"
 
         # Initialize the multiple-inheritance chain in the correct MRO order
-        super().__init__(node)  # ActionClient → ServiceClient → Publisher → Subscriber → Threading
+        super().__init__(node, "Create3")  # ActionClient → ServiceClient → Publisher → Subscriber → Threading
         node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools

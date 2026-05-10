@@ -3,7 +3,6 @@
 # Created by scottcandy34
 #
 
-from rclpy.node import Node
 from std_msgs.msg import Float32
 from rclpy.publisher import Publisher as Publishing
 from rclpy.qos import QoSProfile, ReliabilityPolicy
@@ -33,7 +32,7 @@ class Publisher(Logger):
 
     tools: Tools
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the servo publisher and background publish timer.
 
         Parameters
@@ -41,7 +40,7 @@ class Publisher(Logger):
         node : Node
             The ROS node that owns this publisher.
         """
-        super().__init__(node)  # initialize Threading + Logger
+        super().__init__(*args, **kwargs)
 
         # Shared container that holds the latest messages to be published
         self.msgs: Publish = Publish()

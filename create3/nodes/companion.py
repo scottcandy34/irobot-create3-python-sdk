@@ -35,11 +35,10 @@ class CompanionNode(InterfaceMixin, AsyncEventMixin):
         # Safe ROS initialization (only once)
         rclpy.init()
         node = rclpy.create_node(Nodes.CREATE3_COMPANION)
-        node._logger.name = "Raspberry"
 
         # Initialize the multiple-inheritance chain:
         # Publisher → Subscriber → Threading
-        super().__init__(node)
+        super().__init__(node, "Raspberry")
         node.wait_for_node(Nodes.CREATE3_ROBOT, TIMEOUT)
 
         self.tools = tools

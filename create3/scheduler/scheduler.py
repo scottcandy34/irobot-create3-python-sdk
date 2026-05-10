@@ -33,10 +33,9 @@ class TaskScheduler(Logger):
         # Create our own node using the safe rclpy wrapper
         rclpy.init()
         node = rclpy.create_node(Nodes.TASK_SCHEDULER)
-        node._logger.name = "Scheduler"
 
         # Initialize Logger parent
-        super().__init__(node)
+        super().__init__(node, "Scheduler")
 
         self.print(f"{node.get_name()} node is initiating... Waiting for tasks.")
 
@@ -63,12 +62,6 @@ class TaskScheduler(Logger):
 
         if not self._find_device(device_name):
             self._devices[device_name] = device
-            self.print_notice(f"Added {device_name} device to the Schedular.")
-        else:
-            self.print_warning(
-                f"{device_name} device is already added to the Schedular. "
-                "Cannot add more than one of the same device."
-            )
 
     def remove_device(self, device: Threading) -> bool:
         """Remove a device AND automatically stop/remove all tasks that depend on it.
@@ -81,7 +74,6 @@ class TaskScheduler(Logger):
 
         # Remove the device
         self._devices.pop(device_name)
-        self.print_notice(f"Removed {device_name} device from the Scheduler.")
 
         # NEW: Auto-stop every task that required this device
         for task in get_tasks_requiring_device(device_name):
