@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import atexit
+import warnings
 from typing import Any, Callable, Dict, Set
 
 class GlobalEventHandler:
@@ -63,7 +64,6 @@ class GlobalEventHandler:
             return
 
         def run_emit():
-            # Simple and clean: one task per handler (no gather needed)
             for handler in list(cls._handlers[event_name]):
                 asyncio.create_task(handler(*args, **kwargs))
 
@@ -107,11 +107,28 @@ class EventNamespace:
             @event.when_tasks(CompanionTasks.GENERATE_COORDS)
             async def handler(scheduler: TaskScheduler, output: Any):
                 ...
+
+        The referenced task is **automatically added** to the global_task_scheduler
+        (lazy initialization via the proxy). You no longer need to call
+        global_task_scheduler.add_task(...) manually.
         """
         def decorator(func: Callable):
             if not asyncio.iscoroutinefunction(func):
                 raise TypeError("@event.when_tasks handler must be async def")
+            
             GlobalEventHandler.register_task(task, func)
+            
+            # === LAZY LOAD THE TASK AUTOMATICALLY ===
+            try:
+                # Import inside decorator → no circular import with scheduler.py
+                from create3.scheduler.scheduler import global_task_scheduler
+                global_task_scheduler.add_task(task)
+            except Exception as e:
+                warnings.warn(
+                    f"Could not auto-add task '{task}' to scheduler: {e}",
+                    RuntimeWarning,
+                )
+            
             return func
         return decorator
 
