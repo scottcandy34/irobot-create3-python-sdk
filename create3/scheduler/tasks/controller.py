@@ -21,7 +21,7 @@ def controller_task(scheduler: "TaskScheduler") -> None:
     remote: RemoteNode = scheduler._get_device(Nodes.CREATE3_REMOTE)
     companion: CompanionNode | None = scheduler._get_device(Nodes.CREATE3_COMPANION)
     
-    if robot is None or remote is None or companion is None:
+    if robot is None or remote is None:
         return
 
     ctrl = remote.get_controller()
